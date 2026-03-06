@@ -1,7 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import {
+  calculateEnrollmentProgress,
+  formatDisplayDate,
+  formatIntakeMonth,
+  getEnrollmentConfigServerSnapshot,
+  getEnrollmentConfigSnapshot,
+  subscribeEnrollmentConfig,
+} from "@/lib/enrollment";
 
 const courseTopics = [
   "Grammar & Vocabulary Fundamentals",
@@ -54,7 +62,6 @@ const pricingComparisonRows = [
   { label: "Color English Pro", price: "649,000₮", positive: true, sub: "2 сар + 8 сар нэмэлт эрхтэй" },
 ];
 
-const enrollmentProgress = 72;
 const roadmapItems = [
   {
     days: "Days 1-10",
@@ -190,6 +197,11 @@ function BookIcon() {
 export default function Home() {
   const [openFaq, setOpenFaq] = useState(1);
   const [copiedField, setCopiedField] = useState("");
+  const enrollmentConfig = useSyncExternalStore(
+    subscribeEnrollmentConfig,
+    getEnrollmentConfigSnapshot,
+    getEnrollmentConfigServerSnapshot
+  );
 
   const copyFieldValue = async (key: string, value: string) => {
     try {
@@ -228,6 +240,13 @@ export default function Home() {
     );
   };
 
+  const enrollmentProgress = calculateEnrollmentProgress(
+    enrollmentConfig.startDate,
+    enrollmentConfig.endDate
+  );
+  const intakeMonthLabel = formatIntakeMonth(enrollmentConfig.intakeMonth);
+  const enrollmentEndDate = formatDisplayDate(enrollmentConfig.endDate);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="sticky top-0 z-20 border-b border-zinc-800 bg-[#05070f]/95 backdrop-blur">
@@ -253,6 +272,9 @@ export default function Home() {
               </a>
               <a href="#pricing" className="transition hover:text-yellow-300">
                 ҮНЭ
+              </a>
+              <a href="/dashboard" className="transition hover:text-yellow-300">
+                DASHBOARD
               </a>
             </nav>
             <a
@@ -354,10 +376,10 @@ export default function Home() {
         >
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">
-              Элсэлтийн явц ({enrollmentProgress}% дүүрсэн)
+              Элсэлтийн явц ({intakeMonthLabel}) - {enrollmentProgress}%
             </h2>
             <span className="rounded-md bg-emerald-500/20 px-3 py-1 text-sm text-emerald-300">
-              Хаагдах: 03/30
+              Хаагдах: {enrollmentEndDate}
             </span>
           </div>
           <div className="h-4 w-full overflow-hidden rounded-full bg-zinc-800">
@@ -369,7 +391,7 @@ export default function Home() {
             />
           </div>
           <p className="mt-3 text-sm text-zinc-400">
-            Сүүлийн 28 суудлаас 20 нь захиалагдсан байна.
+            Суудлын тоогоор биш, бүртгэлийн огнооны явцаар автоматаар тооцогдоно.
           </p>
         </motion.section>
 
