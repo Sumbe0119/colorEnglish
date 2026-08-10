@@ -1,0 +1,676 @@
+// ColorEnglish — Prisma schema
+// Монгол хэлнээс Англи хэл сурах сургалтын платформ
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────────
+// ENUMS
+// ──────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  ADMIN
+  EDITOR // контент удирдах эрхтэй admin (бага эрхтэй)
+}
+
+enum LevelCode {
+  A1
+  A2
+  B1
+  B1_PLUS
+  B2
+  B2_PLUS
+  C1
+  C2
+}
+
+// 8 модулийн төрөл (001–008)
+enum ModuleType {
+  GRAMMAR // 001 Дүрэм
+  READING // 002 Унших
+  DICTATION_QUIZ // 003 Dictation & Quiz
+  SHADOWING // 004 Shadowing (Friends цуврал)
+  SPEAKING // 005 Ярих (AI chat)
+  WRITING // 006 Бичих (AI grading)
+  SENTENCE_SORT // 007 Sentence Sort
+  VOCABULARY // 008 Үгийн сан
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  FILL_BLANK
+  SENTENCE_ORDER
+  TRUE_FALSE
+  MATCHING
+  SHORT_ANSWER
+  AUDIO_DICTATION
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
+enum GoalInterest {
+  TRAVEL
+  WORK_CAREER
+  EXAM_IELTS_TOEFL
+  STUDY_ABROAD
+  DAILY_CONVERSATION
+  MOVIES_SERIES
+  BUSINESS
+  OTHER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELED
+  TRIAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELED
+  EXPIRED
+  FAILED
+}
+
+// ──────────────────────────────────────────────
+// USER & AUTH
+// ──────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  firstName     String?
+  lastName      String?
+  avatarUrl     String?
+  role          Role     @default(STUDENT)
+  isEmailVerified Boolean @default(false)
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+
+  // Харилцаа
+  profile           StudentProfile?
+  refreshTokens      RefreshToken[]
+  enrollments        Enrollment[]
+  lessonProgress     LessonProgress[]
+  examAttempts       ExamAttempt[]
+  speakingSessions   SpeakingSession[]
+  writingSubmissions WritingSubmission[]
+  vocabProgress      VocabularyProgress[]
+  subscription       Subscription?
+  payments           Payment[]
+  notifications      Notification[]
+  streak             StudyStreak?
+  readingWords       UserReadingWord[]
+  storyProgress      UserStoryProgress[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userAgent String?
+  ipAddress String?
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// Бүртгүүлэхэд авдаг "хэлний түвшин + сонирхлын судалгаа"
+model StudentProfile {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Onboarding судалгааны үр дүн
+  selfAssessedLevel LevelCode?   // хэрэглэгчийн өөрийгөө үнэлсэн түвшин
+  placementLevel    LevelCode?   // placement test-ээр тогтоосон бодит түвшин
+  currentLevel      LevelCode    @default(A1) // системд идэвхтэй сурч буй түвшин
+
+  interests        GoalInterest[] // сонирхлын судалгаа (олон сонголттой)
+  dailyGoalMinutes  Int           @default(30) // өдөрт зорьж буй минут
+  motivationNote    String?       // чөлөөт текст: "яагаад сурах гэж байгаа"
+
+  onboardingCompleted Boolean @default(false)
+  onboardingCompletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("student_profiles")
+}
+
+model StudyStreak {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveDate  DateTime?
+  totalActiveDays Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@map("study_streaks")
+}
+
+// ──────────────────────────────────────────────
+// CURRICULUM STRUCTURE: Level → Unit → Module → Lesson
+// ──────────────────────────────────────────────
+
+// 8 түвшин: A1, A2, B1, B1+, B2 гэх мэт
+model Level {
+  id          String    @id @default(cuid())
+  code        LevelCode @unique
+  title       String // "A1 - Анхан шат"
+  description String?
+  order       Int       @unique // эрэмбэ дараалал (1-8)
+  isPublished Boolean   @default(true)
+
+  units       Unit[]
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("levels")
+}
+
+// Түвшин доторх бүлэг сэдвүүд (жишээ нь "Unit 1: Танилцах")
+model Unit {
+  id          String   @id @default(cuid())
+  levelId     String
+  level       Level    @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int
+  isPublished Boolean  @default(true)
+
+  modules     LessonModule[]
+  exam        Exam?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([levelId, order])
+  @@map("units")
+}
+
+// Unit доторх 8 модулийн нэг instance (001-008)
+// Жишээ: Unit "Танилцах" доторх "Дүрэм" модуль
+model LessonModule {
+  id          String     @id @default(cuid())
+  unitId      String
+  unit        Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  type        ModuleType
+  code        String // "001".."008"
+  title       String
+  description String?
+  order       Int
+  isPublished Boolean    @default(true)
+
+  lessons     Lesson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([unitId, type])
+  @@map("lesson_modules")
+}
+
+// Бодит хичээлийн агуулга (модуль доторх нэг хичээл)
+model Lesson {
+  id          String       @id @default(cuid())
+  moduleId    String
+  module      LessonModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  order       Int
+  isPublished Boolean      @default(true)
+
+  // Контент (модулийн төрлөөс хамаарч ялгаатай ашиглагдана)
+  content       Json?    // дүрмийн тайлбар, унших текст гэх мэт rich content
+  audioUrl      String?  // Shadowing, Dictation-д
+  videoUrl      String?  // Дүрэм, Shadowing-ийн видео хичээл
+  estimatedMins Int      @default(10)
+
+  questions   Question[]
+  vocabItems  VocabularyItem[]
+  progress    LessonProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([moduleId, order])
+  @@map("lessons")
+}
+
+// ──────────────────────────────────────────────
+// QUESTIONS (Quiz, Dictation, Sentence Sort гэх мэт)
+// ──────────────────────────────────────────────
+
+model Question {
+  id            String       @id @default(cuid())
+  lessonId      String
+  lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type          QuestionType
+  order         Int
+
+  prompt        String       // асуултын текст
+  options       Json?        // multiple choice / matching сонголтууд
+  correctAnswer Json         // зөв хариулт(ууд)
+  explanation   String       // АЛДАХ үед харуулах "яагаад буруу" тайлбар (МАНДАТНЫ)
+  audioUrl      String?      // dictation-д ашиглах аудио
+  hint          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  answers     QuestionAnswer[]
+
+  @@unique([lessonId, order])
+  @@map("questions")
+}
+
+// ──────────────────────────────────────────────
+// PROGRESS TRACKING
+// ──────────────────────────────────────────────
+
+model Enrollment {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  levelId   String
+  level     Level     @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  startedAt DateTime  @default(now())
+  completedAt DateTime?
+  progressPercent Int @default(0)
+
+  @@unique([userId, levelId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status      AttemptStatus @default(IN_PROGRESS)
+  score       Int? // 0-100
+  attemptsCount Int         @default(0)
+  timeSpentSec  Int         @default(0)
+  completedAt   DateTime?
+
+  answers     QuestionAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+// Хэрэглэгчийн өгсөн хариулт бүр — алдсан үед яагаад алдсаныг харуулахад ашиглана
+model QuestionAnswer {
+  id              String         @id @default(cuid())
+  progressId      String
+  progress        LessonProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswer      Json
+  isCorrect       Boolean
+  shownExplanation String?       // тухайн оролдлогод харуулсан тайлбарын snapshot
+  answeredAt      DateTime       @default(now())
+
+  @@index([progressId])
+  @@map("question_answers")
+}
+
+// ──────────────────────────────────────────────
+// EXAMS (Түвшин дэвших шалгалт)
+// ──────────────────────────────────────────────
+
+model Exam {
+  id          String   @id @default(cuid())
+  unitId      String   @unique
+  unit        Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  title       String
+  passScore   Int      @default(80) // хувиар
+  timeLimitMin Int     @default(20)
+
+  questions   ExamQuestion[]
+  attempts    ExamAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("exams")
+}
+
+model ExamQuestion {
+  id            String       @id @default(cuid())
+  examId        String
+  exam          Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  type          QuestionType
+  order         Int
+  prompt        String
+  options       Json?
+  correctAnswer Json
+  explanation   String // алдсан үед заавал харуулна
+
+  @@unique([examId, order])
+  @@map("exam_questions")
+}
+
+model ExamAttempt {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examId      String
+  exam        Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  status      AttemptStatus @default(IN_PROGRESS)
+  scorePercent Int?
+  startedAt   DateTime      @default(now())
+  finishedAt  DateTime?
+
+  results     ExamResult[]
+
+  @@map("exam_attempts")
+}
+
+model ExamResult {
+  id              String      @id @default(cuid())
+  attemptId       String
+  attempt         ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  examQuestionId  String
+  userAnswer      Json
+  isCorrect       Boolean
+  explanationShown String     // алдсан тохиолдолд "яагаад буруу" тайлбар
+
+  @@map("exam_results")
+}
+
+// ──────────────────────────────────────────────
+// SPEAKING (AI chat) & WRITING (AI grading)
+// ──────────────────────────────────────────────
+
+model SpeakingSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic     String
+  levelCode LevelCode
+  messages  SpeakingMessage[]
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+
+  @@map("speaking_sessions")
+}
+
+model SpeakingMessage {
+  id          String          @id @default(cuid())
+  sessionId   String
+  session     SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        String // "user" | "assistant"
+  content     String
+  audioUrl    String?
+  corrections Json? // AI-н зассан алдааны жагсаалт {original, corrected, explanation}
+  createdAt   DateTime        @default(now())
+
+  @@map("speaking_messages")
+}
+
+model WritingSubmission {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt          String
+  originalText    String
+  correctedText   String?
+  feedback        Json? // {grammarErrors[], styleSuggestions[], betterAlternatives[]}
+  overallScore    Int? // 0-100
+  status          AttemptStatus @default(IN_PROGRESS)
+  createdAt       DateTime @default(now())
+  reviewedAt      DateTime?
+
+  @@map("writing_submissions")
+}
+
+// ──────────────────────────────────────────────
+// VOCABULARY (008 модуль — контекст дээр сурах)
+// ──────────────────────────────────────────────
+
+model VocabularyItem {
+  id            String   @id @default(cuid())
+  lessonId      String
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  word          String
+  partOfSpeech  String? // noun, verb, adj...
+  meaningMn     String // монгол орчуулга
+  exampleSentence String
+  colorTag      String? // "subject" | "verb" | "object" гэх мэт өнгөний ангилал
+  audioUrl      String?
+
+  progress      VocabularyProgress[]
+
+  createdAt DateTime @default(now())
+
+  @@map("vocabulary_items")
+}
+
+model VocabularyProgress {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabId     String
+  vocabItem   VocabularyItem @relation(fields: [vocabId], references: [id], onDelete: Cascade)
+  masteryLevel Int           @default(0) // 0-5 spaced repetition шат
+  nextReviewAt DateTime?
+  lastReviewedAt DateTime?
+
+  @@unique([userId, vocabId])
+  @@map("vocabulary_progress")
+}
+
+// ──────────────────────────────────────────────
+// SUBSCRIPTION / BILLING
+// ──────────────────────────────────────────────
+
+model Subscription {
+  id        String             @id @default(cuid())
+  userId    String             @unique
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// FREE | VIP_1_MONTH | admin-ийн custom code
+  plan      String             @default("FREE")
+  status    SubscriptionStatus @default(ACTIVE)
+  startedAt DateTime           @default(now())
+  expiresAt DateTime?
+  autoRenew Boolean            @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+// Админаас тохируулах багцын үнэ / хугацаа / хямдрал
+model PricingPlan {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  description     String?
+  priceMnt        Int
+  discountPercent Int      @default(0)
+  durationDays    Int
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payments  Payment[]
+
+  @@map("pricing_plans")
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             PricingPlan   @relation(fields: [planId], references: [id])
+  planCode         String
+  amountMnt        Int
+  listPriceMnt     Int
+  discountPercent  Int           @default(0)
+  durationDays     Int
+  status           PaymentStatus @default(PENDING)
+  senderInvoiceNo  String        @unique
+  qpayInvoiceId    String?
+  qpayPaymentId    String?
+  qrImage          String?       @db.Text
+  qrText           String?       @db.Text
+  shortUrl         String?
+  urlsJson         Json?
+  paidAt           DateTime?
+  subscriptionEnds DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([qpayInvoiceId])
+  @@map("payments")
+}
+
+// ──────────────────────────────────────────────
+// NOTIFICATIONS
+// ──────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// ──────────────────────────────────────────────
+// READING MVP — өгүүллэг + үгийн орчуулга
+// ──────────────────────────────────────────────
+
+model ReadingStory {
+  id             String              @id @default(cuid())
+  title          String
+  body           String              @default("") @db.Text // legacy / sync from chapters
+  coverUrl       String?
+  description    String?             @db.Text
+  author         String?
+  levelCode      LevelCode           @default(A1)
+  order          Int                 @default(1)
+  isPublished    Boolean             @default(false)
+  excludedWords  String[]            @default([])
+  words          ReadingWord[]
+  chapters       ReadingChapter[]
+  userWords      UserReadingWord[]
+  userProgress   UserStoryProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reading_stories")
+}
+
+model ReadingChapter {
+  id        String         @id @default(cuid())
+  storyId   String
+  story     ReadingStory   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  title     String
+  body      String         @db.Text
+  order     Int            @default(1)
+  /// false = цоожтой (Pro эсвэл админ unlock шаардлагатай). Default бүгд цоожтой.
+  isFree    Boolean        @default(false)
+  words     ReadingWord[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([storyId, order])
+  @@index([storyId])
+  @@map("reading_chapters")
+}
+
+model ReadingWord {
+  id              String         @id @default(cuid())
+  storyId         String
+  story           ReadingStory   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chapterId       String
+  chapter         ReadingChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  word            String
+  meaningMn       String
+  startOffset     Int
+  endOffset       Int
+  contextSentence String         @default("") @db.Text
+
+  @@unique([chapterId, startOffset, endOffset])
+  @@index([storyId])
+  @@index([chapterId])
+  @@map("reading_words")
+}
+
+model UserReadingWord {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyId       String
+  story         ReadingStory  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  readingWordId String?
+  word          String
+  meaningMn     String
+  createdAt     DateTime      @default(now())
+
+  @@unique([userId, storyId, word])
+  @@index([userId])
+  @@index([storyId])
+  @@map("user_reading_words")
+}
+
+model UserStoryProgress {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyId     String
+  story       ReadingStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  quizPassed  Boolean      @default(false)
+  racePassed  Boolean      @default(false)
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([userId, storyId])
+  @@index([userId])
+  @@map("user_story_progress")
+}

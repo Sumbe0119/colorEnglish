@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ce-bg: #070a12;
+    --ce-surface: #0c1220;
+    --ce-elevated: #141c2e;
+    --ce-border: #2a3a55;
+    --ce-brand: #4f8cff;
+    --ce-text: #f5f8fc;
+    --ce-muted: #8b9bb5;
+    --ce-scroll-size: 8px;
+    --ce-scroll-track: transparent;
+    --ce-scroll-thumb: rgba(42, 58, 85, 0.85);
+    --ce-scroll-thumb-hover: rgba(79, 140, 255, 0.55);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply text-mist-50 font-body antialiased;
+    /* n8n canvas шиг — хар бараан дэвсгэр + жижиг цагаан точкууд */
+    background-color: #070a12;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-brand/35 text-white;
+  }
+
+  /* Visible keyboard focus */
+  :focus-visible {
+    outline: 2px solid #4f8cff;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ce-scroll-thumb) var(--ce-scroll-track);
+  }
+
+  /* Chromium / Safari / Edge */
+  *::-webkit-scrollbar {
+    width: var(--ce-scroll-size);
+    height: var(--ce-scroll-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--ce-scroll-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--ce-scroll-thumb);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ce-scroll-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Нийтлэг гадаргуу — border илүү харагдана */
+  .ce-panel {
+    @apply rounded-2xl border border-ink-600/90 bg-ink-900/90 shadow-card;
+  }
+
+  .ce-panel-muted {
+    @apply rounded-xl border border-ink-600/70 bg-ink-800/80;
+  }
+
+  /* Гол контентын scroll бүс */
+  .ce-scroll {
+    scrollbar-gutter: stable;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
