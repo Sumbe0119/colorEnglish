@@ -18,6 +18,8 @@ export const ADMIN_CREATE_NAV = [
   },
 ] as const;
 
+export const ADMIN_CREATE_STEPS = ADMIN_CREATE_NAV.length;
+
 /** Зөвхөн ADMIN рольд харагдах — төлбөр / хэрэглэгч */
 export const ADMIN_MANAGE_NAV = [
   {

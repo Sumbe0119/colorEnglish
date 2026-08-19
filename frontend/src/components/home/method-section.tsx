@@ -11,7 +11,7 @@ export function MethodSection() {
       <div className="mx-auto max-w-5xl">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-mist-400">Арга барил</p>
         <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold text-mist-50">
-          Дүрмийг цээжлэхээс илүү — ойлгоход чиглэсэн "Төвтэй систем"
+          Дүрмийг цээжлэхээс илүү — ойлгоход чиглэсэн &ldquo;Төвтэй систем&rdquo;
         </h2>
         <p className="mt-4 max-w-2xl text-mist-300">
           Үгийн үүрэг, бүтэц, хэрэглээг өнгөөр ялгаж өгсөн тул өгүүлбэрийг бүхлээр нь ойлгох
