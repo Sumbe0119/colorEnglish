@@ -1,7 +1,7 @@
 # backend/docker-compose.yml
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15
     container_name: ${COMPOSE_PROJECT_NAME:-colorenglish}-postgres
     restart: unless-stopped
     ports:
