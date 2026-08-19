@@ -141,7 +141,13 @@ async function main() {
         isEmailVerified: true,
         profile: { create: { onboardingCompleted: true, currentLevel: 'A1' } },
         streak: { create: {} },
-        subscription: { create: { plan: 'VIP_6_MONTHS', status: 'ACTIVE' } },
+        subscription: {
+          create: {
+            plan: 'VIP_6_MONTHS',
+            status: 'ACTIVE',
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          },
+        },
       },
     });
     console.log(`👤 Admin: ${adminEmail} / ${adminPassword}`);

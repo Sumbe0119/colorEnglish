@@ -21,7 +21,9 @@ import { AppController } from './app.controller';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
-        process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.local',
+        process.env.NODE_ENV === 'production'
+          ? ['.env.prod', 'backend/.env.prod']
+          : ['.env.local', 'backend/.env.local'],
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
