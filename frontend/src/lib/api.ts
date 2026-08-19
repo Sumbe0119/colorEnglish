@@ -6,7 +6,7 @@ const TOKEN_KEY = 'ce_access_token';
 const API_BASE =
   typeof window !== 'undefined'
     ? '/api'
-    : `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api`;
+    : `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api`;
 
 export const api = axios.create({
   baseURL: API_BASE,

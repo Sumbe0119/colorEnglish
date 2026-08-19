@@ -51,7 +51,7 @@ export class SubscriptionsService {
   private publicApiBase() {
     return (
       this.config.get<string>('BACKEND_PUBLIC_URL') ||
-      `http://localhost:${this.config.get('PORT') ?? 4000}`
+      `http://localhost:${this.config.get('PORT') ?? 8080}`
     ).replace(/\/$/, '');
   }
 

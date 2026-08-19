@@ -30,7 +30,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  const port = process.env.PORT ?? 4000;
+  const port = process.env.PORT ?? 8080;
   await app.listen(port);
   console.log(`🚀 ColorEnglish API ажиллаж байна: http://localhost:${port}/api`);
   console.log(`📁 Uploads: ${UPLOADS_ROOT} → /api/uploads/`);
