@@ -1,8 +1,8 @@
 export const selectClass =
-  'w-full rounded-xl border border-ink-500 bg-ink-800 px-4 py-3 text-sm text-mist-50 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-50';
+  'w-full rounded-xl border border-ink-500 bg-ink-800 px-4 py-3 text-base text-mist-50 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-50';
 
 export const textareaClass =
-  'w-full rounded-xl border border-ink-500 bg-ink-800 px-4 py-3 text-sm text-mist-50 placeholder:text-mist-500 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40';
+  'w-full rounded-xl border border-ink-500 bg-ink-800 px-4 py-3 text-base text-mist-50 placeholder:text-mist-500 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40';
 
 export function FormField({
   label,

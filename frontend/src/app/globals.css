@@ -30,6 +30,15 @@
     background-attachment: fixed;
   }
 
+  /* iOS: font-size < 16px үед input focus дээр auto-zoom хийдэг — болиулах */
+  @media screen and (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
   ::selection {
     @apply bg-brand/35 text-white;
   }
