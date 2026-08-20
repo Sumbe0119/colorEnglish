@@ -114,7 +114,7 @@ export default function ReadingStoryOverviewPage() {
           )}
           {gateError.locked && (
             <Link
-              href="/billing"
+              href={`/billing?next=/reading/${id}`}
               className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-2 text-sm text-brand"
             >
               VIP нээх / төлбөр
@@ -340,7 +340,7 @@ export default function ReadingStoryOverviewPage() {
                       </span>
 
                       <Link
-                        href="/billing"
+                        href={`/billing?next=/reading/${story.id}`}
                         className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand/15 px-2.5 py-1.5 text-[11px] font-medium text-brand transition hover:bg-brand/25"
                       >
                         <Lock className="h-3 w-3" />
@@ -366,7 +366,7 @@ export default function ReadingStoryOverviewPage() {
             </Link>
           ) : chapters.length > 0 ? (
             <Link
-              href="/billing"
+              href={`/billing?next=/reading/${story.id}`}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-semibold text-ink-950"
             >
               <Lock className="h-4 w-4" />
@@ -432,7 +432,7 @@ export default function ReadingStoryOverviewPage() {
       ) : chapters.length > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-700/80 bg-ink-950/95 px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur-md sm:hidden">
           <Link
-            href="/billing"
+            href={`/billing?next=/reading/${story.id}`}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-brand py-3 text-sm font-semibold text-ink-950 transition active:scale-[0.98]"
           >
             <Lock className="h-4 w-4" />

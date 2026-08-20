@@ -39,8 +39,8 @@ module.exports = {
         warning: '#FFB020',
       },
       fontFamily: {
-        display: ['var(--font-ubuntu)', 'Arial', 'Helvetica', 'sans-serif'],
-        body: ['var(--font-ubuntu)', 'Arial', 'Helvetica', 'sans-serif'],
+        display: ['var(--font-ibm-plex-mono)', 'ui-monospace', 'monospace'],
+        body: ['var(--font-ibm-plex-mono)', 'ui-monospace', 'monospace'],
         mono: ['var(--font-jetbrains)', 'ui-monospace', 'monospace'],
       },
       borderRadius: {

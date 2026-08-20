@@ -2,10 +2,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { BillingPanel } from '@/components/billing/billing-panel';
 
 export default function BillingPage() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
+  const redirectTo = next && next.startsWith('/') ? next : null;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -21,7 +26,7 @@ export default function BillingPage() {
         </p>
       </div>
 
-      <BillingPanel compact />
+      <BillingPanel compact redirectTo={redirectTo} />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import { Ubuntu, JetBrains_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
-const ubuntu = Ubuntu({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin', 'cyrillic'],
-  variable: '--font-ubuntu',
+  variable: '--font-ibm-plex-mono',
   weight: ['300', '400', '500', '700'],
   style: ['normal', 'italic'],
   display: 'swap',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="mn" className={`${ubuntu.variable} ${jetbrainsMono.variable}`}>
+    <html lang="mn" className={`${ibmPlexMono.variable} ${jetbrainsMono.variable}`}>
       <body>
         <AuthProvider>{children}</AuthProvider>
         <Toaster />

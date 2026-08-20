@@ -164,6 +164,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   Профайл
                 </Link>
+                {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
+                  <Link
+                    href="/admin"
+                    className={`rounded-lg px-2.5 py-1.5 text-xs ${
+                      isAdmin ? 'bg-brand/20 text-brand' : 'text-mist-400'
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             </header>
 

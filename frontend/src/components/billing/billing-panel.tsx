@@ -2,6 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CreditCard, Loader2, RefreshCw, X } from 'lucide-react';
 import {
   checkPayment,
@@ -19,6 +20,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api-error';
 import { toast } from '@/store/toast-store';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { QpayBankLinks } from '@/components/billing/qpay-bank-links';
 
 function statusLabel(status: PaymentRecord['status']) {
@@ -38,7 +40,14 @@ function statusLabel(status: PaymentRecord['status']) {
   }
 }
 
-export function BillingPanel({ compact = false }: { compact?: boolean }) {
+export function BillingPanel({
+  compact = false,
+  redirectTo,
+}: {
+  compact?: boolean;
+  redirectTo?: string | null;
+}) {
+  const router = useRouter();
   const [sub, setSub] = useState<SubscriptionMe | null>(null);
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
@@ -46,6 +55,7 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [activePayment, setActivePayment] = useState<PaymentRecord | null>(null);
   const [checking, setChecking] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -80,6 +90,17 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
     }
   };
 
+  const onPaid = async () => {
+    stopPoll();
+    toast.success('Төлбөр амжилттай! VIP идэвхжлээ');
+    setActivePayment(null);
+    if (redirectTo) {
+      router.push(redirectTo);
+    } else {
+      await load();
+    }
+  };
+
   const startPoll = (paymentId: string) => {
     stopPoll();
     pollRef.current = setInterval(() => {
@@ -88,16 +109,13 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
           const res = await checkPayment(paymentId);
           setActivePayment(res.payment);
           if (res.payment.status === 'PAID') {
-            stopPoll();
-            toast.success('Төлбөр амжилттай! VIP идэвхжлээ');
-            setActivePayment(null);
-            await load();
+            await onPaid();
           }
         } catch {
           // ignore transient poll errors
         }
       })();
-    }, 4000);
+    }, 3000);
   };
 
   const handlePay = async (planId: string) => {
@@ -121,10 +139,7 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
       const res = await checkPayment(activePayment.id);
       setActivePayment(res.payment);
       if (res.payment.status === 'PAID') {
-        stopPoll();
-        toast.success('Төлбөр амжилттай! VIP идэвхжлээ');
-        setActivePayment(null);
-        await load();
+        await onPaid();
       } else {
         toast.info('Төлбөр хараахан бүртгэгдээгүй байна');
       }
@@ -138,12 +153,17 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
   const closePaymentDialog = useCallback(() => {
     stopPoll();
     setActivePayment(null);
+    setConfirmCloseOpen(false);
+  }, []);
+
+  const requestClosePaymentDialog = useCallback(() => {
+    setConfirmCloseOpen(true);
   }, []);
 
   useEffect(() => {
     if (!activePayment) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closePaymentDialog();
+      if (e.key === 'Escape') requestClosePaymentDialog();
     };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
@@ -152,7 +172,7 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [activePayment, closePaymentDialog]);
+  }, [activePayment, requestClosePaymentDialog]);
 
   if (loading) {
     return (
@@ -224,16 +244,16 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
       {activePayment && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/75 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-          onClick={closePaymentDialog}
+          onClick={requestClosePaymentDialog}
           role="dialog"
           aria-modal="true"
           aria-labelledby="qpay-dialog-title"
         >
           <div
-            className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-ink-600 bg-ink-900 shadow-2xl sm:rounded-2xl"
+            className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-2xl border border-ink-600 bg-ink-900 shadow-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-ink-700 bg-ink-900/95 px-5 py-4 backdrop-blur">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-ink-700 bg-ink-900/95 px-5 py-4">
               <div>
                 <h2
                   id="qpay-dialog-title"
@@ -247,7 +267,7 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
               </div>
               <button
                 type="button"
-                onClick={closePaymentDialog}
+                onClick={requestClosePaymentDialog}
                 className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800 hover:text-mist-50"
                 aria-label="Хаах"
               >
@@ -255,7 +275,7 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
               </button>
             </div>
 
-            <div className="space-y-5 px-5 py-5">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
               <div className="flex justify-center">
                 {qr ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -287,7 +307,9 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
                   QPay холбоос нээх →
                 </a>
               )}
+            </div>
 
+            <div className="shrink-0 border-t border-ink-700 bg-ink-900/95 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button
                 type="button"
                 variant="secondary"
@@ -306,6 +328,17 @@ export function BillingPanel({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmCloseOpen}
+        title="Төлбөрийн цонхыг хаах уу?"
+        description="Хэрэв төлбөрөө төлсөн бол хаалгүй хүлээгээрэй — систем автоматаар шалгана. Хаавал дараа нь дахин нээж шалгах боломжтой."
+        confirmLabel="Хаах"
+        cancelLabel="Үргэлжлүүлэх"
+        confirmVariant="secondary"
+        onConfirm={closePaymentDialog}
+        onCancel={() => setConfirmCloseOpen(false)}
+      />
 
       <section>
         <h3 className="font-display text-base font-semibold text-mist-50">Төлбөрийн түүх</h3>
