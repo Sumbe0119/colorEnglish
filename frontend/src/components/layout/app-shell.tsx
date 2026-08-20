@@ -174,6 +174,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     Admin
                   </Link>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setLogoutOpen(true)}
+                  className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800 hover:text-mist-50"
+                  aria-label="Гарах"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
               </div>
             </header>
 

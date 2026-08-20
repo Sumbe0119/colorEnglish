@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -84,9 +85,9 @@ export function LoginForm() {
         </div>
 
         <div className="flex justify-end">
-          <a href="#" className="text-sm text-brand hover:text-brand-hover">
+          <Link href="/forgot-password" className="text-sm text-brand hover:text-brand-hover">
             Нууц үгээ мартсан уу?
-          </a>
+          </Link>
         </div>
 
         <Button type="submit" isLoading={isSubmitting} className="w-full">

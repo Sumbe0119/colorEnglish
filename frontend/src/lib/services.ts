@@ -18,6 +18,20 @@ export async function logout() {
   await api.post('/auth/logout');
 }
 
+export async function requestPasswordReset(email: string) {
+  const { data } = await api.post<{ success: boolean }>('/auth/forgot-password', { email });
+  return data;
+}
+
+export async function resetPassword(email: string, code: string, newPassword: string) {
+  const { data } = await api.post<{ success: boolean }>('/auth/reset-password', {
+    email,
+    code,
+    newPassword,
+  });
+  return data;
+}
+
 export async function restoreSession() {
   if (restorePromise) return restorePromise;
 

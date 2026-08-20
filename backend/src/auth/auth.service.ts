@@ -7,15 +7,22 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }
+
+const RESET_CODE_TTL_MS = 10 * 60 * 1000;
+const RESET_REQUEST_COOLDOWN_MS = 60 * 1000;
+const RESET_MAX_ATTEMPTS = 5;
 
 @Injectable()
 export class AuthService {
@@ -25,6 +32,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private email: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -123,6 +131,85 @@ export class AuthService {
       if (!user) throw new UnauthorizedException('Хэрэглэгч олдсонгүй');
       return this.sanitizeUser({ ...user, subscription: null });
     }
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+
+    // Хэрэглэгч байхгүй/идэвхгүй байсан ч и-мэйл бүртгэлтэй эсэхийг мэдэгдэхгүйн тулд ижил хариу буцаана
+    if (user && user.isActive) {
+      const recent = await this.prisma.passwordResetCode.findFirst({
+        where: {
+          userId: user.id,
+          consumedAt: null,
+          createdAt: { gt: new Date(Date.now() - RESET_REQUEST_COOLDOWN_MS) },
+        },
+      });
+
+      if (!recent) {
+        await this.prisma.passwordResetCode.updateMany({
+          where: { userId: user.id, consumedAt: null },
+          data: { consumedAt: new Date() },
+        });
+
+        const code = randomInt(100000, 1000000).toString();
+        const codeHash = await argon2.hash(code);
+        await this.prisma.passwordResetCode.create({
+          data: {
+            userId: user.id,
+            codeHash,
+            expiresAt: new Date(Date.now() + RESET_CODE_TTL_MS),
+          },
+        });
+
+        await this.email.sendPasswordResetCode(user.email, code).catch((err) => {
+          this.logger.error(`Нууц үг сэргээх и-мэйл илгээхэд алдаа гарлаа: ${user.email}`, err as Error);
+        });
+      }
+    }
+
+    return { success: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const invalidMessage = 'Код буруу эсвэл хугацаа дууссан байна';
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (!user) throw new UnauthorizedException(invalidMessage);
+
+    const record = await this.prisma.passwordResetCode.findFirst({
+      where: { userId: user.id, consumedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!record || record.expiresAt < new Date()) {
+      throw new UnauthorizedException(invalidMessage);
+    }
+    if (record.attempts >= RESET_MAX_ATTEMPTS) {
+      throw new UnauthorizedException('Хэт олон буруу оролдлого хийсэн байна, шинэ код хүснэ үү');
+    }
+
+    const valid = await argon2.verify(record.codeHash, dto.code);
+    if (!valid) {
+      await this.prisma.passwordResetCode.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException(invalidMessage);
+    }
+
+    const passwordHash = await argon2.hash(dto.newPassword);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+      this.prisma.passwordResetCode.update({
+        where: { id: record.id },
+        data: { consumedAt: new Date() },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: user.id, revoked: false },
+        data: { revoked: true },
+      }),
+    ]);
+
+    return { success: true };
   }
 
   private async issueTokenPair(userId: string, email: string, role: string): Promise<TokenPair> {

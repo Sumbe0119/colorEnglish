@@ -107,6 +107,7 @@ model User {
   // Харилцаа
   profile           StudentProfile?
   refreshTokens      RefreshToken[]
+  passwordResetCodes PasswordResetCode[]
   enrollments        Enrollment[]
   lessonProgress     LessonProgress[]
   examAttempts       ExamAttempt[]
@@ -136,6 +137,21 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// Нууц үг сэргээх и-мэйл баталгаажуулах код
+model PasswordResetCode {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_codes")
 }
 
 // Бүртгүүлэхэд авдаг "хэлний түвшин + сонирхлын судалгаа"

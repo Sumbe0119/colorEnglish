@@ -23,3 +23,29 @@ export const registerSchema = z
   });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().min(1, 'И-мэйл хаягаа оруулна уу').email('И-мэйл хаяг буруу байна'),
+});
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    code: z
+      .string()
+      .min(1, 'Баталгаажуулах кодоо оруулна уу')
+      .length(6, 'Баталгаажуулах код 6 оронтой байх ёстой')
+      .regex(/^\d+$/, 'Код зөвхөн тооноос бүрдэнэ'),
+    newPassword: z
+      .string()
+      .min(8, 'Нууц үг доод тал нь 8 тэмдэгт байх ёстой')
+      .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Том, жижиг үсэг, тоо хослуулна уу'),
+    confirmPassword: z.string().min(1, 'Нууц үгээ давтан оруулна уу'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Нууц үг таарахгүй байна',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;

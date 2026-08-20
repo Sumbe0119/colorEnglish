@@ -44,7 +44,13 @@ api.interceptors.response.use(
     const original = error.config;
     const url: string = original?.url ?? '';
 
-    if (url.includes('/auth/refresh') || url.includes('/auth/login') || url.includes('/auth/register')) {
+    if (
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/reset-password')
+    ) {
       return Promise.reject(error);
     }
 
