@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, Library, LogOut, Settings, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpen, Library, LogOut, Menu, Settings, UserRound, X } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { logout } from '@/lib/services';
 import { SubscriptionStatusBar } from '@/components/layout/subscription-status-bar';
@@ -16,6 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, clearSession } = useAuthStore();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogoutConfirm = async () => {
     setLoggingOut(true);
@@ -139,50 +140,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   Color<span className="text-brand">English</span>
                 </span>
               )}
-              <div className="ml-auto flex items-center gap-1">
-                <Link
-                  href="/reading"
-                  className={`rounded-lg px-2.5 py-1.5 text-xs ${
-                    isStories ? 'bg-brand/20 text-brand' : 'text-mist-400'
-                  }`}
-                >
-                  Өгүүллэг
-                </Link>
-                <Link
-                  href="/reading/words"
-                  className={`rounded-lg px-2.5 py-1.5 text-xs ${
-                    isMyWords ? 'bg-brand/20 text-brand' : 'text-mist-400'
-                  }`}
-                >
-                  Үгс
-                </Link>
-                <Link
-                  href="/profile"
-                  className={`rounded-lg px-2.5 py-1.5 text-xs ${
-                    isProfile ? 'bg-brand/20 text-brand' : 'text-mist-400'
-                  }`}
-                >
-                  Профайл
-                </Link>
-                {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
-                  <Link
-                    href="/admin"
-                    className={`rounded-lg px-2.5 py-1.5 text-xs ${
-                      isAdmin ? 'bg-brand/20 text-brand' : 'text-mist-400'
-                    }`}
-                  >
-                    Admin
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setLogoutOpen(true)}
-                  className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800 hover:text-mist-50"
-                  aria-label="Гарах"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="ml-auto rounded-lg p-1.5 text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                aria-label="Цэс нээх"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
             </header>
 
             {isStoryOverview && (
@@ -212,6 +177,111 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex justify-end bg-ink-950/75 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="flex h-full w-[80%] max-w-[300px] flex-col bg-ink-900 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-ink-600/80 p-4">
+              <span className="font-display text-sm font-semibold text-mist-50">
+                Color<span className="text-brand">English</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800 hover:text-mist-50"
+                aria-label="Хаах"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+              <Link
+                href="/reading"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isStories
+                    ? 'bg-brand/20 text-brand shadow-glow'
+                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                Өгүүллэгүүд
+              </Link>
+              <Link
+                href="/reading/words"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isMyWords
+                    ? 'bg-brand/20 text-brand shadow-glow'
+                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                }`}
+              >
+                <Library className="h-4 w-4" />
+                Цээжилсэн үгс
+              </Link>
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isProfile
+                    ? 'bg-brand/20 text-brand shadow-glow'
+                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                }`}
+              >
+                <UserRound className="h-4 w-4" />
+                Профайл
+              </Link>
+              {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                    isAdmin
+                      ? 'bg-brand/20 text-brand shadow-glow'
+                      : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                  }`}
+                >
+                  <Settings className="h-4 w-4" />
+                  Admin
+                </Link>
+              )}
+            </nav>
+
+            <div className="mt-auto shrink-0 border-t border-ink-600/80 p-4">
+              {user && (
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mb-3 block rounded-lg p-1 hover:bg-ink-800/80"
+                >
+                  <p className="truncate text-sm font-medium text-mist-100">
+                    {user.firstName ?? 'Хэрэглэгч'}
+                  </p>
+                  <p className="truncate text-xs text-mist-400">{user.email}</p>
+                </Link>
+              )}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setLogoutOpen(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-mist-400 hover:bg-ink-800 hover:text-mist-50"
+              >
+                <LogOut className="h-4 w-4" /> Гарах
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={logoutOpen}
