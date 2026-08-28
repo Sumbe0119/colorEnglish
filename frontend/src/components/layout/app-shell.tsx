@@ -54,7 +54,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <p className="mt-3 text-xs text-mist-400">Reading — унших дадлага</p>
         </div>
-
         <nav className="flex-1 space-y-1 p-3">
           <Link
             href="/reading"
