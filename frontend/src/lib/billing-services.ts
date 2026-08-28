@@ -26,6 +26,8 @@ export type SubscriptionMe = {
   autoRenew: boolean;
   isPro: boolean;
   daysLeft: number | null;
+  /** ADMIN / EDITOR — VIP төлбөргүйгээр бүх контент нээлттэй */
+  staffAccess?: boolean;
   qpayReady: boolean;
 };
 

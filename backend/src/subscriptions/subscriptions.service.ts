@@ -85,11 +85,17 @@ export class SubscriptionsService {
   }
 
   async getMine(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    const staffBypass = user?.role === 'ADMIN' || user?.role === 'EDITOR';
+
     const sub = await this.resolveActiveSubscription(userId);
     if (!sub) throw new NotFoundException('Subscription олдсонгүй');
-    const isPro = this.isPro(sub);
+    const isPro = staffBypass || this.isPro(sub);
     const daysLeft =
-      isPro && sub.expiresAt
+      isPro && !staffBypass && sub.expiresAt
         ? Math.max(0, Math.ceil((sub.expiresAt.getTime() - Date.now()) / 86_400_000))
         : null;
 
@@ -97,6 +103,7 @@ export class SubscriptionsService {
       ...sub,
       isPro,
       daysLeft,
+      staffAccess: staffBypass,
       qpayReady: this.qpay.isConfigured(),
     };
   }

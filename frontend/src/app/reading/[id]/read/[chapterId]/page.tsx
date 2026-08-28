@@ -230,6 +230,19 @@ export default function ReadingChapterPage() {
     }
 
     const remaining = body.slice(start);
+    // ElevenLabs тэмдэгтийн хязгаар — өгүүлбэрийн төгсгөлөөр таслана
+    let toSpeak = remaining;
+    if (toSpeak.length > 2500) {
+      const cut = toSpeak.slice(0, 2500);
+      const lastStop = Math.max(
+        cut.lastIndexOf('. '),
+        cut.lastIndexOf('! '),
+        cut.lastIndexOf('? '),
+        cut.lastIndexOf('.\n'),
+      );
+      toSpeak = lastStop > 200 ? cut.slice(0, lastStop + 1) : cut;
+    }
+
     const wordStartsAbs = collectWordStarts(body).filter((s) => s >= start);
 
     intentionalStopRef.current = false;
@@ -256,7 +269,7 @@ export default function ReadingChapterPage() {
       updateSpeechChar(wordStartsAbs[fallbackIdx]);
     }, msPerWord);
 
-    speakEnglish(remaining, {
+    speakEnglish(toSpeak, {
       gender,
       rate,
       onBoundary: (charIndex) => {
@@ -267,6 +280,16 @@ export default function ReadingChapterPage() {
       onEnd: () => {
         if (intentionalStopRef.current) return;
         clearFallback();
+        const spokenEnd = resumeBaseRef.current + toSpeak.length;
+        if (spokenEnd < body.length) {
+          // Үлдсэн хэсгийг үргэлжлүүлнэ
+          setResumeAt(spokenEnd);
+          updateSpeechChar(spokenEnd);
+          setTimeout(() => {
+            if (!intentionalStopRef.current) startFrom(spokenEnd);
+          }, 120);
+          return;
+        }
         setPlaying(false);
         setResumeAt(0);
         updateSpeechChar(body.length);

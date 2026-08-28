@@ -1,93 +1,12 @@
 'use client';
 
-export type VoiceGender = 'female' | 'male';
-
-export type SpeakOptions = {
-  lang?: string;
-  rate?: number;
-  gender?: VoiceGender;
-  onBoundary?: (charIndex: number, charLength: number) => void;
-  onStart?: () => void;
-  onEnd?: () => void;
-  onError?: () => void;
-};
-
-function genderScore(voice: SpeechSynthesisVoice, gender: VoiceGender): number {
-  const name = `${voice.name} ${voice.voiceURI}`.toLowerCase();
-  const femaleHints = ['female', 'woman', 'zira', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona', 'veena', 'susan', 'hazel', 'aria', 'jenny', 'sara', 'linda'];
-  const maleHints = ['male', 'man', 'david', 'mark', 'daniel', 'thomas', 'james', 'george', 'alex', 'fred', 'ravi', 'matthew', 'guy', 'tony', 'richard'];
-
-  if (gender === 'female') {
-    if (femaleHints.some((h) => name.includes(h))) return 3;
-    if (maleHints.some((h) => name.includes(h))) return 0;
-    return 1;
-  }
-
-  if (maleHints.some((h) => name.includes(h))) return 3;
-  if (femaleHints.some((h) => name.includes(h))) return 0;
-  return 1;
-}
-
-export function pickEnglishVoice(gender: VoiceGender = 'female'): SpeechSynthesisVoice | null {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-  const voices = window.speechSynthesis.getVoices();
-  const english = voices.filter((v) => v.lang.toLowerCase().startsWith('en'));
-  const pool = english.length > 0 ? english : voices;
-  if (pool.length === 0) return null;
-
-  return [...pool].sort((a, b) => {
-    const scoreDiff = genderScore(b, gender) - genderScore(a, gender);
-    if (scoreDiff !== 0) return scoreDiff;
-    // Prefer US/GB
-    const pref = (v: SpeechSynthesisVoice) =>
-      v.lang.toLowerCase().includes('en-us') ? 2 : v.lang.toLowerCase().includes('en-gb') ? 1 : 0;
-    return pref(b) - pref(a);
-  })[0];
-}
-
-export function stopSpeech() {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-}
-
-export function speakEnglish(text: string, options: SpeakOptions = {}) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = options.lang ?? 'en-US';
-  utterance.rate = options.rate ?? 0.85;
-
-  const voice = pickEnglishVoice(options.gender ?? 'female');
-  if (voice) utterance.voice = voice;
-
-  utterance.onboundary = (event) => {
-    if (event.name === 'word' || event.name === undefined) {
-      options.onBoundary?.(event.charIndex, event.charLength || 0);
-    }
-  };
-  utterance.onstart = () => options.onStart?.();
-  utterance.onend = () => options.onEnd?.();
-  utterance.onerror = () => options.onError?.();
-
-  // Chrome sometimes needs voices loaded first
-  const speakNow = () => window.speechSynthesis.speak(utterance);
-  if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      const v = pickEnglishVoice(options.gender ?? 'female');
-      if (v) utterance.voice = v;
-      speakNow();
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  } else {
-    speakNow();
-  }
-}
-
-/** Single-word / short phrase TTS. */
-export function speakEnglishWord(text: string, options: SpeakOptions = {}) {
-  speakEnglish(text, { rate: 0.9, ...options });
-}
+export type { VoiceGender, SpeakOptions } from '@/components/reading/elevenlabs-speech';
+export {
+  pickEnglishVoice,
+  stopAllSpeech as stopSpeech,
+  speakWithElevenLabs as speakEnglish,
+  speakWordWithElevenLabs as speakEnglishWord,
+} from '@/components/reading/elevenlabs-speech';
 
 export function normalizeWord(raw: string) {
   return raw.toLowerCase().replace(/[^a-z'-]/g, '');

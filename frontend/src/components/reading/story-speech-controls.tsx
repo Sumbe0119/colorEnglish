@@ -36,7 +36,7 @@ export function StorySpeechControls({
     <div className="mb-5 flex flex-col gap-3 rounded-xl border border-ink-700 bg-ink-800/80 p-4 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="flex items-center gap-2">
         <Volume2 className="h-4 w-4 text-brand" />
-        <span className="text-sm font-medium text-mist-200">Уншигч</span>
+        <span className="text-sm font-medium text-mist-200">Уншигч · ElevenLabs</span>
       </div>
 
       <div className="flex flex-wrap gap-2">

@@ -1,5 +1,5 @@
 // backend/src/reading/reading.dto.ts
-import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEnum, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { LevelCode } from '@prisma/client';
 
@@ -158,4 +158,22 @@ export class SaveUserReadingWordDto {
   @IsOptional()
   @IsString()
   readingWordId?: string;
+}
+
+export class ReadingTtsDto {
+  @IsString()
+  @IsNotEmpty()
+  text!: string;
+
+  @IsOptional()
+  @IsIn(['female', 'male'])
+  gender?: 'female' | 'male';
+
+  /** Frontend rate (0.7–1.15) → ElevenLabs speed */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.5)
+  @Max(1.5)
+  rate?: number;
 }

@@ -22,21 +22,39 @@ import {
   CreateReadingChapterDto,
   CreateReadingStoryDto,
   CreateReadingWordDto,
+  ReadingTtsDto,
   SaveUserReadingWordDto,
   UpdateReadingChapterDto,
   UpdateReadingStoryDto,
   UpdateReadingWordDto,
 } from './reading.dto';
 import { coverUploadOptions } from '../uploads/cover-upload';
+import { ElevenLabsService } from './elevenlabs.service';
 
 @Controller('reading')
 export class ReadingController {
-  constructor(private readingService: ReadingService) {}
+  constructor(
+    private readingService: ReadingService,
+    private elevenLabs: ElevenLabsService,
+  ) {}
 
   @Public()
   @Get('stories')
   listPublished() {
     return this.readingService.listPublished();
+  }
+
+  @Get('tts/status')
+  ttsStatus() {
+    return { enabled: this.elevenLabs.isConfigured(), provider: 'elevenlabs' };
+  }
+
+  @Post('tts')
+  synthesize(@Body() dto: ReadingTtsDto) {
+    return this.elevenLabs.synthesize(dto.text, {
+      gender: dto.gender,
+      rate: dto.rate,
+    });
   }
 
   @Public()

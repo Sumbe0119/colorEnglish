@@ -215,9 +215,17 @@ export class ReadingService {
       },
     });
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    const staffBypass = user?.role === 'ADMIN' || user?.role === 'EDITOR';
+
     const sub = await this.prisma.subscription.findUnique({ where: { userId } });
-    let isPro = isProSubscription(sub?.plan, sub?.status, sub?.expiresAt);
+    let isPro =
+      staffBypass || isProSubscription(sub?.plan, sub?.status, sub?.expiresAt);
     if (
+      !staffBypass &&
       sub &&
       !isPro &&
       sub.plan !== 'FREE' &&

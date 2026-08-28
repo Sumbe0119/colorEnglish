@@ -37,9 +37,13 @@ export function SubscriptionStatusBar() {
           </p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="font-display text-sm font-semibold text-mist-50">
-              {sub.isPro ? 'VIP идэвхтэй' : 'Free'}
+              {sub.staffAccess
+                ? 'Admin эрх'
+                : sub.isPro
+                  ? 'VIP идэвхтэй'
+                  : 'Free'}
             </p>
-            {sub.isPro && sub.expiresAt && (
+            {sub.isPro && !sub.staffAccess && sub.expiresAt && (
               <p className="text-xs text-mist-300">
                 Дуусах: {new Date(sub.expiresAt).toLocaleString('mn-MN')}
                 {sub.daysLeft != null && (
@@ -47,14 +51,21 @@ export function SubscriptionStatusBar() {
                 )}
               </p>
             )}
-            {!sub.isPro && (
-              <p className="text-xs text-mist-400">Эхний 3 өгүүллэг үнэгүй · бусад нь VIP</p>
+            {sub.staffAccess && (
+              <p className="text-xs text-mist-400">VIP шаардлагагүй · бүх бүлэг нээлттэй</p>
+            )}
+            {!sub.isPro && !sub.staffAccess && (
+              <p className="text-xs text-mist-400">Эхний 1 өгүүллэг үнэгүй · бусад нь VIP</p>
             )}
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {sub.isPro ? (
+          {sub.staffAccess ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-700 px-3 py-1 text-xs font-semibold text-mist-100 ring-1 ring-ink-500">
+              Admin
+            </span>
+          ) : sub.isPro ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-glow ring-1 ring-brand/40">
               <Sparkles className="h-3.5 w-3.5" /> VIP
             </span>
