@@ -37,7 +37,7 @@ export default function HomePage() {
             <span className="font-display text-lg font-semibold text-mist-50">Color<span className="text-brand">English</span></span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
-            {[['#method','Арга барил'],['#practice','Дадлага'],['#pricing','Үнэ'],['#faq','FAQ']].map(([href,label]) => (
+            {[['#method', 'Арга барил'], ['#practice', 'Дадлага'], ['#pricing', 'Үнэ'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} className="text-sm text-mist-300 hover:text-mist-50 transition-colors">{label}</a>
             ))}
           </nav>
@@ -58,18 +58,18 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto max-w-3xl">
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-4 py-1.5 text-xs font-medium text-brand">
             <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
-            Reading MVP · үг дээр дарж орчуулга + voice
+            Reading · үг дээр дарж орчуулга харах + voice
           </p>
           <h1 className="mb-6 font-display text-5xl font-semibold leading-tight text-mist-50 md:text-6xl">
-            Жижиг <span className="text-verb">өгүүллэг</span> уншиж,{' '}
-            <em>үг бүрийг</em> ойлго
+            Сонирхолтой <span className="text-verb">өгүүллэгүүд</span> уншиж,{' '}
+            <em>өгүүлбэрийн бүтцийг</em> ойлгоно
           </h1>
           <p className="mx-auto mb-10 max-w-xl text-base text-mist-300">
-            Англи өгүүллэг уншихад үг дээр дарж монгол орчуулга хараад, voice-оор зөв дуудлагыг сонсоорой.
+            Хэн ч Англи хэлийг ТӨГС ЭЗЭМШИЖ ЧАДНА
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-sm font-semibold text-ink-950 hover:bg-brand-hover transition-colors">
-              Үнэгүй эхлэх <ArrowRight className="h-4 w-4" />
+              Одоо эхлэх <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="#practice" className="inline-flex items-center gap-2 rounded-xl border border-ink-600 bg-ink-800 px-6 py-3.5 text-sm font-medium text-mist-200 hover:bg-ink-700 transition-colors">
               Хэрхэн ажилладаг вэ?
