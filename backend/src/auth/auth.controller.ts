@@ -7,6 +7,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -58,7 +59,8 @@ export class AuthController {
   async refresh(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies?.[REFRESH_COOKIE];
     if (!token) {
-      return res.status(401).json({ message: 'Refresh token олдсонгүй' });
+      // passthrough: true үед res.json() буцааж болохгүй — Nest Response-ийг дахин serialize хийнэ
+      throw new UnauthorizedException('Refresh token олдсонгүй');
     }
     const { user, accessToken, refreshToken } = await this.authService.refresh(token);
     res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);

@@ -8,9 +8,9 @@ export function AuthLayout({
   footerLinkHref,
 }: {
   children: React.ReactNode;
-  footerText: string;
-  footerLinkText: string;
-  footerLinkHref: string;
+  footerText?: string;
+  footerLinkText?: string;
+  footerLinkHref?: string;
 }) {
   return (
     <div className="flex min-h-screen">
@@ -48,12 +48,14 @@ export function AuthLayout({
 
         <div className="w-full max-w-sm">{children}</div>
 
-        <p className="mt-8 text-center text-sm text-mist-400">
-          {footerText}{' '}
-          <Link href={footerLinkHref} className="font-medium text-brand hover:text-brand-hover">
-            {footerLinkText}
-          </Link>
-        </p>
+        {footerText && footerLinkText && footerLinkHref ? (
+          <p className="mt-8 text-center text-sm text-mist-400">
+            {footerText}{' '}
+            <Link href={footerLinkHref} className="font-medium text-brand hover:text-brand-hover">
+              {footerLinkText}
+            </Link>
+          </p>
+        ) : null}
       </div>
     </div>
   );

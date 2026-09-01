@@ -60,9 +60,14 @@ module.exports = {
           '0%, 100%': { opacity: '0' },
           '10%, 30%': { opacity: '1' },
         },
+        'lazy-skill-fill': {
+          from: { width: '0%' },
+          to: { width: '100%' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.5s ease-out forwards',
+        'lazy-skill-fill': 'lazy-skill-fill 4.5s linear forwards',
       },
     },
   },

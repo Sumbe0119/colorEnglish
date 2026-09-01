@@ -33,7 +33,8 @@ export function StorySpeechControls({
   onRestart: () => void;
 }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 rounded-xl border border-ink-700 bg-ink-800/80 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+    <div className="sticky top-0 z-30 mb-5 -mx-1 border-b border-ink-700/80 bg-ink-950/95 px-1 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-ink-950/85 md:top-0">
+      <div className="flex flex-col gap-3 rounded-xl border border-ink-700 bg-ink-800/90 p-4 shadow-lg shadow-black/20 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="flex items-center gap-2">
         <Volume2 className="h-4 w-4 text-brand" />
         <span className="text-sm font-medium text-mist-200">Уншигч · ElevenLabs</span>
@@ -97,6 +98,7 @@ export function StorySpeechControls({
             <RotateCcw className="h-4 w-4" /> Эхнээс
           </Button>
         )}
+      </div>
       </div>
     </div>
   );

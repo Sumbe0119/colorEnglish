@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/components/providers/auth-provider';
+import { GuestGate } from '@/components/providers/guest-gate';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="mn" className={`${ibmPlexMono.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <GuestGate>{children}</GuestGate>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

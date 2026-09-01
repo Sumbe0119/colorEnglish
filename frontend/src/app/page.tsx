@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarked, Layers } from 'lucide-react';
 import { PublicPricingGrid } from '@/components/billing/public-pricing-grid';
+import { LazyEnglishSection } from '@/components/home/lazy-english-section';
 
 export const metadata: Metadata = {
   title: 'ColorEnglish — Англи хэлийг өнгөөр нь ойлго',
@@ -12,10 +13,7 @@ const MODULES = [
   { icon: '📰', code: '002', name: 'Унших', desc: 'Бодит мэдээгээр алхамчилсан унших дасгал', c: 'border-verb/20 bg-verb/5 text-verb' },
   { icon: '🎧', code: '003', name: 'Dictation & Quiz', desc: 'Цээж бичиг хийн чихээ онгойлгох дасгал', c: 'border-object/20 bg-object/5 text-object' },
   { icon: '🎙️', code: '004', name: 'Shadowing', desc: '"Friends" цувралаар дуудлага сайжруулах', c: 'border-modifier/20 bg-modifier/5 text-modifier' },
-  { icon: '🤖', code: '005', name: 'Ярих', desc: 'AI-тай ярилцаж алдаагаа тухай бүртээ засуул', c: 'border-subject/20 bg-subject/5 text-subject' },
-  { icon: '✍️', code: '006', name: 'Бичих', desc: 'AI багшаар бичвэрээ шалгуулж сайжруул', c: 'border-verb/20 bg-verb/5 text-verb' },
-  { icon: '🔀', code: '007', name: 'Sentence Sort', desc: 'Тоглоомоор өгүүлбэрийн бүтцийг эзэмш', c: 'border-object/20 bg-object/5 text-object' },
-  { icon: '📚', code: '008', name: 'Үгийн сан', desc: 'Контекст дээр суурилсан үгийн сан бүрдүүлэлт', c: 'border-modifier/20 bg-modifier/5 text-modifier' },
+  
 ];
 
 const FAQ = [
@@ -37,7 +35,7 @@ export default function HomePage() {
             <span className="font-display text-lg font-semibold text-mist-50">Color<span className="text-brand">English</span></span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
-            {[['#method', 'Арга барил'], ['#practice', 'Дадлага'], ['#pricing', 'Үнэ'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#method', 'Арга барил'], ['#lazy-english', 'Залхуу Англи'], ['#practice', 'Дадлага'], ['#pricing', 'Үнэ'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} className="text-sm text-mist-300 hover:text-mist-50 transition-colors">{label}</a>
             ))}
           </nav>
@@ -92,17 +90,19 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+            {/* Залхуу Англи хэл — Read / Listen / Speak / Write */}
+            <LazyEnglishSection />
 
       {/* Method */}
       <section id="method" className="border-t border-ink-700 px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <p className="mb-3 text-xs uppercase tracking-widest text-brand">Арга барил</p>
-          <h2 className="mb-4 font-display text-3xl font-semibold text-mist-50">Яагаад ердийн аргаар бүтдэггүй вэ?</h2>
-          <p className="mb-16 max-w-xl text-mist-300">Үг дангаараа цээжлэх, дүрэм жагсаалт тогтоох — энэ хоёр бол хамгийн их алдаа гардаг арга. Бид ойлголт дээр суурилна.</p>
+          <h2 className="mb-4 font-display text-3xl font-semibold text-mist-50">Дүрэм цээжлэхгүй өгүүлбэрийн бүтцийг ойлгоно</h2>
+          <p className="mb-16 max-w-xl text-mist-300">Цээжилсэн сүрдэм үгс биш, тодорхой санаа л амжилт авчирна</p>
           <div className="grid gap-4 md:grid-cols-3">
             {[
-              { n: '01', title: 'Өнгөт дүрслэл', body: 'Өгүүлбэрийн гишүүд бүрийг тусгай өнгөөр тодотгоно — тархи хэлбэр таниж, ойлголт хурдан суурьддаг.' },
-              { n: '02', title: 'Контекст дотор', body: 'Дүрэм жагсаалтаас биш, бодит өгүүлбэр, мэдээний нийтлэл, диалог дотор суурьдана.' },
+              { n: '01', title: 'Унших + Cонсох', body: 'Унших бол тархӨгүүлбэрийн гишүүд бүрийг тусгай өнгөөр тодотгоно — тархи хэлбэр таниж, ойлголт хурдан суурьддаг.' },
+              { n: '02', title: 'Бататгах тоглоом dirve + quiz', body: 'Дүрэм жагсаалтаас биш, бодит өгүүлбэр, мэдээний нийтлэл, диалог дотор суурьдана.' },
               { n: '03', title: 'Давхар оролт', body: 'Унших + сонсох хосолсон арга — нэг агуулгыг нүд болон чихний хоёуланг нь ашиглан хурдан тогтооно.' },
             ].map((c) => (
               <div key={c.n} className="rounded-2xl border border-ink-700 bg-ink-800 p-6">
