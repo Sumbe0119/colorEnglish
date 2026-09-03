@@ -24,7 +24,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-// SSR-д sessionStorage байхгүй тул client дээр token байвал хурдан hydrate
+// SSR-д localStorage байхгүй тул client дээр token байвал хурдан hydrate
 if (typeof window !== 'undefined' && getAccessToken()) {
   useAuthStore.setState({ isLoading: true });
 }

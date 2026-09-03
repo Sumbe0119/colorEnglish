@@ -222,7 +222,7 @@ export class AuthService {
 
     const accessToken = await this.jwt.signAsync(payload, {
       secret,
-      expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES') ?? '15m',
+      expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES') ?? '2h',
     });
 
     const refreshTokenValue = randomUUID() + randomUUID();

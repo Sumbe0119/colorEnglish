@@ -13,14 +13,32 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-let accessToken: string | null =
-  typeof window !== 'undefined' ? sessionStorage.getItem(TOKEN_KEY) : null;
+function readStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  const fromLocal = localStorage.getItem(TOKEN_KEY);
+  if (fromLocal) return fromLocal;
+  // Хуучин sessionStorage → localStorage шилжүүлэлт
+  const fromSession = sessionStorage.getItem(TOKEN_KEY);
+  if (fromSession) {
+    localStorage.setItem(TOKEN_KEY, fromSession);
+    sessionStorage.removeItem(TOKEN_KEY);
+    return fromSession;
+  }
+  return null;
+}
+
+let accessToken: string | null = readStoredToken();
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
   if (typeof window !== 'undefined') {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token);
-    else sessionStorage.removeItem(TOKEN_KEY);
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.removeItem(TOKEN_KEY);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+    }
   }
 }
 
@@ -36,7 +54,7 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-let pendingQueue: Array<() => void> = [];
+let pendingQueue: Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }> = [];
 
 api.interceptors.response.use(
   (response) => response,
@@ -58,8 +76,11 @@ api.interceptors.response.use(
       original._retry = true;
 
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          pendingQueue.push(() => resolve(api(original)));
+        return new Promise((resolve, reject) => {
+          pendingQueue.push({
+            resolve: () => resolve(api(original)),
+            reject,
+          });
         });
       }
 
@@ -67,14 +88,22 @@ api.interceptors.response.use(
       try {
         const { data } = await api.post('/auth/refresh');
         setAccessToken(data.accessToken);
-        pendingQueue.forEach((cb) => cb());
+        pendingQueue.forEach(({ resolve }) => resolve(undefined));
         pendingQueue = [];
         return api(original);
       } catch (refreshError) {
         setAccessToken(null);
-        const path = window.location.pathname;
-        if (!path.startsWith('/login') && !path.startsWith('/register') && path !== '/') {
-          window.location.href = '/login';
+        pendingQueue.forEach(({ reject }) => reject(refreshError));
+        pendingQueue = [];
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname;
+          if (
+            !path.startsWith('/login') &&
+            !path.startsWith('/forgot-password') &&
+            path !== '/'
+          ) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(refreshError);
       } finally {

@@ -36,7 +36,7 @@ export async function restoreSession() {
   if (restorePromise) return restorePromise;
 
   restorePromise = (async () => {
-    const stored = typeof window !== 'undefined' ? sessionStorage.getItem('ce_access_token') : null;
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('ce_access_token') ?? sessionStorage.getItem('ce_access_token') : null;
     if (stored) {
       setAccessToken(stored);
       try {
