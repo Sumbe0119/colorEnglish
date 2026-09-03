@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: 'ColorEnglish — Монгол хэлнээс Англи хэл сур',
   description:
     'Үг бүрийг өнгөөр ялгаж, өгүүлбэрийг бүхлээр нь ойлгоход тань туслах AI дэмжлэгтэй сургалт. A1-ээс B2 хүртэл.',
+  icons: {
+    icon: '/logo/favicon.png',
+    apple: '/logo/mobile-logo.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

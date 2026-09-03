@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Library, LogOut, Menu, Settings, UserRound, X } from 'lucide-react';
@@ -44,13 +45,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar — viewport өндөртэй, контент scroll-оос тусдаа */}
       <aside className="ce-scroll hidden h-full w-[255px] shrink-0 flex-col overflow-y-auto border-r border-ink-600/80 bg-ink-900/90 backdrop-blur-sm lg:flex">
         <div className="shrink-0 border-b border-ink-600/80 p-5">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand font-display text-sm font-bold text-white shadow-glow">
-              C
-            </span>
-            <span className="font-display text-base font-semibold text-mist-50">
-              Color<span className="text-brand">English</span>
-            </span>
+          <Link href="/dashboard" className="relative block h-8 w-[150px]">
+            <Image
+              src="/logo/logo.png"
+              alt="Color English"
+              fill
+              className="object-contain object-left"
+              priority
+            />
           </Link>
           <p className="mt-3 text-xs text-mist-400">Reading — унших дадлага</p>
         </div>
@@ -135,9 +137,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="truncate">Бүх өгүүллэг</span>
                 </Link>
               ) : (
-                <span className="font-display text-sm font-semibold text-mist-50">
-                  Color<span className="text-brand">English</span>
-                </span>
+                <div className="relative h-7 w-[130px]">
+                  <Image
+                    src="/logo/logo.png"
+                    alt="Color English"
+                    fill
+                    className="object-contain object-left"
+                  />
+                </div>
               )}
               <button
                 type="button"
@@ -189,9 +196,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex shrink-0 items-center justify-between border-b border-ink-600/80 p-4">
-              <span className="font-display text-sm font-semibold text-mist-50">
-                Color<span className="text-brand">English</span>
-              </span>
+              <div className="relative h-7 w-[130px]">
+                <Image
+                  src="/logo/logo.png"
+                  alt="Color English"
+                  fill
+                  className="object-contain object-left"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}

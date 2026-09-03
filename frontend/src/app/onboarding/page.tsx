@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -67,9 +68,14 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen flex-col">
       {/* Logo */}
       <div className="p-8">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-ink-950 font-display font-bold text-sm">C</span>
-          <span className="font-display text-lg font-semibold text-mist-50">Color<span className="text-brand">English</span></span>
+        <div className="relative h-9 w-[160px]">
+          <Image
+            src="/logo/logo.png"
+            alt="Color English"
+            fill
+            className="object-contain object-left"
+            priority
+          />
         </div>
       </div>
 

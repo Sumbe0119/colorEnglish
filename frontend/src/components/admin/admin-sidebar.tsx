@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -13,13 +14,14 @@ export function AdminSidebar({ role }: { role: string }) {
   return (
     <aside className="hidden w-[255px] shrink-0 flex-col border-r border-ink-600/80 bg-ink-900/95 lg:flex">
       <div className="border-b border-ink-700 p-5">
-        <Link href="/dashboard" className="mb-4 flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand font-display text-sm font-bold text-ink-950">
-            C
-          </span>
-          <span className="font-display text-base font-semibold">
-            Color<span className="text-brand">English</span>
-          </span>
+        <Link href="/dashboard" className="relative mb-4 block h-8 w-[150px]">
+          <Image
+            src="/logo/logo.png"
+            alt="Color English"
+            fill
+            className="object-contain object-left"
+            priority
+          />
         </Link>
         <div>
           <h1 className="font-display text-lg font-semibold">Admin</h1>

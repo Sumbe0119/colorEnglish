@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarked, Layers } from 'lucide-react';
 import { PublicPricingGrid } from '@/components/billing/public-pricing-grid';
 import { LazyEnglishSection } from '@/components/home/lazy-english-section';
+import { DailyPriceHighlight } from '@/components/home/daily-price-highlight';
 
 export const metadata: Metadata = {
   title: 'ColorEnglish — Англи хэлийг өнгөөр нь ойлго',
@@ -13,7 +15,7 @@ const MODULES = [
   { icon: '📰', code: '002', name: 'Унших', desc: 'Бодит мэдээгээр алхамчилсан унших дасгал', c: 'border-verb/20 bg-verb/5 text-verb' },
   { icon: '🎧', code: '003', name: 'Dictation & Quiz', desc: 'Цээж бичиг хийн чихээ онгойлгох дасгал', c: 'border-object/20 bg-object/5 text-object' },
   { icon: '🎙️', code: '004', name: 'Shadowing', desc: '"Friends" цувралаар дуудлага сайжруулах', c: 'border-modifier/20 bg-modifier/5 text-modifier' },
-  
+
 ];
 
 const FAQ = [
@@ -30,9 +32,14 @@ export default function HomePage() {
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-ink-700 bg-ink-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-ink-950 font-display font-bold text-sm">C</span>
-            <span className="font-display text-lg font-semibold text-mist-50">Color<span className="text-brand">English</span></span>
+          <Link href="/" className="relative block h-9 w-[160px]">
+            <Image
+              src="/logo/logo.png"
+              alt="Color English"
+              fill
+              className="object-contain object-left"
+              priority
+            />
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             {[['#method', 'Арга барил'], ['#lazy-english', 'Залхуу Англи'], ['#practice', 'Дадлага'], ['#pricing', 'Үнэ'], ['#faq', 'FAQ']].map(([href, label]) => (
@@ -90,8 +97,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-            {/* Залхуу Англи хэл — Read / Listen / Speak / Write */}
-            <LazyEnglishSection />
+      {/* Залхуу Англи хэл — Read / Listen / Speak / Write */}
+      <LazyEnglishSection />
 
       {/* Method */}
       <section id="method" className="border-t border-ink-700 px-6 py-24">
@@ -138,10 +145,10 @@ export default function HomePage() {
       <section id="pricing" className="border-t border-ink-700 px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <p className="mb-3 text-xs uppercase tracking-widest text-brand">Үнэ</p>
-          <h2 className="mb-4 font-display text-3xl font-semibold text-mist-50">Эхлээд үнэгүй, дараа нь шийд</h2>
-          <p className="mb-16 max-w-xl text-mist-300">
-            Эхний өгүүллэгүүд үнэгүй. VIP багцыг доороос сонгоорой.
-          </p>
+          <h2 className="mb-4 font-display text-3xl font-semibold text-mist-50">
+            Аяга сүүтэй цайны
+          </h2>
+          <DailyPriceHighlight />
           <PublicPricingGrid ctaHref="/register" ctaLabel="Бүртгүүлэх" highlightIndex={1} />
         </div>
       </section>
@@ -165,9 +172,9 @@ export default function HomePage() {
       {/* Footer CTA */}
       <section className="border-t border-ink-700 px-6 py-20 text-center">
         <h2 className="mb-4 font-display text-3xl font-semibold text-mist-50">Өнөөдөр эхэл</h2>
-        <p className="mb-8 text-mist-300">A1 түвшин үнэгүй. Бүртгүүлэхэд 30 секунд л хангалттай.</p>
+        <p className="mb-8 text-mist-300">Өдөр бүр 10 минутыг зарцуулж чадвал сарын дараа та өөртөө ч итгэхгүй үр дүн гарна шүү.</p>
         <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-brand px-8 py-4 text-base font-semibold text-ink-950 hover:bg-brand-hover transition-colors">
-          Үнэгүй эхлэх <ArrowRight className="h-4 w-4" />
+          Яг одоо эхэл <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
 

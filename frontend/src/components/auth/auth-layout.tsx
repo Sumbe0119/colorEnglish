@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { SentenceShowcase } from './sentence-showcase';
 
@@ -14,7 +15,6 @@ export function AuthLayout({
 }) {
   return (
     <div className="flex min-h-screen">
-      {/* Зүүн тал — brand showcase, том дэлгэцэнд л харагдана */}
       <div className="relative hidden w-1/2 overflow-hidden border-r border-ink-700 bg-ink-950/70 lg:block">
         <div
           className="pointer-events-none absolute inset-0 opacity-40"
@@ -25,8 +25,14 @@ export function AuthLayout({
         />
         <div className="relative z-10 flex h-full flex-col">
           <div className="px-12 pt-10">
-            <Link href="/" className="font-display text-xl font-semibold tracking-tight text-mist-50">
-              Color<span className="text-brand">English</span>
+            <Link href="/" className="relative block h-10 w-[180px]">
+              <Image
+                src="/logo/logo.png"
+                alt="Color English"
+                fill
+                className="object-contain object-left"
+                priority
+              />
             </Link>
           </div>
           <div className="flex-1">
@@ -38,11 +44,16 @@ export function AuthLayout({
         </div>
       </div>
 
-      {/* Баруун тал — форм */}
       <div className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="mb-10 lg:hidden">
-          <Link href="/" className="font-display text-xl font-semibold tracking-tight text-mist-50">
-            Color<span className="text-brand">English</span>
+          <Link href="/" className="relative mx-auto block h-10 w-[180px]">
+            <Image
+              src="/logo/logo.png"
+              alt="Color English"
+              fill
+              className="object-contain"
+              priority
+            />
           </Link>
         </div>
 

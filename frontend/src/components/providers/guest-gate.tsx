@@ -18,11 +18,11 @@ export function GuestGate({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const isHydrated = useAuthStore((s) => s.isHydrated);
 
-  if (!isHydrated) return null;
+  // if (!isHydrated) return null;
 
-  if (!user && !isPublicPath(pathname)) {
-    return <ComingSoonPage />;
-  }
+  // // if (!user && !isPublicPath(pathname)) {
+  // //   return <ComingSoonPage />;
+  // // }
 
   return <>{children}</>;
 }

@@ -33,7 +33,7 @@ export type SpeechHighlight = {
   active: boolean;
 };
 
-const MAX_PHRASE_WORDS = 3;
+const MAX_PHRASE_WORDS = 8;
 
 export function ReadingPassage({
   body,
@@ -421,7 +421,7 @@ export function ReadingPassage({
 
       <p className="mt-6 text-xs text-mist-500">
         {interactive === 'all'
-          ? '💡 1–3 үг сонгоно: үг дээр дар → хөрш үг нэм → 3 болсон үед автоматаар батална, эсвэл «Батлах».'
+          ? '💡 1–8 үг сонгоно: үг дээр дар → хөрш үг нэм → 8 болсон үед автоматаар батална, эсвэл «Батлах».'
           : '💡 Орчуулгатай үг дээр дарж монгол утгыг хараарай. Speak дарж бүтэн өгүүллэгийг сонсоорой.'}
       </p>
     </div>
