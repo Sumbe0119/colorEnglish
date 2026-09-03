@@ -13,7 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { QpayService } from './qpay.service';
-import { CreatePaymentDto, CreatePricingPlanDto, UpdatePricingPlanDto } from './dto/billing.dto';
+import { CreatePaymentDto, CreatePricingPlanDto, UpdatePricingPlanDto, CreateDiscountCodeDto, UpdateDiscountCodeDto, ValidatePromoDto } from './dto/billing.dto';
 
 const FREE_PLAN = 'FREE';
 
@@ -265,7 +265,19 @@ export class SubscriptionsService {
       throw new BadRequestException('Багц олдсонгүй эсвэл идэвхгүй');
     }
 
-    const amountMnt = finalAmount(plan.priceMnt, plan.discountPercent);
+    let promoDiscountPercent = 0;
+    let promoCodeId: string | null = null;
+    let promoCodeValue: string | null = null;
+
+    if (dto.promoCode?.trim()) {
+      const promo = await this.resolvePromoCode(dto.promoCode.trim(), userId);
+      promoDiscountPercent = promo.discountPercent;
+      promoCodeId = promo.id;
+      promoCodeValue = promo.code;
+    }
+
+    const totalDiscount = Math.min(100, plan.discountPercent + promoDiscountPercent);
+    const amountMnt = finalAmount(plan.priceMnt, totalDiscount);
     const senderInvoiceNo = `CE-${Date.now()}-${userId.slice(-6)}`;
 
     const payment = await this.prisma.payment.create({
@@ -276,6 +288,9 @@ export class SubscriptionsService {
         amountMnt,
         listPriceMnt: plan.priceMnt,
         discountPercent: plan.discountPercent,
+        promoDiscountPercent,
+        promoCodeId,
+        promoCodeValue,
         durationDays: plan.durationDays,
         status: PaymentStatus.PENDING,
         senderInvoiceNo,
@@ -310,6 +325,210 @@ export class SubscriptionsService {
       });
       throw err;
     }
+  }
+
+  /** Промо код шалгах — UI preview */
+  async validatePromo(userId: string, dto: ValidatePromoDto) {
+    const promo = await this.resolvePromoCode(dto.code.trim(), userId);
+    let planPreview: {
+      planId: string;
+      planName: string;
+      listPriceMnt: number;
+      planDiscountPercent: number;
+      amountMnt: number;
+      totalDiscountPercent: number;
+    } | null = null;
+
+    if (dto.planId) {
+      const plan = await this.prisma.pricingPlan.findUnique({ where: { id: dto.planId } });
+      if (plan && plan.isActive && plan.code !== FREE_PLAN) {
+        const totalDiscount = Math.min(100, plan.discountPercent + promo.discountPercent);
+        planPreview = {
+          planId: plan.id,
+          planName: plan.name,
+          listPriceMnt: plan.priceMnt,
+          planDiscountPercent: plan.discountPercent,
+          amountMnt: finalAmount(plan.priceMnt, totalDiscount),
+          totalDiscountPercent: totalDiscount,
+        };
+      }
+    }
+
+    return {
+      valid: true,
+      code: promo.code,
+      discountPercent: promo.discountPercent,
+      expiresAt: promo.expiresAt,
+      planPreview,
+    };
+  }
+
+  private async resolvePromoCode(rawCode: string, userId: string) {
+    const code = rawCode.toUpperCase();
+    const promo = await this.prisma.discountCode.findUnique({ where: { code } });
+    if (!promo || !promo.isActive) {
+      throw new BadRequestException('Хөнгөлөлтийн код буруу эсвэл идэвхгүй');
+    }
+    const now = Date.now();
+    if (promo.startsAt.getTime() > now) {
+      throw new BadRequestException('Энэ код хараахан хүчинтэй болоогүй байна');
+    }
+    if (promo.expiresAt && promo.expiresAt.getTime() < now) {
+      throw new BadRequestException('Хөнгөлөлтийн кодын хугацаа дууссан');
+    }
+
+    const usedStatuses: PaymentStatus[] = [PaymentStatus.PAID, PaymentStatus.PENDING];
+    const totalUses = await this.prisma.payment.count({
+      where: {
+        promoCodeId: promo.id,
+        status: { in: usedStatuses },
+      },
+    });
+    if (promo.maxUses != null && totalUses >= promo.maxUses) {
+      throw new BadRequestException('Хөнгөлөлтийн кодын хязгаар дүүрсэн');
+    }
+
+    if (promo.onePerUser) {
+      const userPaid = await this.prisma.payment.count({
+        where: {
+          promoCodeId: promo.id,
+          userId,
+          status: PaymentStatus.PAID,
+        },
+      });
+      if (userPaid > 0) {
+        throw new BadRequestException('Та энэ кодыг аль хэдийн ашигласан байна');
+      }
+    }
+
+    return promo;
+  }
+
+  async listDiscountCodes() {
+    const codes = await this.prisma.discountCode.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        payments: {
+          where: { status: { in: [PaymentStatus.PAID, PaymentStatus.PENDING] } },
+          select: {
+            id: true,
+            status: true,
+            amountMnt: true,
+            userId: true,
+            paidAt: true,
+            createdAt: true,
+            user: { select: { email: true, firstName: true, lastName: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    return codes.map((c) => {
+      const paid = c.payments.filter((p) => p.status === PaymentStatus.PAID);
+      const pending = c.payments.filter((p) => p.status === PaymentStatus.PENDING);
+      const uniqueUsers = new Set(paid.map((p) => p.userId)).size;
+      return {
+        id: c.id,
+        code: c.code,
+        discountPercent: c.discountPercent,
+        startsAt: c.startsAt,
+        expiresAt: c.expiresAt,
+        maxUses: c.maxUses,
+        onePerUser: c.onePerUser,
+        isActive: c.isActive,
+        note: c.note,
+        createdAt: c.createdAt,
+        stats: {
+          paidCount: paid.length,
+          pendingCount: pending.length,
+          uniqueUsers,
+          totalRevenueMnt: paid.reduce((s, p) => s + p.amountMnt, 0),
+        },
+        recentUsers: paid.slice(0, 20).map((p) => ({
+          paymentId: p.id,
+          userId: p.userId,
+          email: p.user.email,
+          displayName:
+            [p.user.firstName, p.user.lastName].filter(Boolean).join(' ').trim() ||
+            p.user.email.split('@')[0],
+          amountMnt: p.amountMnt,
+          paidAt: p.paidAt,
+        })),
+      };
+    });
+  }
+
+  private parseDayStart(value: string | null | undefined): Date | null {
+    if (!value) return null;
+    // YYYY-MM-DD → тухайн өдрийн 00:00:00 (UTC биш, огнооны өдөр)
+    const dayOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+    if (dayOnly) {
+      const y = Number(dayOnly[1]);
+      const m = Number(dayOnly[2]);
+      const d = Number(dayOnly[3]);
+      return new Date(y, m - 1, d, 0, 0, 0, 0);
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  async createDiscountCode(dto: CreateDiscountCodeDto) {
+    const code = dto.code.trim().toUpperCase();
+    const existing = await this.prisma.discountCode.findUnique({ where: { code } });
+    if (existing) throw new BadRequestException('Энэ код аль хэдийн байна');
+
+    return this.prisma.discountCode.create({
+      data: {
+        code,
+        discountPercent: dto.discountPercent,
+        startsAt: dto.startsAt ? new Date(dto.startsAt) : new Date(),
+        expiresAt: this.parseDayStart(dto.expiresAt ?? null),
+        maxUses: dto.maxUses ?? null,
+        onePerUser: dto.onePerUser ?? true,
+        isActive: dto.isActive ?? true,
+        note: dto.note ?? null,
+      },
+    });
+  }
+
+  async updateDiscountCode(id: string, dto: UpdateDiscountCodeDto) {
+    const existing = await this.prisma.discountCode.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Код олдсонгүй');
+
+    return this.prisma.discountCode.update({
+      where: { id },
+      data: {
+        ...(dto.discountPercent != null ? { discountPercent: dto.discountPercent } : {}),
+        ...(dto.startsAt != null ? { startsAt: new Date(dto.startsAt) } : {}),
+        ...(dto.expiresAt !== undefined
+          ? { expiresAt: this.parseDayStart(dto.expiresAt) }
+          : {}),
+        ...(dto.maxUses !== undefined ? { maxUses: dto.maxUses } : {}),
+        ...(dto.onePerUser != null ? { onePerUser: dto.onePerUser } : {}),
+        ...(dto.isActive != null ? { isActive: dto.isActive } : {}),
+        ...(dto.note !== undefined ? { note: dto.note } : {}),
+      },
+    });
+  }
+
+  async deleteDiscountCode(id: string) {
+    const existing = await this.prisma.discountCode.findUnique({
+      where: { id },
+      include: { _count: { select: { payments: true } } },
+    });
+    if (!existing) throw new NotFoundException('Код олдсонгүй');
+
+    if (existing._count.payments > 0) {
+      return this.prisma.discountCode.update({
+        where: { id },
+        data: { isActive: false },
+      });
+    }
+
+    await this.prisma.discountCode.delete({ where: { id } });
+    return { id, deleted: true };
   }
 
   async listMyPayments(userId: string) {

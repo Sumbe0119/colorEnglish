@@ -18,6 +18,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "prisma:deploy": "dotenv -e .env.prod -- prisma migrate deploy",
+    "prisma-push:prod": "dotenv -e .env.prod -- npx prisma db push",
+    "prisma-generate:prod": "dotenv -e .env.prod -- npx prisma generate",
     "prisma:studio": "dotenv -e .env.local -- prisma studio",
     "db:seed": "dotenv -e .env.local -- ts-node prisma/seed.ts",
     "db:seed:prod": "dotenv -e .env.prod -- ts-node prisma/seed.ts",

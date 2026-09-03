@@ -46,6 +46,8 @@ export type PaymentRecord = {
   amountMnt: number;
   listPriceMnt: number;
   discountPercent: number;
+  promoDiscountPercent?: number;
+  promoCodeValue?: string | null;
   durationDays: number;
   status: 'PENDING' | 'PAID' | 'CANCELED' | 'EXPIRED' | 'FAILED';
   senderInvoiceNo: string;
@@ -61,6 +63,48 @@ export type PaymentRecord = {
   plan?: { id: string; name: string; code: SubscriptionPlanCode };
 };
 
+export type PromoValidateResult = {
+  valid: true;
+  code: string;
+  discountPercent: number;
+  expiresAt: string | null;
+  planPreview: {
+    planId: string;
+    planName: string;
+    listPriceMnt: number;
+    planDiscountPercent: number;
+    amountMnt: number;
+    totalDiscountPercent: number;
+  } | null;
+};
+
+export type DiscountCodeAdmin = {
+  id: string;
+  code: string;
+  discountPercent: number;
+  startsAt: string;
+  expiresAt: string | null;
+  maxUses: number | null;
+  onePerUser: boolean;
+  isActive: boolean;
+  note: string | null;
+  createdAt: string;
+  stats: {
+    paidCount: number;
+    pendingCount: number;
+    uniqueUsers: number;
+    totalRevenueMnt: number;
+  };
+  recentUsers: {
+    paymentId: string;
+    userId: string;
+    email: string;
+    displayName: string;
+    amountMnt: number;
+    paidAt: string | null;
+  }[];
+};
+
 export async function getSubscriptionMe() {
   const { data } = await api.get<SubscriptionMe>('/subscriptions/me');
   return data;
@@ -71,8 +115,19 @@ export async function getPricingPlans() {
   return data;
 }
 
-export async function createPayment(planId: string) {
-  const { data } = await api.post<PaymentRecord>('/subscriptions/payments', { planId });
+export async function createPayment(planId: string, promoCode?: string) {
+  const { data } = await api.post<PaymentRecord>('/subscriptions/payments', {
+    planId,
+    ...(promoCode?.trim() ? { promoCode: promoCode.trim() } : {}),
+  });
+  return data;
+}
+
+export async function validatePromoCode(code: string, planId?: string) {
+  const { data } = await api.post<PromoValidateResult>('/subscriptions/promo/validate', {
+    code,
+    ...(planId ? { planId } : {}),
+  });
   return data;
 }
 
@@ -137,6 +192,46 @@ export async function deleteAdminPricingPlan(id: string) {
     code?: string;
     name?: string;
   }>(`/subscriptions/admin/plans/${id}`);
+  return data;
+}
+
+export async function getAdminPromoCodes() {
+  const { data } = await api.get<DiscountCodeAdmin[]>('/subscriptions/admin/promo-codes');
+  return data;
+}
+
+export async function createAdminPromoCode(payload: {
+  code: string;
+  discountPercent: number;
+  startsAt?: string;
+  expiresAt?: string | null;
+  maxUses?: number | null;
+  onePerUser?: boolean;
+  isActive?: boolean;
+  note?: string | null;
+}) {
+  const { data } = await api.post('/subscriptions/admin/promo-codes', payload);
+  return data;
+}
+
+export async function updateAdminPromoCode(
+  id: string,
+  payload: Partial<{
+    discountPercent: number;
+    startsAt: string;
+    expiresAt: string | null;
+    maxUses: number | null;
+    onePerUser: boolean;
+    isActive: boolean;
+    note: string | null;
+  }>,
+) {
+  const { data } = await api.put(`/subscriptions/admin/promo-codes/${id}`, payload);
+  return data;
+}
+
+export async function deleteAdminPromoCode(id: string) {
+  const { data } = await api.delete(`/subscriptions/admin/promo-codes/${id}`);
   return data;
 }
 

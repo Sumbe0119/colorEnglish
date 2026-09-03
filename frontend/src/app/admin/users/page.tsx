@@ -193,15 +193,16 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={!!grantTarget}
-        title="1 сарын VIP олгох уу?"
+        title="Баталгаажуулах"
         description={
           grantTarget
             ? grantTarget.isPro
-              ? `${grantTarget.displayName} (${grantTarget.email})-ийн одоогийн VIP дээр +30 хоног нэмэгдэнэ.`
-              : `${grantTarget.displayName} (${grantTarget.email})-д 30 хоногийн VIP эрх олгоно.`
+              ? `${grantTarget.displayName} (${grantTarget.email})-ийн одоогийн VIP дээр +30 хоног (1 сар) нэмэх үү?`
+              : `${grantTarget.displayName} (${grantTarget.email})-д 30 хоногийн (1 сар) VIP эрх олгох уу?`
             : undefined
         }
-        confirmLabel="Олгох"
+        confirmLabel="Тийм, олгох"
+        cancelLabel="Болих"
         isLoading={granting}
         onConfirm={() => void handleGrantConfirm()}
         onCancel={() => {

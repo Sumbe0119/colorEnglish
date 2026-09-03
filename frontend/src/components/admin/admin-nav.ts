@@ -1,4 +1,4 @@
-import { BookOpen, CreditCard, Plus, Users } from 'lucide-react';
+import { BookOpen, CreditCard, Percent, Plus, Users } from 'lucide-react';
 
 export const ADMIN_BROWSE_NAV = {
   href: '/admin',
@@ -28,6 +28,13 @@ export const ADMIN_MANAGE_NAV = [
     shortLabel: 'Төлбөр',
     icon: CreditCard,
     isActive: (pathname: string) => pathname.startsWith('/admin/pricing'),
+  },
+  {
+    href: '/admin/promo-codes',
+    label: 'Хөнгөлөлтийн код',
+    shortLabel: 'Промо',
+    icon: Percent,
+    isActive: (pathname: string) => pathname.startsWith('/admin/promo-codes'),
   },
   {
     href: '/admin/users',

@@ -16,10 +16,12 @@ import {
   parseQpayBankUrls,
   qrImageSrc,
   SubscriptionMe,
+  validatePromoCode,
 } from '@/lib/billing-services';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { toast } from '@/store/toast-store';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { QpayBankLinks } from '@/components/billing/qpay-bank-links';
 
@@ -40,6 +42,11 @@ function statusLabel(status: PaymentRecord['status']) {
   }
 }
 
+function amountWithPromo(plan: PricingPlan, promoPercent: number) {
+  const total = Math.min(100, plan.discountPercent + promoPercent);
+  return Math.max(100, Math.round(plan.priceMnt * (1 - total / 100)));
+}
+
 export function BillingPanel({
   compact = false,
   redirectTo,
@@ -56,6 +63,11 @@ export function BillingPanel({
   const [activePayment, setActivePayment] = useState<PaymentRecord | null>(null);
   const [checking, setChecking] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent: number } | null>(
+    null,
+  );
+  const [promoChecking, setPromoChecking] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -118,10 +130,35 @@ export function BillingPanel({
     }, 3000);
   };
 
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code) {
+      toast.info('Хөнгөлөлтийн код оруулна уу');
+      return;
+    }
+    setPromoChecking(true);
+    try {
+      const res = await validatePromoCode(code, plans[0]?.id);
+      setAppliedPromo({ code: res.code, discountPercent: res.discountPercent });
+      setPromoInput(res.code);
+      toast.success(`${res.code}: −${res.discountPercent}% хямдрал`);
+    } catch (err) {
+      setAppliedPromo(null);
+      toast.error(getApiErrorMessage(err, 'Код буруу байна'));
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
+  const clearPromo = () => {
+    setAppliedPromo(null);
+    setPromoInput('');
+  };
+
   const handlePay = async (planId: string) => {
     setPayingId(planId);
     try {
-      const payment = await createPayment(planId);
+      const payment = await createPayment(planId, appliedPromo?.code);
       setActivePayment(payment);
       startPoll(payment.id);
       toast.info('QPay QR гарлаа — төлсний дараа автоматаар шалгана');
@@ -203,23 +240,57 @@ export function BillingPanel({
       )}
 
       <section>
+        <h3 className="font-display text-base font-semibold text-mist-50">Хөнгөлөлтийн код</h3>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <div className="min-w-[180px] flex-1">
+            <Input
+              label="Код"
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+              placeholder="Жишээ: SAVE20"
+              disabled={!!appliedPromo}
+            />
+          </div>
+          {appliedPromo ? (
+            <Button type="button" variant="secondary" onClick={clearPromo}>
+              Цуцлах
+            </Button>
+          ) : (
+            <Button type="button" variant="secondary" isLoading={promoChecking} onClick={() => void handleApplyPromo()}>
+              Хэрэглэх
+            </Button>
+          )}
+        </div>
+        {appliedPromo && (
+          <p className="mt-2 text-sm text-emerald-400">
+            {appliedPromo.code} идэвхтэй · −{appliedPromo.discountPercent}% хямдрал үнэ дээр нэмэгдэнэ
+          </p>
+        )}
+      </section>
+
+      <section>
         <h3 className="font-display text-base font-semibold text-mist-50">Багц сонгох / төлөх</h3>
         <div className="mt-3 grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => (
+          {plans.map((plan) => {
+            const promoPct = appliedPromo?.discountPercent ?? 0;
+            const displayAmount = amountWithPromo(plan, promoPct);
+            const totalDisc = Math.min(100, plan.discountPercent + promoPct);
+            return (
             <div key={plan.id} className="ce-panel flex h-full min-h-[260px] flex-col p-5">
               <p className="font-display text-lg font-semibold text-mist-50">{plan.name}</p>
               <p className="mt-1 min-h-[2.5rem] text-xs leading-relaxed text-mist-400">
                 {plan.description || '—'}
               </p>
               <div className="mt-4 flex-1">
-                {plan.discountPercent > 0 && (
+                {(totalDisc > 0 || plan.amountMnt !== plan.priceMnt) && (
                   <p className="text-sm text-mist-500 line-through">{formatMnt(plan.priceMnt)}</p>
                 )}
-                <p className="text-2xl font-semibold text-brand">{formatMnt(plan.amountMnt)}</p>
+                <p className="text-2xl font-semibold text-brand">{formatMnt(displayAmount)}</p>
                 <p className="mt-1 text-xs text-mist-400">{plan.durationDays} хоног</p>
-                {plan.discountPercent > 0 ? (
+                {totalDisc > 0 ? (
                   <p className="mt-1 text-xs font-medium text-emerald-400">
-                    −{plan.discountPercent}% хямдрал
+                    −{totalDisc}% хямдрал
+                    {promoPct > 0 ? ` (код −${promoPct}%)` : ''}
                   </p>
                 ) : (
                   <p className="mt-1 text-xs text-transparent">—</p>
@@ -234,7 +305,8 @@ export function BillingPanel({
                 <CreditCard className="h-4 w-4" /> VIP идэвхижүүлэх
               </Button>
             </div>
-          ))}
+            );
+          })}
         </div>
         {plans.length === 0 && (
           <p className="mt-3 text-sm text-mist-400">Идэвхтэй багц байхгүй.</p>

@@ -9,6 +9,9 @@ import {
   CreatePaymentDto,
   CreatePricingPlanDto,
   UpdatePricingPlanDto,
+  CreateDiscountCodeDto,
+  UpdateDiscountCodeDto,
+  ValidatePromoDto,
 } from './dto/billing.dto';
 
 @Controller('subscriptions')
@@ -24,6 +27,11 @@ export class SubscriptionsController {
   @Get('plans')
   listPlans() {
     return this.subscriptionsService.listPublicPlans();
+  }
+
+  @Post('promo/validate')
+  validatePromo(@CurrentUser('userId') userId: string, @Body() dto: ValidatePromoDto) {
+    return this.subscriptionsService.validatePromo(userId, dto);
   }
 
   @Post('payments')
@@ -102,6 +110,30 @@ export class SubscriptionsController {
   @Delete('admin/plans/:id')
   adminDeletePlan(@Param('id') id: string) {
     return this.subscriptionsService.deletePlan(id);
+  }
+
+  @Roles(Role.ADMIN)
+  @Get('admin/promo-codes')
+  adminListPromoCodes() {
+    return this.subscriptionsService.listDiscountCodes();
+  }
+
+  @Roles(Role.ADMIN)
+  @Post('admin/promo-codes')
+  adminCreatePromoCode(@Body() dto: CreateDiscountCodeDto) {
+    return this.subscriptionsService.createDiscountCode(dto);
+  }
+
+  @Roles(Role.ADMIN)
+  @Put('admin/promo-codes/:id')
+  adminUpdatePromoCode(@Param('id') id: string, @Body() dto: UpdateDiscountCodeDto) {
+    return this.subscriptionsService.updateDiscountCode(id, dto);
+  }
+
+  @Roles(Role.ADMIN)
+  @Delete('admin/promo-codes/:id')
+  adminDeletePromoCode(@Param('id') id: string) {
+    return this.subscriptionsService.deleteDiscountCode(id);
   }
 
   @Post('upgrade-mock')

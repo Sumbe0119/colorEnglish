@@ -559,6 +559,11 @@ model Payment {
   amountMnt        Int
   listPriceMnt     Int
   discountPercent  Int           @default(0)
+  /// Багцын хямдралаас гадна промо кодын хямдрал (%)
+  promoDiscountPercent Int       @default(0)
+  promoCodeId      String?
+  promoCode        DiscountCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  promoCodeValue   String?
   durationDays     Int
   status           PaymentStatus @default(PENDING)
   senderInvoiceNo  String        @unique
@@ -576,7 +581,32 @@ model Payment {
 
   @@index([userId, createdAt])
   @@index([qpayInvoiceId])
+  @@index([promoCodeId])
   @@map("payments")
+}
+
+// Админ үүсгэх хөнгөлөлтийн код
+model DiscountCode {
+  id              String    @id @default(cuid())
+  /// Жишээ: SAVE20, SPRING50
+  code            String    @unique
+  discountPercent Int
+  /// Хүчинтэй эхлэх
+  startsAt        DateTime  @default(now())
+  /// Хүчинтэй дуусах (null = хугацаагүй)
+  expiresAt       DateTime?
+  /// Нийт ашиглалтын дээд хязгаар (null = хязгааргүй)
+  maxUses         Int?
+  /// Нэг хэрэглэгч нэг удаа л ашиглах
+  onePerUser      Boolean   @default(true)
+  isActive        Boolean   @default(true)
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  payments        Payment[]
+
+  @@index([isActive, expiresAt])
+  @@map("discount_codes")
 }
 
 // ──────────────────────────────────────────────
