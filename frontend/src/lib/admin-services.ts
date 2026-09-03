@@ -195,3 +195,17 @@ export async function getAdminUsers() {
   const { data } = await api.get<AdminUserBilling[]>('/admin/users');
   return data;
 }
+
+export async function grantAdminUserVipMonth(userId: string, durationDays = 30) {
+  const { data } = await api.post<{
+    userId: string;
+    email: string;
+    plan: string;
+    planName: string;
+    status: string;
+    expiresAt: string;
+    durationDays: number;
+    extended: boolean;
+  }>(`/admin/users/${userId}/grant-month`, { durationDays });
+  return data;
+}

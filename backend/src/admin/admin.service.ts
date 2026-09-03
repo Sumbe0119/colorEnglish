@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateLessonDto,
@@ -311,5 +311,70 @@ export class AdminService {
           : null,
       };
     });
+  }
+
+  /** Админ: хэрэглэгчид 1 сарын (30 хоног) VIP нэмэх / сунгах */
+  async grantVipMonth(userId: string, durationDays = 30) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true },
+    });
+    if (!user) throw new NotFoundException('Хэрэглэгч олдсонгүй');
+
+    const days = Math.max(1, Math.min(365, Math.round(durationDays)));
+    const monthPlan =
+      (await this.prisma.pricingPlan.findFirst({
+        where: { durationDays: 30, isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      })) ??
+      (await this.prisma.pricingPlan.findFirst({
+        where: { code: 'VIP_1_MONTH' },
+      }));
+
+    const planCode = monthPlan?.code ?? 'VIP_1_MONTH';
+    const planName = monthPlan?.name ?? '1 сар VIP';
+
+    const now = new Date();
+    const current = await this.prisma.subscription.findUnique({ where: { userId } });
+    const activeVip =
+      current &&
+      current.plan !== 'FREE' &&
+      (current.status === SubscriptionStatus.ACTIVE || current.status === SubscriptionStatus.TRIAL) &&
+      current.expiresAt &&
+      current.expiresAt.getTime() > now.getTime();
+
+    const base = activeVip && current.expiresAt ? current.expiresAt : now;
+    const expiresAt = new Date(base);
+    expiresAt.setDate(expiresAt.getDate() + days);
+
+    const subscription = await this.prisma.subscription.upsert({
+      where: { userId },
+      create: {
+        userId,
+        plan: planCode,
+        status: SubscriptionStatus.ACTIVE,
+        startedAt: now,
+        expiresAt,
+        autoRenew: false,
+      },
+      update: {
+        plan: planCode,
+        status: SubscriptionStatus.ACTIVE,
+        startedAt: now,
+        expiresAt,
+        autoRenew: false,
+      },
+    });
+
+    return {
+      userId: user.id,
+      email: user.email,
+      plan: subscription.plan,
+      planName,
+      status: subscription.status,
+      expiresAt: subscription.expiresAt,
+      durationDays: days,
+      extended: !!activeVip,
+    };
   }
 }

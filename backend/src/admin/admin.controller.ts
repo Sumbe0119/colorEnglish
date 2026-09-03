@@ -25,6 +25,12 @@ export class AdminController {
     return this.adminService.listUsersWithBilling();
   }
 
+  @Roles(Role.ADMIN)
+  @Post('users/:id/grant-month')
+  grantVipMonth(@Param('id') id: string, @Body() body?: { durationDays?: number }) {
+    return this.adminService.grantVipMonth(id, body?.durationDays ?? 30);
+  }
+
   @Get('curriculum')
   getCurriculum() {
     return this.adminService.getCurriculumTree();

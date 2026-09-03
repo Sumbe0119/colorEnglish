@@ -2,10 +2,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, Users } from 'lucide-react';
-import { AdminUserBilling, getAdminUsers } from '@/lib/admin-services';
+import { Search, Sparkles, Users } from 'lucide-react';
+import {
+  AdminUserBilling,
+  getAdminUsers,
+  grantAdminUserVipMonth,
+} from '@/lib/admin-services';
 import { formatMnt } from '@/lib/billing-services';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from '@/store/toast-store';
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
@@ -21,6 +28,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [grantTarget, setGrantTarget] = useState<AdminUserBilling | null>(null);
+  const [granting, setGranting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -51,6 +60,25 @@ export default function AdminUsersPage() {
   }, [users, query]);
 
   const proCount = users.filter((u) => u.isPro).length;
+
+  const handleGrantConfirm = async () => {
+    if (!grantTarget) return;
+    setGranting(true);
+    try {
+      const result = await grantAdminUserVipMonth(grantTarget.id, 30);
+      toast.success(
+        result.extended
+          ? `${grantTarget.displayName}-д +30 хоног нэмэгдлээ`
+          : `${grantTarget.displayName}-д 1 сарын VIP олголоо`,
+      );
+      setGrantTarget(null);
+      load();
+    } catch {
+      toast.error('Сарын эрх олгоход алдаа гарлаа');
+    } finally {
+      setGranting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -90,7 +118,7 @@ export default function AdminUsersPage() {
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-ink-600/80">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="border-b border-ink-700 bg-ink-900/80 text-xs uppercase tracking-wide text-mist-500">
             <tr>
               <th className="px-4 py-3 font-medium">Хэрэглэгч</th>
@@ -99,12 +127,13 @@ export default function AdminUsersPage() {
               <th className="px-4 py-3 font-medium">Дуусах</th>
               <th className="px-4 py-3 font-medium">Сүүлийн төлбөр</th>
               <th className="px-4 py-3 font-medium">Роль</th>
+              <th className="px-4 py-3 font-medium">Үйлдэл</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-700/80">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-mist-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-mist-400">
                   Хэрэглэгч олдсонгүй
                 </td>
               </tr>
@@ -144,12 +173,41 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <span className="text-xs text-mist-400">{u.role}</span>
                   </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-8 gap-1.5 px-2.5 py-1 text-xs"
+                      onClick={() => setGrantTarget(u)}
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-brand" />
+                      +1 сар
+                    </Button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!grantTarget}
+        title="1 сарын VIP олгох уу?"
+        description={
+          grantTarget
+            ? grantTarget.isPro
+              ? `${grantTarget.displayName} (${grantTarget.email})-ийн одоогийн VIP дээр +30 хоног нэмэгдэнэ.`
+              : `${grantTarget.displayName} (${grantTarget.email})-д 30 хоногийн VIP эрх олгоно.`
+            : undefined
+        }
+        confirmLabel="Олгох"
+        isLoading={granting}
+        onConfirm={() => void handleGrantConfirm()}
+        onCancel={() => {
+          if (!granting) setGrantTarget(null);
+        }}
+      />
     </div>
   );
 }
