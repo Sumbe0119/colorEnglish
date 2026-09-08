@@ -1,3 +1,4 @@
+// backend/src/email/email.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
@@ -9,19 +10,37 @@ export class EmailService {
   private readonly from: string;
 
   constructor(private config: ConfigService) {
-    const host = this.config.get<string>('SMTP_HOST');
-    const port = this.config.get<string>('SMTP_PORT');
-    const user = this.config.get<string>('SMTP_USER');
-    const pass = this.config.get<string>('SMTP_PASS');
-    this.from = this.config.get<string>('SMTP_FROM') ?? 'ColorEnglish <no-reply@colorenglish.mn>';
+    const host = this.config.get<string>('SMTP_HOST')?.trim();
+    const portRaw = this.config.get<string>('SMTP_PORT')?.trim();
+    const user = this.config.get<string>('SMTP_USER')?.trim();
+    const pass = this.config.get<string>('SMTP_PASS')?.trim();
+    const fromEnv = this.config.get<string>('SMTP_FROM')?.trim();
+    const port = Number(portRaw ?? 587);
 
-    if (host && port && user && pass) {
+    // Gmail: From нь SMTP_USER-тэй ижил байх ёстой (эсвэл Gmail-д verify хийсэн alias)
+    this.from =
+      fromEnv && fromEnv.length > 0
+        ? fromEnv
+        : user
+          ? `ColorEnglish <${user}>`
+          : 'ColorEnglish <no-reply@colorenglish.mn>';
+
+    if (host && portRaw && user && pass) {
       this.transporter = nodemailer.createTransport({
         host,
-        port: Number(port),
-        secure: Number(port) === 465,
+        port,
+        secure: port === 465,
+        requireTLS: port === 587,
         auth: { user, pass },
       });
+
+      void this.transporter.verify().then(
+        () => this.logger.log(`SMTP бэлэн: ${host}:${port} as ${user}`),
+        (err: Error) =>
+          this.logger.error(
+            `SMTP холбогдохгүй байна (${host}:${port}). Gmail бол App Password шаардлагатай. ${err.message}`,
+          ),
+      );
     } else {
       this.transporter = null;
       this.logger.warn(
@@ -45,6 +64,19 @@ export class EmailService {
       return;
     }
 
-    await this.transporter.sendMail({ from: this.from, to, subject, text, html });
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.from,
+        to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`И-мэйл илгээгдлээ → ${to} (id: ${info.messageId})`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`И-мэйл илгээхэд алдаа (${to}): ${message}`);
+      throw err;
+    }
   }
 }
