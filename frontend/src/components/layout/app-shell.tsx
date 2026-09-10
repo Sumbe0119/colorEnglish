@@ -59,33 +59,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-1 p-3">
           <Link
             href="/reading"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-              isStories
-                ? 'bg-brand/20 text-brand shadow-glow'
-                : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-            }`}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isStories
+              ? 'bg-brand/20 text-brand shadow-glow'
+              : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+              }`}
           >
             <BookOpen className="h-4 w-4" />
             Өгүүллэгүүд
           </Link>
           <Link
             href="/reading/words"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-              isMyWords
-                ? 'bg-brand/20 text-brand shadow-glow'
-                : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-            }`}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isMyWords
+              ? 'bg-brand/20 text-brand shadow-glow'
+              : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+              }`}
           >
             <Library className="h-4 w-4" />
             Цээжилсэн үгс
           </Link>
           <Link
+            href="/reading/rule"
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isMyWords
+              ? 'bg-brand/20 text-brand shadow-glow'
+              : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+              }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            A1 түвшний дүрэм
+          </Link>
+          <Link
             href="/profile"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-              isProfile
-                ? 'bg-brand/20 text-brand shadow-glow'
-                : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-            }`}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isProfile
+              ? 'bg-brand/20 text-brand shadow-glow'
+              : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+              }`}
           >
             <UserRound className="h-4 w-4" />
             Профайл
@@ -93,11 +100,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
             <Link
               href="/admin"
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                isAdmin
-                  ? 'bg-brand/20 text-brand shadow-glow'
-                  : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-              }`}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isAdmin
+                ? 'bg-brand/20 text-brand shadow-glow'
+                : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                }`}
             >
               <Settings className="h-4 w-4" />
               Admin
@@ -174,9 +180,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <main
-          className={`ce-scroll min-h-0 flex-1 overflow-y-auto ${
-            isImmersiveReader ? 'p-0 md:p-10' : 'p-4 sm:p-6 md:p-10'
-          }`}
+          className={`ce-scroll min-h-0 flex-1 overflow-y-auto ${isImmersiveReader ? 'p-0 md:p-10' : 'p-4 sm:p-6 md:p-10'
+            }`}
         >
           <div className={`mx-auto ${isImmersiveReader ? 'max-w-none md:max-w-6xl' : 'max-w-6xl'}`}>
             {children}
@@ -218,11 +223,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/reading"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                  isStories
-                    ? 'bg-brand/20 text-brand shadow-glow'
-                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-                }`}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isStories
+                  ? 'bg-brand/20 text-brand shadow-glow'
+                  : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                  }`}
               >
                 <BookOpen className="h-4 w-4" />
                 Өгүүллэгүүд
@@ -230,23 +234,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/reading/words"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                  isMyWords
-                    ? 'bg-brand/20 text-brand shadow-glow'
-                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-                }`}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isMyWords
+                  ? 'bg-brand/20 text-brand shadow-glow'
+                  : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                  }`}
               >
                 <Library className="h-4 w-4" />
                 Цээжилсэн үгс
               </Link>
+
               <Link
                 href="/profile"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                  isProfile
-                    ? 'bg-brand/20 text-brand shadow-glow'
-                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-                }`}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isProfile
+                  ? 'bg-brand/20 text-brand shadow-glow'
+                  : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                  }`}
               >
                 <UserRound className="h-4 w-4" />
                 Профайл
@@ -255,11 +258,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                    isAdmin
-                      ? 'bg-brand/20 text-brand shadow-glow'
-                      : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
-                  }`}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${isAdmin
+                    ? 'bg-brand/20 text-brand shadow-glow'
+                    : 'text-mist-300 hover:bg-ink-800 hover:text-mist-50'
+                    }`}
                 >
                   <Settings className="h-4 w-4" />
                   Admin

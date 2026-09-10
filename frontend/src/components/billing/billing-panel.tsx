@@ -334,7 +334,8 @@ export function BillingPanel({
                   QPay төлбөр
                 </h2>
                 <p className="mt-1 text-xs text-mist-400">
-                  {formatMnt(activePayment.amountMnt)} · {activePayment.senderInvoiceNo}
+                  {formatMnt(activePayment.amountMnt)} ·{' '}
+                  {activePayment.plan?.name ?? activePayment.planCode}
                 </p>
               </div>
               <button

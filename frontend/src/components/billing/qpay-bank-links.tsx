@@ -26,19 +26,20 @@ export function QpayBankLinks({
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {urls.map((u) => {
           const logoBroken = brokenLogos[u.link];
+          const label = u.description?.trim() || u.name;
           return (
             <li key={`${u.name}-${u.link}`}>
               <a
                 href={u.link}
                 className="flex w-full flex-col items-center gap-1.5 rounded-xl border border-ink-600 bg-ink-800/80 px-2 py-3 text-center transition-colors hover:border-brand/50 hover:bg-ink-800 active:scale-[0.98]"
-                title={u.description || u.name}
+                title={label}
               >
                 <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-sm">
                   {u.logo && !logoBroken ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={u.logo}
-                      alt={u.name}
+                      alt={label}
                       className="h-full w-full object-contain"
                       loading="lazy"
                       referrerPolicy="no-referrer"
@@ -48,12 +49,12 @@ export function QpayBankLinks({
                     />
                   ) : (
                     <span className="text-[10px] font-bold uppercase leading-tight text-ink-700">
-                      {u.name.slice(0, 3)}
+                      {label.slice(0, 3)}
                     </span>
                   )}
                 </span>
                 <span className="line-clamp-2 w-full text-[10px] font-medium leading-tight text-mist-200">
-                  {u.name}
+                  {label}
                 </span>
               </a>
             </li>
