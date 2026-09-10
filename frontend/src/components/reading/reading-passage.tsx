@@ -63,14 +63,17 @@ export function ReadingPassage({
     word: string;
     meaningMn: string;
     readingWordId?: string;
-    x: number;
-    y: number;
+    /** Дарсан үгийн байрлал — viewport координатаар */
+    anchor: { centerX: number; top: number; bottom: number };
   } | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'exists' | 'error'>(
     'idle',
   );
   const [pending, setPending] = useState<PendingRange | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  /** Хэмжсэний дараа тооцсон байрлал (контейнерээс хамаарсан). null = хараахан хэмжээгүй */
+  const [popupPos, setPopupPos] = useState<{ left: number; top: number } | null>(null);
 
   useEffect(() => {
     const close = () => setActive(null);
@@ -83,6 +86,46 @@ export function ReadingPassage({
     setPending(null);
     setSaveStatus('idle');
   }, [words, body]);
+
+  // Popup-ыг дэлгэц/скролл хэсгийн дотор багтаана: хажуу тийш болон дээш гарахаас сэргийлнэ
+  useEffect(() => {
+    if (!active) {
+      setPopupPos(null);
+      return;
+    }
+    const popup = popupRef.current;
+    const container = containerRef.current;
+    if (!popup || !container) return;
+
+    const place = () => {
+      const popupRect = popup.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const bounds = visibleBounds(container);
+      const gap = 8;
+
+      const minLeft = bounds.left + gap;
+      const maxLeft = bounds.right - popupRect.width - gap;
+      const wantedLeft = active.anchor.centerX - popupRect.width / 2;
+      const left =
+        maxLeft < minLeft ? minLeft : Math.min(Math.max(wantedLeft, minLeft), maxLeft);
+
+      // Анхдагчаар үгийн дээр. Багтахгүй бол доор нь эргүүлнэ.
+      let top = active.anchor.top - popupRect.height - gap;
+      if (top < bounds.top + gap) {
+        const below = active.anchor.bottom + gap;
+        top =
+          below + popupRect.height > bounds.bottom - gap
+            ? Math.max(bounds.top + gap, bounds.bottom - popupRect.height - gap)
+            : below;
+      }
+
+      setPopupPos({ left: left - containerRect.left, top: top - containerRect.top });
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [active, saveStatus, storyId, interactive]);
 
   const annotations = words
     .filter((w) => typeof w.startOffset === 'number' && typeof w.endOffset === 'number')
@@ -116,15 +159,18 @@ export function ReadingPassage({
     readingWordId?: string,
   ) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const container = containerRef.current?.getBoundingClientRect();
-    if (!container) return;
+    if (!containerRef.current) return;
     setSaveStatus('idle');
+    setPopupPos(null);
     setActive({
       word: word.trim(),
       meaningMn,
       readingWordId,
-      x: rect.left - container.left + rect.width / 2,
-      y: rect.top - container.top - 8,
+      anchor: {
+        centerX: rect.left + rect.width / 2,
+        top: rect.top,
+        bottom: rect.bottom,
+      },
     });
     speakEnglishWord(normalizePhrase(word));
   };
@@ -370,8 +416,13 @@ export function ReadingPassage({
 
       {active && (
         <div
-          className="absolute z-20 min-w-[200px] -translate-x-1/2 -translate-y-full rounded-xl border border-brand/30 bg-ink-800 px-4 py-3 shadow-xl"
-          style={{ left: active.x, top: active.y }}
+          ref={popupRef}
+          className="absolute z-20 w-64 max-w-[calc(100vw-1.5rem)] rounded-xl border border-brand/30 bg-ink-800 px-4 py-3 shadow-xl"
+          style={{
+            left: popupPos?.left ?? 0,
+            top: popupPos?.top ?? 0,
+            visibility: popupPos ? 'visible' : 'hidden',
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-1 flex items-center justify-between gap-3">
@@ -426,6 +477,29 @@ export function ReadingPassage({
       </p>
     </div>
   );
+}
+
+/**
+ * Popup-ыг багтаах ёстой талбай: viewport болон бүх таслагч (overflow != visible)
+ * эцэг элементүүдийн огтлолцол. Гар утасны уншигчийн скролл хэсэг үүнд хамаарна.
+ */
+function visibleBounds(el: HTMLElement) {
+  let left = 0;
+  let top = 0;
+  let right = window.innerWidth;
+  let bottom = window.innerHeight;
+
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const style = window.getComputedStyle(node);
+    if (style.overflowX === 'visible' && style.overflowY === 'visible') continue;
+    const rect = node.getBoundingClientRect();
+    left = Math.max(left, rect.left);
+    top = Math.max(top, rect.top);
+    right = Math.min(right, rect.right);
+    bottom = Math.min(bottom, rect.bottom);
+  }
+
+  return { left, top, right, bottom };
 }
 
 function buildAdminSegments(

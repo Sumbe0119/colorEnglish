@@ -1,18 +1,18 @@
 // frontend/src/components/layout/subscription-status-bar.tsx
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronRight, Sparkles } from 'lucide-react';
-import { getSubscriptionMe, type SubscriptionMe } from '@/lib/billing-services';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight, Sparkles } from "lucide-react";
+import { getSubscriptionMe, type SubscriptionMe } from "@/lib/billing-services";
 
 export function SubscriptionStatusBar() {
   const pathname = usePathname();
   const [sub, setSub] = useState<SubscriptionMe | null>(null);
 
   useEffect(() => {
-    if (pathname.startsWith('/billing')) return;
+    if (pathname.startsWith("/billing")) return;
     let cancelled = false;
     getSubscriptionMe()
       .then((data) => {
@@ -26,37 +26,25 @@ export function SubscriptionStatusBar() {
     };
   }, [pathname]);
 
-  if (pathname.startsWith('/billing') || !sub) return null;
+  if (pathname.startsWith("/billing") || !sub) return null;
 
   return (
     <div className="border-t border-ink-600/60 lg:border-t-0">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-6 md:px-10 lg:px-10">
         <div className="min-w-0">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-mist-500">
-            Одоогийн төлөв
-          </p>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-mist-500">Одоогийн төлөв</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="font-display text-sm font-semibold text-mist-50">
-              {sub.staffAccess
-                ? 'Admin эрх'
-                : sub.isPro
-                  ? 'VIP идэвхтэй'
-                  : 'Free'}
+              {sub.staffAccess ? "Admin эрх" : sub.isPro ? "VIP идэвхтэй" : "Free"}
             </p>
             {sub.isPro && !sub.staffAccess && sub.expiresAt && (
               <p className="text-xs text-mist-300">
-                Дуусах: {new Date(sub.expiresAt).toLocaleString('mn-MN')}
-                {sub.daysLeft != null && (
-                  <span className="text-brand"> · {sub.daysLeft} хоног үлдсэн</span>
-                )}
+                Дуусах: {new Date(sub.expiresAt).toLocaleString("mn-MN")}
+                {sub.daysLeft != null && <span className="text-brand"> · {sub.daysLeft} хоног үлдсэн</span>}
               </p>
             )}
-            {sub.staffAccess && (
-              <p className="text-xs text-mist-400">VIP шаардлагагүй · бүх бүлэг нээлттэй</p>
-            )}
-            {!sub.isPro && !sub.staffAccess && (
-              <p className="text-xs text-mist-400">Эхний 1 өгүүллэг үнэгүй · бусад нь VIP</p>
-            )}
+            {sub.staffAccess && <p className="text-xs text-mist-400">VIP шаардлагагүй · бүх бүлэг нээлттэй</p>}
+            {!sub.isPro && !sub.staffAccess && <p className="text-xs text-mist-400">багцаа аваад VIP эрхээр ашиглаарай</p>}
           </div>
         </div>
 
