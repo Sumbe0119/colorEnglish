@@ -1,7 +1,7 @@
 // backend/src/email/email.service.ts
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as nodemailer from "nodemailer";
 
 @Injectable()
 export class EmailService {
@@ -10,20 +10,15 @@ export class EmailService {
   private readonly from: string;
 
   constructor(private config: ConfigService) {
-    const host = this.config.get<string>('SMTP_HOST')?.trim();
-    const portRaw = this.config.get<string>('SMTP_PORT')?.trim();
-    const user = this.config.get<string>('SMTP_USER')?.trim();
-    const pass = this.config.get<string>('SMTP_PASS')?.trim();
-    const fromEnv = this.config.get<string>('SMTP_FROM')?.trim();
+    const host = this.config.get<string>("SMTP_HOST")?.trim();
+    const portRaw = this.config.get<string>("SMTP_PORT")?.trim();
+    const user = this.config.get<string>("SMTP_USER")?.trim();
+    const pass = this.config.get<string>("SMTP_PASS")?.trim();
+    const fromEnv = this.config.get<string>("SMTP_FROM")?.trim();
     const port = Number(portRaw ?? 587);
 
     // Gmail: From нь SMTP_USER-тэй ижил байх ёстой (эсвэл Gmail-д verify хийсэн alias)
-    this.from =
-      fromEnv && fromEnv.length > 0
-        ? fromEnv
-        : user
-          ? `ColorEnglish <${user}>`
-          : 'ColorEnglish <no-reply@colorenglish.mn>';
+    this.from = fromEnv && fromEnv.length > 0 ? fromEnv : user ? `ColorEnglish <${user}>` : "ColorEnglish <no-reply@colorenglish.mn>";
 
     if (host && portRaw && user && pass) {
       this.transporter = nodemailer.createTransport({
@@ -36,21 +31,16 @@ export class EmailService {
 
       void this.transporter.verify().then(
         () => this.logger.log(`SMTP бэлэн: ${host}:${port} as ${user}`),
-        (err: Error) =>
-          this.logger.error(
-            `SMTP холбогдохгүй байна (${host}:${port}). Gmail бол App Password шаардлагатай. ${err.message}`,
-          ),
+        (err: Error) => this.logger.error(`SMTP холбогдохгүй байна (${host}:${port}). Gmail бол App Password шаардлагатай. ${err.message}`),
       );
     } else {
       this.transporter = null;
-      this.logger.warn(
-        'SMTP тохиргоо дутуу (SMTP_HOST/PORT/USER/PASS) — и-мэйл илгээгдэхгүй, console-д л бичигдэнэ',
-      );
+      this.logger.warn("SMTP тохиргоо дутуу (SMTP_HOST/PORT/USER/PASS) — и-мэйл илгээгдэхгүй, console-д л бичигдэнэ");
     }
   }
 
   async sendPasswordResetCode(to: string, code: string) {
-    const subject = 'ColorEnglish — Нууц үг сэргээх код';
+    const subject = "ColorEnglish — Нууц үг сэргээх код";
     const text = `Таны нууц үг сэргээх баталгаажуулах код: ${code}\n\nЭнэ код 10 минутын дараа хүчингүй болно. Хэрэв та энэ хүсэлтийг илгээгээгүй бол энэ и-мэйлийг үл тоомсорлоно уу.`;
     const html = `
       <p>Таны нууц үг сэргээх баталгаажуулах код:</p>
