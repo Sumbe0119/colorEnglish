@@ -13,6 +13,7 @@ import {
 } from '@/lib/reading-services';
 import { useAuthStore } from '@/store/auth-store';
 import { formatLevelCode } from '@/types/api';
+import { useReadingLock } from '@/components/reading/reading-lock';
 
 export default function ReadingListPage() {
   const user = useAuthStore((s) => s.user);
@@ -22,6 +23,8 @@ export default function ReadingListPage() {
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Түр хаалт: 9/14 15:00 болтол өгүүллэг нээгдэхгүй, дарвал анхааруулга гарна.
+  const { locked, isPro: hasVip, showNotice } = useReadingLock();
 
   const load = async () => {
     setLoading(true);
@@ -87,7 +90,11 @@ export default function ReadingListPage() {
             Унших өгүүллэг
           </h1>
           <p className="mt-2 text-sm text-mist-400">
-            Өгүүллэг нээлттэй. Бүлэг бүрийг VIP эсвэл админ unlock-оор уншина.
+            {!locked
+              ? 'Өгүүллэг нээлттэй. Бүлэг бүрийг VIP эсвэл админ unlock-оор уншина.'
+              : hasVip
+                ? 'Өгүүллэгүүд түр хаалттай. 9 сарын 14-ний 15:00 цагт дахин нээгдэнэ.'
+                : 'Өгүүллэг унших эрх зөвхөн VIP багцтай хэрэглэгчдэд нээлттэй.'}
           </p>
         </div>
         {!isPro && (
@@ -118,7 +125,14 @@ export default function ReadingListPage() {
       {!loadError && stories.length === 0 ? (
         <div className="mt-10 rounded-xl border border-dashed border-ink-600 p-8 text-center">
           <BookOpen className="mx-auto mb-3 h-8 w-8 text-mist-500" />
-          <p className="text-mist-400">Одоогоор нийтлэгдсэн өгүүллэг байхгүй.</p>
+          <p className="text-mist-400">
+            {locked ? 'Өгүүллэгүүд түр хаалттай байна.' : 'Одоогоор нийтлэгдсэн өгүүллэг байхгүй.'}
+          </p>
+          {locked && hasVip && (
+            <p className="mt-1 text-sm text-mist-500">
+              9 сарын 14-ний 15:00 цагт дахин нээгдэнэ.
+            </p>
+          )}
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-3 lg:gap-5 sm:grid-cols-3 lg:grid-cols-4">
@@ -136,16 +150,26 @@ export default function ReadingListPage() {
                 ? `/reading/${access.practiceStoryId}/practice`
                 : `/reading/${story.id}`;
 
+            const cardClass = `group flex flex-col overflow-hidden rounded-2xl border bg-ink-900 text-left shadow-card transition-all hover:-translate-y-0.5 ${
+              gamesBlocked
+                ? 'border-amber-500/40 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-500/10'
+                : 'border-ink-600 hover:border-brand/50 hover:shadow-lg hover:shadow-brand/10'
+            }`;
+
+            // Хаалттай үед карт нь линк биш — дарахад анхааруулга харуулна.
+            const CardWrapper = ({ children }: { children: React.ReactNode }) =>
+              locked ? (
+                <button type="button" onClick={showNotice} className={cardClass}>
+                  {children}
+                </button>
+              ) : (
+                <Link href={href} className={cardClass}>
+                  {children}
+                </Link>
+              );
+
             return (
-              <Link
-                key={story.id}
-                href={href}
-                className={`group flex flex-col overflow-hidden rounded-2xl border bg-ink-900 shadow-card transition-all hover:-translate-y-0.5 ${
-                  gamesBlocked
-                    ? 'border-amber-500/40 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-500/10'
-                    : 'border-ink-600 hover:border-brand/50 hover:shadow-lg hover:shadow-brand/10'
-                }`}
-              >
+              <CardWrapper key={story.id}>
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink-800">
                   {cover ? (
                     <>
@@ -220,7 +244,17 @@ export default function ReadingListPage() {
                     gamesBlocked ? 'border-amber-500/20' : 'border-ink-600'
                   }`}
                 >
-                  {gamesBlocked ? (
+                  {locked ? (
+                    hasVip ? (
+                      <span className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-500/15 py-2.5 text-xs font-semibold text-amber-300">
+                        <Lock className="h-3.5 w-3.5" /> 9/14 15:00-д нээгдэнэ
+                      </span>
+                    ) : (
+                      <span className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand/15 py-2.5 text-xs font-semibold text-brand">
+                        <Sparkles className="h-3.5 w-3.5" /> VIP эрхээр нээх
+                      </span>
+                    )
+                  ) : gamesBlocked ? (
                     <span className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-500/15 py-2.5 text-xs font-semibold text-amber-300">
                       <Gamepad2 className="h-3.5 w-3.5" /> Цээжлэх тоглоом
                     </span>
@@ -230,7 +264,7 @@ export default function ReadingListPage() {
                     </span>
                   )}
                 </div>
-              </Link>
+              </CardWrapper>
             );
           })}
         </div>

@@ -22,6 +22,12 @@ import {
   normalizePhrase,
 } from './reading-lexicon';
 
+/**
+ * Түр хаалт: энэ мөч болтол өгүүллэгийн бүтэн эх, бүлгүүдийг хэн ч уншиж чадахгүй
+ * (админ/эдитороос бусад). 2026-09-14 15:00 Улаанбаатар (UTC+8).
+ */
+export const READING_UNLOCK_AT = new Date('2026-09-14T15:00:00+08:00');
+
 const storyInclude = {
   chapters: {
     orderBy: { order: 'asc' as const },
@@ -110,7 +116,24 @@ export class ReadingService {
     });
   }
 
+  /** Хаалтын хугацаа дуусаагүй үед staff бус хэрэглэгчийг зогсооно. */
+  private async assertReadingUnlocked(userId: string) {
+    if (Date.now() >= READING_UNLOCK_AT.getTime()) return;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (user?.role === 'ADMIN' || user?.role === 'EDITOR') return;
+    throw new ForbiddenException({
+      message:
+        '9 сарын 14-ний 15:00 цагт VIP эрхтэй хэрэглэгчдэд унших эрх нээгдэнэ.',
+      readingLocked: true,
+      unlockAt: READING_UNLOCK_AT.toISOString(),
+    });
+  }
+
   async getPublished(id: string, userId: string) {
+    await this.assertReadingUnlocked(userId);
     const access = await this.getAccess(userId);
     const entry = access.stories.find((s) => s.id === id);
     if (!entry) throw new NotFoundException('Өгүүллэг олдсонгүй');
