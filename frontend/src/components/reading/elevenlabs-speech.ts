@@ -48,7 +48,11 @@ function stopAudio() {
   }
 }
 
+// Хүсэлт бүрийн токен: fetch хүлээх хооронд зогсоосон/өөр уншилт эхэлсэн бол хуучин хариуг тоглуулахгүй.
+let requestId = 0;
+
 export function stopAllSpeech() {
+  requestId += 1;
   clearBoundaryTimers();
   stopAudio();
   stopBrowserSpeech();
@@ -152,14 +156,23 @@ function scheduleAlignment(
   }
 }
 
-async function speakElevenLabs(text: string, options: SpeakOptions = {}) {
+async function speakElevenLabs(
+  text: string,
+  options: SpeakOptions = {},
+  isCurrent: () => boolean = () => true,
+) {
   const { data } = await api.post<TtsApiResponse>('/reading/tts', {
     text,
     gender: options.gender ?? 'female',
     rate: options.rate ?? 0.85,
   });
 
-  stopAllSpeech();
+  // Хүлээх хооронд зогсоосон эсвэл шинэ уншилт эхэлсэн бол энэ хариуг хаяна.
+  if (!isCurrent()) return;
+
+  clearBoundaryTimers();
+  stopAudio();
+  stopBrowserSpeech();
 
   const mime = data.contentType || 'audio/mpeg';
   const audio = new Audio(`data:${mime};base64,${data.audioBase64}`);
@@ -191,15 +204,19 @@ export async function speakWithElevenLabs(text: string, options: SpeakOptions = 
     return;
   }
   stopAllSpeech();
+  const id = requestId;
+  const isCurrent = () => id === requestId;
   const enabled = await ensureElevenLabsEnabled();
+  if (!isCurrent()) return;
   if (enabled) {
     try {
-      await speakElevenLabs(cleaned, options);
+      await speakElevenLabs(cleaned, options, isCurrent);
       return;
     } catch {
       // fallback
     }
   }
+  if (!isCurrent()) return;
   speakBrowser(cleaned, options);
 }
 

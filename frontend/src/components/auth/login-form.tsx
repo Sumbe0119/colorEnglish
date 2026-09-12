@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { loginSchema, LoginFormValues } from '@/lib/auth-schemas';
-import { login, getMe } from '@/lib/services';
-import { useAuthStore } from '@/store/auth-store';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { loginSchema, LoginFormValues } from "@/lib/auth-schemas";
+import { login, getMe } from "@/lib/services";
+import { useAuthStore } from "@/store/auth-store";
 
 export function LoginForm() {
   const router = useRouter();
@@ -32,18 +32,14 @@ export function LoginForm() {
       setSession(data.user, data.accessToken);
       const me = await getMe();
       const completed = (me as { profile?: { onboardingCompleted?: boolean } }).profile?.onboardingCompleted;
-      router.push(completed ? '/reading' : '/onboarding');
+      router.push(completed ? "/reading" : "/onboarding");
     } catch (err: any) {
-      setServerError(err?.response?.data?.message ?? 'Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.');
+      setServerError(err?.response?.data?.message ?? "Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.");
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-    >
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }}>
       <h1 className="font-display text-2xl font-semibold text-mist-50">Тавтай морил</h1>
       <p className="mt-2 text-sm text-mist-300">Сурах замаа үргэлжлүүлэхийн тулд нэвтэрнэ үү.</p>
 
@@ -61,35 +57,34 @@ export function LoginForm() {
           placeholder="name@example.com"
           autoComplete="email"
           error={errors.email?.message}
-          {...register('email')}
+          {...register("email")}
         />
 
         <div className="relative">
           <Input
             label="Нууц үг"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             autoComplete="current-password"
             error={errors.password?.message}
-            {...register('password')}
+            {...register("password")}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             className="absolute right-3 top-[34px] text-mist-400 hover:text-mist-200"
             tabIndex={-1}
-            aria-label={showPassword ? 'Нууц үг нуух' : 'Нууц үг харуулах'}
+            aria-label={showPassword ? "Нууц үг нуух" : "Нууц үг харуулах"}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
 
         <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-sm text-brand hover:text-brand-hover">
-            Нууц үгээ мартсан уу?
+          <Link href="/register" className="text-sm text-brand hover:text-brand-hover">
+            Бүртгүүлэх
           </Link>
         </div>
-
         <Button type="submit" isLoading={isSubmitting} className="w-full">
           Нэвтрэх
         </Button>
