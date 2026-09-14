@@ -216,7 +216,7 @@ export interface ReadingStoryAccess {
   locked: boolean;
   gamesBlocked: boolean;
   practiceStoryId: string | null;
-  /** Coming soon тул нээгдэхгүй (staff-д false) */
+  /** Coming soon тул хэн ч нээж чадахгүй */
   comingSoonBlocked?: boolean;
   canOpen: boolean;
   quizPassed: boolean;

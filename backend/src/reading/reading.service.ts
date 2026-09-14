@@ -178,9 +178,12 @@ export class ReadingService {
   async saveUserWord(userId: string, dto: SaveUserReadingWordDto) {
     const story = await this.prisma.readingStory.findFirst({
       where: { id: dto.storyId, isPublished: true },
-      select: { id: true },
+      select: { id: true, isComingSoon: true },
     });
     if (!story) throw new NotFoundException('Өгүүллэг олдсонгүй');
+    if (story.isComingSoon) {
+      throw new ForbiddenException({ message: 'Энэ өгүүллэг удахгүй нээгдэнэ', comingSoon: true });
+    }
 
     const word = normalizeWord(dto.word);
     if (!word) throw new BadRequestException('Үг хоосон байна');
@@ -303,8 +306,8 @@ export class ReadingService {
 
       const prog = progressByStory.get(story.id);
       const { chapters: chapterRows, ...storyMeta } = story;
-      // Coming soon өгүүллэгийг staff л урьдчилан харж болно
-      const comingSoonBlocked = story.isComingSoon && !staffBypass;
+      // Coming soon өгүүллэгийг VIP, staff хэн ч уншиж чадахгүй (админ панелаас л харна)
+      const comingSoonBlocked = story.isComingSoon;
       return {
         ...storyMeta,
         free,
@@ -378,6 +381,9 @@ export class ReadingService {
       where: { id, isPublished: true },
     });
     if (!story) throw new NotFoundException('Өгүүллэг олдсонгүй');
+    if (story.isComingSoon) {
+      throw new ForbiddenException({ message: 'Энэ өгүүллэг удахгүй нээгдэнэ', comingSoon: true });
+    }
     return story;
   }
 
