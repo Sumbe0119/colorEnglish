@@ -160,7 +160,7 @@ export function PracticeQuiz({ questions, title, subtitle, rulesById, onFinish, 
           </div>
 
           <p className="text-xs text-mist-400">{KIND_PROMPT[question.kind]}</p>
-          <h2 className="mb-7 mt-2 font-display text-xl font-semibold leading-8 text-mist-50 md:text-2xl">
+          <h2 className="mb-7 mt-2 break-words font-display text-xl font-semibold leading-8 text-mist-50 md:text-2xl">
             {question.kind === 'fill' ? (
               <FillBlank question={question.question} filled={selected} correct={selected ? isCorrect : null} />
             ) : (
@@ -194,7 +194,7 @@ export function PracticeQuiz({ questions, title, subtitle, rulesById, onFinish, 
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-current font-mono text-xs opacity-60">
                     {String.fromCharCode(65 + i)}
                   </span>
-                  <span lang="en" className="flex-1 font-display">
+                  <span lang="en" className="min-w-0 flex-1 break-words font-display">
                     {option}
                   </span>
                   {state === 'correct' && <Check className="h-4 w-4 shrink-0" />}
@@ -239,7 +239,7 @@ export function PracticeQuiz({ questions, title, subtitle, rulesById, onFinish, 
               <p className="text-sm leading-6 text-mist-200">{question.explanation}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-mist-400">Зөв хэлбэр:</span>
-                <span lang="en" className="font-display font-medium text-success">
+                <span lang="en" className="min-w-0 break-words font-display font-medium text-success">
                   {correctSentence}
                 </span>
                 <SpeakButton text={correctSentence} className="border-success/30 text-success/80" />

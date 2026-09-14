@@ -125,7 +125,7 @@ export default function A1GrammarPage() {
   const masteredCount = A1_RULES.filter((rule) => isMastered(progress[rule.id])).length;
 
   return (
-    <section ref={topRef} className="scroll-mt-4 text-mist-50">
+    <section ref={topRef} className="min-w-0 scroll-mt-4 text-mist-50">
       {/* ── Толгой ─────────────────────────────────────────────── */}
       <header className="mb-6 md:mb-8">
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -181,8 +181,8 @@ export default function A1GrammarPage() {
 
       {/* ── Дүрэм ──────────────────────────────────────────────── */}
       {tab === 'learn' && (
-        <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-0 lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+          <aside className="min-w-0 lg:sticky lg:top-0 lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
             <RuleNav rules={A1_RULES} activeId={activeRule.id} progress={progress} onSelect={openRule} />
           </aside>
 

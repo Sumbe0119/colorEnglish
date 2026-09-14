@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className={`ce-scroll min-h-0 flex-1 overflow-y-auto ${isImmersiveReader ? "p-0 md:p-10" : "p-4 sm:p-6 md:p-10"}`}>
+        <main className={`ce-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${isImmersiveReader ? "p-0 md:p-10" : "p-4 sm:p-6 md:p-10"}`}>
           <div className={`mx-auto ${isImmersiveReader ? "max-w-none md:max-w-6xl" : "max-w-6xl"}`}>{children}</div>
         </main>
       </div>

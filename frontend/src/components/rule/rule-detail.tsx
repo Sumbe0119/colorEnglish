@@ -76,7 +76,7 @@ export function RuleDetail({
       <header className="ce-panel relative overflow-hidden p-6 sm:p-8">
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-2 -top-6 select-none font-display text-[120px] font-bold leading-none text-ink-700/40 sm:text-[160px]"
+          className="pointer-events-none absolute -right-2 -top-6 select-none font-display text-[88px] font-bold leading-none text-ink-700/40 sm:text-[160px]"
         >
           {number}
         </span>
@@ -121,7 +121,7 @@ export function RuleDetail({
             Үндсэн бүтэц
           </span>
           <StructureChips parts={rule.structureParts} separator={separator} />
-          <code className="mt-3 block text-xs leading-5 text-mist-500">{rule.structure}</code>
+          <code className="mt-3 block break-words text-xs leading-5 text-mist-500">{rule.structure}</code>
         </div>
 
         <div className="ce-panel border-modifier/30 p-5">
@@ -193,7 +193,7 @@ export function RuleDetail({
                 <span className="rounded-md border border-brand/40 bg-brand/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand">
                   {form.label}
                 </span>
-                <code className="text-xs leading-5 text-mist-200">{form.structure}</code>
+                <code className="min-w-0 break-words text-xs leading-5 text-mist-200">{form.structure}</code>
               </div>
               <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
                 {form.examples.map((example) => (
@@ -246,12 +246,12 @@ export function RuleDetail({
               <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
                 <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 font-display text-sm text-danger">
                   <span aria-hidden className="font-mono">×</span>
-                  <span lang="en">{mistake.wrong}</span>
+                  <span lang="en" className="min-w-0 break-words">{mistake.wrong}</span>
                 </div>
                 <ArrowRight className="hidden h-4 w-4 text-mist-500 sm:block" />
                 <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 font-display text-sm text-success">
                   <span aria-hidden className="font-mono">✓</span>
-                  <span lang="en" className="flex-1">
+                  <span lang="en" className="min-w-0 flex-1 break-words">
                     {mistake.correct}
                   </span>
                   <SpeakButton text={mistake.correct} className="border-success/30 text-success/80" />
