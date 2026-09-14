@@ -1,5 +1,42 @@
-import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
-import { LevelCode, ModuleType, QuestionType } from '@prisma/client';
+import { IsBoolean, IsEnum, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { LevelCode, ModuleType, QuestionType, Role } from '@prisma/client';
+
+/** Админ хэрэглэгчийн жагсаалт — хуудаслалт, хайлт, шүүлтүүр */
+export class ListUsersQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
+
+  /** Нэр / и-мэйлээр хайх */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  q?: string;
+
+  /** all | pro | free */
+  @IsOptional()
+  @IsIn(['all', 'pro', 'free'])
+  plan?: 'all' | 'pro' | 'free';
+
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
+
+  /** all | verified | unverified */
+  @IsOptional()
+  @IsIn(['all', 'verified', 'unverified'])
+  verified?: 'all' | 'verified' | 'unverified';
+}
 
 export class CreateLevelDto {
   @IsEnum(LevelCode)

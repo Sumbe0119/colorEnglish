@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { loginSchema, LoginFormValues } from "@/lib/auth-schemas";
 import { login, getMe } from "@/lib/services";
 import { useAuthStore } from "@/store/auth-store";
+import { EMAIL_NOT_VERIFIED } from "@/types/auth";
 
 export function LoginForm() {
   const router = useRouter();
@@ -34,7 +35,13 @@ export function LoginForm() {
       const completed = (me as { profile?: { onboardingCompleted?: boolean } }).profile?.onboardingCompleted;
       router.push(completed ? "/reading" : "/onboarding");
     } catch (err: any) {
-      setServerError(err?.response?.data?.message ?? "Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.");
+      const body = err?.response?.data as { code?: string; email?: string; message?: string } | undefined;
+      if (err?.response?.status === 403 && body?.code === EMAIL_NOT_VERIFIED) {
+        // Нууц үг зөв, и-мэйл баталгаажаагүй — backend шинэ код илгээсэн.
+        router.push(`/verify-email?email=${encodeURIComponent(body.email ?? values.email)}`);
+        return;
+      }
+      setServerError(body?.message ?? "Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.");
     }
   };
 

@@ -178,6 +178,7 @@ export type AdminUserBilling = {
   planName: string;
   status: string;
   isPro: boolean;
+  isEmailVerified: boolean;
   daysLeft: number | null;
   expiresAt: string | null;
   startedAt: string | null;
@@ -191,8 +192,34 @@ export type AdminUserBilling = {
   } | null;
 };
 
-export async function getAdminUsers() {
-  const { data } = await api.get<AdminUserBilling[]>('/admin/users');
+export type AdminUsersQuery = {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  plan?: 'all' | 'pro' | 'free';
+  role?: 'STUDENT' | 'ADMIN' | 'EDITOR';
+  verified?: 'all' | 'verified' | 'unverified';
+};
+
+export type AdminUsersPage = {
+  items: AdminUserBilling[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  stats: { total: number; pro: number };
+};
+
+export async function getAdminUsers(query: AdminUsersQuery = {}) {
+  // Хоосон / "all" утгыг илгээхгүй — backend whitelist DTO
+  const params: Record<string, string | number> = {};
+  if (query.page) params.page = query.page;
+  if (query.pageSize) params.pageSize = query.pageSize;
+  if (query.q?.trim()) params.q = query.q.trim();
+  if (query.plan && query.plan !== 'all') params.plan = query.plan;
+  if (query.role) params.role = query.role;
+  if (query.verified && query.verified !== 'all') params.verified = query.verified;
+  const { data } = await api.get<AdminUsersPage>('/admin/users', { params });
   return data;
 }
 

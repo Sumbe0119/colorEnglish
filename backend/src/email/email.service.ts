@@ -39,6 +39,19 @@ export class EmailService {
     }
   }
 
+  async sendEmailVerificationCode(to: string, code: string) {
+    const subject = "ColorEnglish — И-мэйл баталгаажуулах код";
+    const text = `ColorEnglish-д тавтай морил!\n\nТаны и-мэйл баталгаажуулах код: ${code}\n\nЭнэ код 10 минутын дараа хүчингүй болно. Хэрэв та бүртгүүлээгүй бол энэ и-мэйлийг үл тоомсорлоно уу.`;
+    const html = `
+      <p>ColorEnglish-д тавтай морил!</p>
+      <p>Таны и-мэйл баталгаажуулах код:</p>
+      <p style="font-size:24px;font-weight:700;letter-spacing:4px;">${code}</p>
+      <p>Энэ код <strong>10 минутын</strong> дараа хүчингүй болно.</p>
+      <p style="color:#6B7A94;font-size:12px;">Хэрэв та бүртгүүлээгүй бол энэ и-мэйлийг үл тоомсорлоно уу.</p>
+    `;
+    await this.send(to, subject, text, html, `[DEV] ${to} рүү и-мэйл баталгаажуулах код: ${code}`);
+  }
+
   async sendPasswordResetCode(to: string, code: string) {
     const subject = "ColorEnglish — Нууц үг сэргээх код";
     const text = `Таны нууц үг сэргээх баталгаажуулах код: ${code}\n\nЭнэ код 10 минутын дараа хүчингүй болно. Хэрэв та энэ хүсэлтийг илгээгээгүй бол энэ и-мэйлийг үл тоомсорлоно уу.`;
@@ -49,8 +62,12 @@ export class EmailService {
       <p style="color:#6B7A94;font-size:12px;">Хэрэв та энэ хүсэлтийг илгээгээгүй бол энэ и-мэйлийг үл тоомсорлоно уу.</p>
     `;
 
+    await this.send(to, subject, text, html, `[DEV] ${to} рүү нууц үг сэргээх код: ${code}`);
+  }
+
+  private async send(to: string, subject: string, text: string, html: string, devLog: string) {
     if (!this.transporter) {
-      this.logger.log(`[DEV] ${to} рүү нууц үг сэргээх код: ${code}`);
+      this.logger.log(devLog);
       return;
     }
 

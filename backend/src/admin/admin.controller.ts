@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AdminService } from './admin.service';
@@ -9,6 +9,7 @@ import {
   CreateQuestionDto,
   CreateUnitDto,
   CreateVocabDto,
+  ListUsersQueryDto,
   UpdateLessonDto,
   UpdateQuestionDto,
   UpdateUnitDto,
@@ -21,8 +22,8 @@ export class AdminController {
 
   @Roles(Role.ADMIN)
   @Get('users')
-  listUsers() {
-    return this.adminService.listUsersWithBilling();
+  listUsers(@Query() query: ListUsersQueryDto) {
+    return this.adminService.listUsersWithBilling(query);
   }
 
   @Roles(Role.ADMIN)

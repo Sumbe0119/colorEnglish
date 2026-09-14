@@ -8,6 +8,7 @@ import {
   CreateQuestionDto,
   CreateUnitDto,
   CreateVocabDto,
+  ListUsersQueryDto,
   UpdateLessonDto,
   UpdateQuestionDto,
   UpdateUnitDto,
@@ -217,10 +218,45 @@ export class AdminService {
   }
 
   /** Админ: хэрэглэгчид + багц / үлдсэн хоног */
-  async listUsersWithBilling() {
-    const [users, pricingPlans] = await Promise.all([
+  async listUsersWithBilling(query: ListUsersQueryDto = {}) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const now = Date.now();
+    const nowDate = new Date(now);
+
+    // VIP = FREE биш багц, ACTIVE/TRIAL, хугацаа дуусаагүй (доорх isPro тооцоололтой ижил)
+    const proWhere: Prisma.SubscriptionWhereInput = {
+      plan: { not: 'FREE' },
+      status: { in: ['ACTIVE', 'TRIAL'] },
+      OR: [{ expiresAt: null }, { expiresAt: { gte: nowDate } }],
+    };
+
+    const and: Prisma.UserWhereInput[] = [];
+    const q = query.q?.trim();
+    if (q) {
+      and.push({
+        OR: [
+          { email: { contains: q, mode: 'insensitive' } },
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (query.plan === 'pro') and.push({ subscription: { is: proWhere } });
+    if (query.plan === 'free') {
+      and.push({ OR: [{ subscription: null }, { subscription: { isNot: proWhere } }] });
+    }
+    if (query.role) and.push({ role: query.role });
+    if (query.verified === 'verified') and.push({ isEmailVerified: true });
+    if (query.verified === 'unverified') and.push({ isEmailVerified: false });
+    const where: Prisma.UserWhereInput = and.length ? { AND: and } : {};
+
+    const [users, pricingPlans, total, statsTotal, statsPro] = await Promise.all([
       this.prisma.user.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
         select: {
           id: true,
           email: true,
@@ -228,6 +264,7 @@ export class AdminService {
           lastName: true,
           role: true,
           isActive: true,
+          isEmailVerified: true,
           createdAt: true,
           lastLoginAt: true,
           subscription: {
@@ -256,12 +293,14 @@ export class AdminService {
       this.prisma.pricingPlan.findMany({
         select: { code: true, name: true },
       }),
+      this.prisma.user.count({ where }),
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { subscription: { is: proWhere } } }),
     ]);
 
     const planNameByCode = Object.fromEntries(pricingPlans.map((p) => [p.code, p.name]));
-    const now = Date.now();
 
-    return users.map((u) => {
+    const items = users.map((u) => {
       const sub = u.subscription;
       const lastPaid = u.payments[0] ?? null;
       const expiresAt = sub?.expiresAt ?? null;
@@ -290,6 +329,7 @@ export class AdminService {
           [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email.split('@')[0],
         role: u.role,
         isActive: u.isActive,
+        isEmailVerified: u.isEmailVerified,
         createdAt: u.createdAt,
         lastLoginAt: u.lastLoginAt,
         plan,
@@ -311,6 +351,15 @@ export class AdminService {
           : null,
       };
     });
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      stats: { total: statsTotal, pro: statsPro },
+    };
   }
 
   /** Админ: хэрэглэгчид 1 сарын (30 хоног) VIP нэмэх / сунгах */

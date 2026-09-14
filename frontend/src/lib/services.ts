@@ -1,5 +1,5 @@
 import { api, setAccessToken } from '@/lib/api';
-import { AuthResponse, User } from '@/types/auth';
+import { AuthResponse, RegisterResponse, User } from '@/types/auth';
 import { DashboardData, LessonModule, LevelCode, ModuleType } from '@/types/api';
 
 let restorePromise: Promise<AuthResponse | null> | null = null;
@@ -9,8 +9,19 @@ export async function login(email: string, password: string) {
   return data;
 }
 
+/** Бүртгүүлэхэд token өгөхгүй — и-мэйлээр код явуулж, /verify-email-д баталгаажуулна. */
 export async function register(firstName: string, email: string, password: string) {
-  const { data } = await api.post<AuthResponse>('/auth/register', { firstName, email, password });
+  const { data } = await api.post<RegisterResponse>('/auth/register', { firstName, email, password });
+  return data;
+}
+
+export async function verifyEmail(email: string, code: string) {
+  const { data } = await api.post<AuthResponse>('/auth/verify-email', { email, code });
+  return data;
+}
+
+export async function resendVerification(email: string) {
+  const { data } = await api.post<{ success: boolean }>('/auth/resend-verification', { email });
   return data;
 }
 

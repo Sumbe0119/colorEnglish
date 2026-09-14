@@ -49,3 +49,14 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export const verifyEmailSchema = z.object({
+  email: z.string().min(1, 'И-мэйл хаягаа оруулна уу').email('И-мэйл хаяг буруу байна'),
+  code: z
+    .string()
+    .min(1, 'Баталгаажуулах кодоо оруулна уу')
+    .length(6, 'Баталгаажуулах код 6 оронтой байх ёстой')
+    .regex(/^\d+$/, 'Код зөвхөн тооноос бүрдэнэ'),
+});
+
+export type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;

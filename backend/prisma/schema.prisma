@@ -108,6 +108,7 @@ model User {
   profile           StudentProfile?
   refreshTokens      RefreshToken[]
   passwordResetCodes PasswordResetCode[]
+  emailVerificationCodes EmailVerificationCode[]
   enrollments        Enrollment[]
   lessonProgress     LessonProgress[]
   examAttempts       ExamAttempt[]
@@ -152,6 +153,21 @@ model PasswordResetCode {
 
   @@index([userId])
   @@map("password_reset_codes")
+}
+
+// Бүртгүүлэх үед и-мэйл баталгаажуулах 6 оронтой код
+model EmailVerificationCode {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("email_verification_codes")
 }
 
 // Бүртгүүлэхэд авдаг "хэлний түвшин + сонирхлын судалгаа"

@@ -1,6 +1,7 @@
 import {
   Injectable,
   ConflictException,
+  ForbiddenException,
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
@@ -14,6 +15,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 
 interface TokenPair {
   accessToken: string;
@@ -23,6 +26,12 @@ interface TokenPair {
 const RESET_CODE_TTL_MS = 10 * 60 * 1000;
 const RESET_REQUEST_COOLDOWN_MS = 60 * 1000;
 const RESET_MAX_ATTEMPTS = 5;
+
+const VERIFY_CODE_TTL_MS = 10 * 60 * 1000;
+const VERIFY_REQUEST_COOLDOWN_MS = 60 * 1000;
+const VERIFY_MAX_ATTEMPTS = 5;
+/** Frontend энэ кодоор "баталгаажуулах хуудас руу шилжүүлэх" гэдгийг таньдаг. */
+export const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
 
 @Injectable()
 export class AuthService {
@@ -56,8 +65,93 @@ export class AuthService {
       include: { profile: true },
     });
 
+    // Token өгөхгүй — эхлээд и-мэйлээ баталгаажуулна.
+    await this.sendVerificationCode(user.id, user.email);
+    return { requiresVerification: true as const, email: user.email };
+  }
+
+  /** Бүртгүүлсний дараа и-мэйлээр ирсэн 6 оронтой кодыг шалгаад нэвтрүүлнэ. */
+  async verifyEmail(dto: VerifyEmailDto) {
+    const invalidMessage = 'Код буруу эсвэл хугацаа дууссан байна';
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { profile: true },
+    });
+    if (!user) throw new UnauthorizedException(invalidMessage);
+
+    if (!user.isEmailVerified) {
+      const record = await this.prisma.emailVerificationCode.findFirst({
+        where: { userId: user.id, consumedAt: null },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!record || record.expiresAt < new Date()) {
+        throw new UnauthorizedException(invalidMessage);
+      }
+      if (record.attempts >= VERIFY_MAX_ATTEMPTS) {
+        throw new UnauthorizedException('Хэт олон буруу оролдлого хийсэн байна, шинэ код хүснэ үү');
+      }
+
+      const valid = await argon2.verify(record.codeHash, dto.code);
+      if (!valid) {
+        await this.prisma.emailVerificationCode.update({
+          where: { id: record.id },
+          data: { attempts: { increment: 1 } },
+        });
+        throw new UnauthorizedException(invalidMessage);
+      }
+
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: user.id },
+          data: { isEmailVerified: true, lastLoginAt: new Date() },
+        }),
+        this.prisma.emailVerificationCode.update({
+          where: { id: record.id },
+          data: { consumedAt: new Date() },
+        }),
+      ]);
+      user.isEmailVerified = true;
+    }
+
+    if (!user.isActive) throw new UnauthorizedException('Таны бүртгэл идэвхгүй болсон байна');
+
     const tokens = await this.issueTokenPair(user.id, user.email, user.role);
     return { user: this.sanitizeUser(user), ...tokens };
+  }
+
+  /** Кодыг дахин илгээх (1 минутын cooldown). И-мэйл бүртгэлтэй эсэхийг задруулахгүй. */
+  async resendVerification(dto: ResendVerificationDto) {
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (user && user.isActive && !user.isEmailVerified) {
+      await this.sendVerificationCode(user.id, user.email);
+    }
+    return { success: true };
+  }
+
+  private async sendVerificationCode(userId: string, email: string) {
+    const recent = await this.prisma.emailVerificationCode.findFirst({
+      where: {
+        userId,
+        consumedAt: null,
+        createdAt: { gt: new Date(Date.now() - VERIFY_REQUEST_COOLDOWN_MS) },
+      },
+    });
+    if (recent) return;
+
+    await this.prisma.emailVerificationCode.updateMany({
+      where: { userId, consumedAt: null },
+      data: { consumedAt: new Date() },
+    });
+
+    const code = randomInt(100000, 1000000).toString();
+    const codeHash = await argon2.hash(code);
+    await this.prisma.emailVerificationCode.create({
+      data: { userId, codeHash, expiresAt: new Date(Date.now() + VERIFY_CODE_TTL_MS) },
+    });
+
+    await this.email.sendEmailVerificationCode(email, code).catch((err) => {
+      this.logger.error(`Баталгаажуулах и-мэйл илгээхэд алдаа гарлаа: ${email}`, err as Error);
+    });
   }
 
   async login(dto: LoginDto) {
@@ -71,6 +165,17 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('И-мэйл эсвэл нууц үг буруу байна');
 
     if (!user.isActive) throw new UnauthorizedException('Таны бүртгэл идэвхгүй болсон байна');
+
+    if (!user.isEmailVerified) {
+      // Нууц үг зөв тул шинэ код илгээж, frontend-ийг баталгаажуулах хуудас руу чиглүүлнэ.
+      await this.sendVerificationCode(user.id, user.email);
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: EMAIL_NOT_VERIFIED,
+        message: 'И-мэйл хаягаа баталгаажуулаагүй байна. И-мэйлээр ирсэн кодоо оруулна уу.',
+        email: user.email,
+      });
+    }
 
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 

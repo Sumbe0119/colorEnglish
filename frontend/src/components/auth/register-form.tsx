@@ -9,13 +9,11 @@ import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { registerSchema, RegisterFormValues } from '@/lib/auth-schemas';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/auth-store';
-import { AuthResponse } from '@/types/auth';
+import { register as registerUser } from '@/lib/services';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export function RegisterForm() {
   const router = useRouter();
-  const setSession = useAuthStore((s) => s.setSession);
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -36,17 +34,11 @@ export function RegisterForm() {
   const onSubmit = async (values: RegisterFormValues) => {
     setServerError(null);
     try {
-      const { data } = await api.post<AuthResponse>('/auth/register', {
-        firstName: values.firstName,
-        email: values.email,
-        password: values.password,
-      });
-      setSession(data.user, data.accessToken);
-      router.push('/onboarding');
-    } catch (err: any) {
-      setServerError(
-        err?.response?.data?.message ?? 'Бүртгүүлэхэд алдаа гарлаа. Дахин оролдоно уу.',
-      );
+      const data = await registerUser(values.firstName, values.email, values.password);
+      // Token ирэхгүй — и-мэйлээр ирсэн кодыг баталгаажуулах хуудас руу.
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+    } catch (err) {
+      setServerError(getApiErrorMessage(err, 'Бүртгүүлэхэд алдаа гарлаа. Дахин оролдоно уу.'));
     }
   };
 
