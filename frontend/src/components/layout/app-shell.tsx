@@ -34,7 +34,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isStories = pathname === "/reading" || (pathname.startsWith("/reading/") && !pathname.startsWith("/reading/words"));
   const isMyWords = pathname.startsWith("/reading/words");
   const isProfile = pathname.startsWith("/profile");
-  const isRule = pathname.startsWith("/rule");
+  const isRuleA2 = pathname.startsWith("/rule/a2");
+  const isRule = pathname.startsWith("/rule") && !isRuleA2;
   const isAdmin = pathname.startsWith("/admin");
   const isImmersiveReader = /\/reading\/[^/]+\/read\//.test(pathname);
   const isStoryOverview = /^\/reading\/[^/]+$/.test(pathname);
@@ -76,6 +77,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <BookOpen className="h-4 w-4" />
             A1 түвшний дүрэм
+          </Link>
+          <Link
+            href="/rule/a2"
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              isRuleA2 ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            A2 түвшний дүрэм
           </Link>
           <Link
             href="/profile"
@@ -212,6 +222,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <BookOpen className="h-4 w-4" />
                 A1 түвшний дүрэм
+              </Link>
+
+              <Link
+                href="/rule/a2"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isRuleA2 ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                A2 түвшний дүрэм
               </Link>
 
               <Link

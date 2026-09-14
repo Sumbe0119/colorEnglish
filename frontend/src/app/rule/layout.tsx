@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { AppShell } from '@/components/layout/app-shell';
 import { VipGate } from '@/components/billing/vip-gate';
@@ -10,11 +10,12 @@ import { VipGate } from '@/components/billing/vip-gate';
 export default function RuleLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
-    if (!user) router.push('/login?next=/rule');
-  }, [user, isLoading, router]);
+    if (!user) router.push(`/login?next=${encodeURIComponent(pathname || '/rule')}`);
+  }, [user, isLoading, router, pathname]);
 
   if (isLoading || !user) {
     return (

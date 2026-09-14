@@ -12,7 +12,12 @@ export type RuleProgress = {
 
 export type GrammarProgress = Record<number, RuleProgress>;
 
-const KEY = 'ce:a1-grammar:progress:v1';
+export type GrammarLevel = 'a1' | 'a2';
+
+/** Түвшин бүр localStorage-д тусдаа түлхүүртэй — A1, A2-ийн явц хоорондоо холилдохгүй. */
+function storageKey(level: GrammarLevel) {
+  return `ce:${level}-grammar:progress:v1`;
+}
 
 function canUseStorage() {
   try {
@@ -22,10 +27,10 @@ function canUseStorage() {
   }
 }
 
-export function loadProgress(): GrammarProgress {
+export function loadProgress(level: GrammarLevel): GrammarProgress {
   if (!canUseStorage()) return {};
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(storageKey(level));
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== 'object') return {};
@@ -35,10 +40,10 @@ export function loadProgress(): GrammarProgress {
   }
 }
 
-export function saveProgress(progress: GrammarProgress) {
+export function saveProgress(level: GrammarLevel, progress: GrammarProgress) {
   if (!canUseStorage()) return;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(progress));
+    window.localStorage.setItem(storageKey(level), JSON.stringify(progress));
   } catch {
     // quota / private mode — явц хадгалагдахгүй ч хуудас ажиллана
   }

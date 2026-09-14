@@ -7,22 +7,23 @@ import {
   markViewed as markViewedIn,
   recordQuiz as recordQuizIn,
   saveProgress,
+  type GrammarLevel,
   type GrammarProgress,
 } from '@/lib/grammar/progress';
 
-/** Дүрмийн явцыг localStorage-той синк хийж хадгална. */
-export function useGrammarProgress() {
+/** Тухайн түвшний дүрмийн явцыг localStorage-той синк хийж хадгална. */
+export function useGrammarProgress(level: GrammarLevel) {
   const [progress, setProgress] = useState<GrammarProgress>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setProgress(loadProgress());
+    setProgress(loadProgress(level));
     setReady(true);
-  }, []);
+  }, [level]);
 
   useEffect(() => {
-    if (ready) saveProgress(progress);
-  }, [progress, ready]);
+    if (ready) saveProgress(level, progress);
+  }, [level, progress, ready]);
 
   const markViewed = useCallback((ruleId: number) => {
     setProgress((prev) => markViewedIn(prev, ruleId));
