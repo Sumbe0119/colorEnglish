@@ -80,6 +80,11 @@ export default function AdminPage() {
                 <p className="text-xs text-mist-400">
                   {formatLevelCode(story.levelCode)} · {story._count.words} үг
                   {!story.isPublished && <span className="ml-2 text-verb">(ноорог)</span>}
+                  {story.isComingSoon && (
+                    <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
+                      Coming soon
+                    </span>
+                  )}
                 </p>
               </div>
               <Pencil className="h-4 w-4 text-mist-500" />

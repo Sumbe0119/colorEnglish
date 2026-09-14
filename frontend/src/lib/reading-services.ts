@@ -39,6 +39,8 @@ export interface ReadingStorySummary {
   levelCode: LevelCode;
   order: number;
   isPublished?: boolean;
+  /** Жагсаалтад "Coming soon" гэж харагдана, хэрэглэгч нээж чадахгүй */
+  isComingSoon?: boolean;
   coverUrl?: string | null;
   description?: string | null;
   author?: string | null;
@@ -82,6 +84,7 @@ export async function createReadingStory(payload: {
   levelCode?: LevelCode;
   order?: number;
   isPublished?: boolean;
+  isComingSoon?: boolean;
 }) {
   const { data } = await api.post<ReadingStory>('/admin/reading/stories', payload);
   return data;
@@ -97,6 +100,7 @@ export async function updateReadingStory(
     levelCode: LevelCode;
     order: number;
     isPublished: boolean;
+    isComingSoon: boolean;
   }>,
 ) {
   const { data } = await api.patch<ReadingStory>(`/admin/reading/stories/${id}`, payload);
@@ -212,6 +216,8 @@ export interface ReadingStoryAccess {
   locked: boolean;
   gamesBlocked: boolean;
   practiceStoryId: string | null;
+  /** Coming soon тул нээгдэхгүй (staff-д false) */
+  comingSoonBlocked?: boolean;
   canOpen: boolean;
   quizPassed: boolean;
   racePassed: boolean;

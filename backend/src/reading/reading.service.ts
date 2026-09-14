@@ -89,6 +89,7 @@ export class ReadingService {
         title: true,
         levelCode: true,
         order: true,
+        isComingSoon: true,
         coverUrl: true,
         description: true,
         author: true,
@@ -137,6 +138,12 @@ export class ReadingService {
     const access = await this.getAccess(userId);
     const entry = access.stories.find((s) => s.id === id);
     if (!entry) throw new NotFoundException('Өгүүллэг олдсонгүй');
+    if (entry.comingSoonBlocked) {
+      throw new ForbiddenException({
+        message: 'Энэ өгүүллэг удахгүй нээгдэнэ',
+        comingSoon: true,
+      });
+    }
     if (!entry.canOpen) {
       throw new ForbiddenException({
         message: 'Өмнөх өгүүллэгийн цээжлэх тоглоом дуусгана уу',
@@ -227,6 +234,7 @@ export class ReadingService {
         title: true,
         levelCode: true,
         order: true,
+        isComingSoon: true,
         coverUrl: true,
         description: true,
         author: true,
@@ -295,13 +303,16 @@ export class ReadingService {
 
       const prog = progressByStory.get(story.id);
       const { chapters: chapterRows, ...storyMeta } = story;
+      // Coming soon өгүүллэгийг staff л урьдчилан харж болно
+      const comingSoonBlocked = story.isComingSoon && !staffBypass;
       return {
         ...storyMeta,
         free,
         locked,
         gamesBlocked,
         practiceStoryId,
-        canOpen: !gamesBlocked,
+        comingSoonBlocked,
+        canOpen: !gamesBlocked && !comingSoonBlocked,
         quizPassed: prog?.quizPassed ?? false,
         racePassed: prog?.racePassed ?? false,
         wordsSaved: wordsByStory.get(story.id) ?? 0,
@@ -394,6 +405,7 @@ export class ReadingService {
         levelCode: dto.levelCode ?? 'A1',
         order: dto.order ?? (last?.order ?? 0) + 1,
         isPublished: dto.isPublished ?? false,
+        isComingSoon: dto.isComingSoon ?? false,
         chapters: {
           create: {
             title: 'Chapter 1',
@@ -418,6 +430,7 @@ export class ReadingService {
         ...(dto.levelCode !== undefined && { levelCode: dto.levelCode }),
         ...(dto.order !== undefined && { order: dto.order }),
         ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
+        ...(dto.isComingSoon !== undefined && { isComingSoon: dto.isComingSoon }),
       },
     });
     return this.getById(id);

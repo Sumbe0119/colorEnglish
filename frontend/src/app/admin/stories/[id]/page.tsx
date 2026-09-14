@@ -36,6 +36,7 @@ export default function EditStoryPage() {
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
   const [isPublished, setIsPublished] = useState(false);
+  const [isComingSoon, setIsComingSoon] = useState(false);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [chapterTitle, setChapterTitle] = useState('');
   const [chapterBody, setChapterBody] = useState('');
@@ -70,6 +71,7 @@ export default function EditStoryPage() {
       setDescription(data.description ?? '');
       setAuthor(data.author ?? '');
       setIsPublished(data.isPublished ?? false);
+      setIsComingSoon(data.isComingSoon ?? false);
       const sorted = [...(data.chapters ?? [])].sort((a, b) => a.order - b.order);
       setActiveChapterId((prev) => {
         const keep = (prev && sorted.find((c) => c.id === prev)) || sorted[0];
@@ -111,6 +113,7 @@ export default function EditStoryPage() {
         description: description.trim() || null,
         author: author.trim() || null,
         isPublished,
+        isComingSoon,
       });
       toast.success('Өгүүллэг хадгаллаа');
       await load();
@@ -314,6 +317,14 @@ export default function EditStoryPage() {
               onChange={(e) => setIsPublished(e.target.checked)}
             />
             Нийтлэх
+          </label>
+          <label className="flex items-center gap-2 text-sm text-mist-300">
+            <input
+              type="checkbox"
+              checked={isComingSoon}
+              onChange={(e) => setIsComingSoon(e.target.checked)}
+            />
+            Coming soon (жагсаалтад харагдах ч нээгдэхгүй)
           </label>
           <div className="flex gap-3">
             <Button type="submit" isLoading={saving}>

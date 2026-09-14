@@ -22,6 +22,7 @@ export default function NewStoryPage() {
   const [author, setAuthor] = useState('');
   const [levelCode, setLevelCode] = useState<LevelCode>('A1');
   const [isPublished, setIsPublished] = useState(false);
+  const [isComingSoon, setIsComingSoon] = useState(false);
   const [autoTranslate, setAutoTranslate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -36,6 +37,7 @@ export default function NewStoryPage() {
         body,
         levelCode,
         isPublished,
+        isComingSoon,
         coverUrl: coverUrl.trim() || undefined,
         description: description.trim() || undefined,
         author: author.trim() || undefined,
@@ -110,6 +112,10 @@ export default function NewStoryPage() {
         <label className="flex items-center gap-2 text-sm text-mist-300">
           <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
           Нийтлэх
+        </label>
+        <label className="flex items-center gap-2 text-sm text-mist-300">
+          <input type="checkbox" checked={isComingSoon} onChange={(e) => setIsComingSoon(e.target.checked)} />
+          Coming soon (жагсаалтад харагдах ч нээгдэхгүй)
         </label>
         <label className="flex items-center gap-2 text-sm text-mist-300">
           <input type="checkbox" checked={autoTranslate} onChange={(e) => setAutoTranslate(e.target.checked)} />

@@ -36,6 +36,11 @@ export class CreateReadingStoryDto {
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  /** true = "Coming soon" — жагсаалтад харагдах ч нээгдэхгүй */
+  @IsOptional()
+  @IsBoolean()
+  isComingSoon?: boolean;
 }
 
 export class UpdateReadingStoryDto {
@@ -67,6 +72,11 @@ export class UpdateReadingStoryDto {
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  /** true = "Coming soon" — жагсаалтад харагдах ч нээгдэхгүй */
+  @IsOptional()
+  @IsBoolean()
+  isComingSoon?: boolean;
 }
 
 export class CreateReadingChapterDto {

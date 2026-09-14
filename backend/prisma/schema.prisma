@@ -655,6 +655,8 @@ model ReadingStory {
   levelCode      LevelCode           @default(A1)
   order          Int                 @default(1)
   isPublished    Boolean             @default(false)
+  /// true = жагсаалтад "Coming soon" гэж харагдана, хэрэглэгч нээж чадахгүй
+  isComingSoon   Boolean             @default(false)
   excludedWords  String[]            @default([])
   words          ReadingWord[]
   chapters       ReadingChapter[]

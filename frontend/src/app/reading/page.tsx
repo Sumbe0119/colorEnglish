@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Gamepad2, Lock, Sparkles } from 'lucide-react';
+import { BookOpen, Clock, Gamepad2, Lock, Sparkles } from 'lucide-react';
 import {
   getReadingAccess,
   getReadingStories,
@@ -51,7 +51,8 @@ export default function ReadingListPage() {
             locked: true,
             gamesBlocked: false,
             practiceStoryId: null,
-            canOpen: true,
+            comingSoonBlocked: !!s.isComingSoon,
+            canOpen: !s.isComingSoon,
             quizPassed: false,
             racePassed: false,
             wordsSaved: 0,
@@ -138,7 +139,9 @@ export default function ReadingListPage() {
         <div className="mt-8 grid grid-cols-2 gap-3 lg:gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {stories.map((story) => {
             const access = accessMap.get(story.id);
-            const gamesBlocked = access?.gamesBlocked ?? false;
+            const comingSoon = !!story.isComingSoon;
+            const comingSoonBlocked = access?.comingSoonBlocked ?? comingSoon;
+            const gamesBlocked = !comingSoonBlocked && (access?.gamesBlocked ?? false);
             const hasLockedChapters = access?.locked ?? (!isPro && !!user);
             const free = access?.free ?? false;
             const cover = resolveMediaUrl(story.coverUrl);
@@ -150,15 +153,22 @@ export default function ReadingListPage() {
                 ? `/reading/${access.practiceStoryId}/practice`
                 : `/reading/${story.id}`;
 
-            const cardClass = `group flex flex-col overflow-hidden rounded-2xl border bg-ink-900 text-left shadow-card transition-all hover:-translate-y-0.5 ${
-              gamesBlocked
+            const cardClass = `group flex flex-col overflow-hidden rounded-2xl border bg-ink-900 text-left shadow-card transition-all ${
+              comingSoonBlocked
+                ? 'cursor-default border-ink-600'
+                : gamesBlocked
                 ? 'border-amber-500/40 hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-500/10'
-                : 'border-ink-600 hover:border-brand/50 hover:shadow-lg hover:shadow-brand/10'
+                : 'border-ink-600 hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-lg hover:shadow-brand/10'
             }`;
 
             // Хаалттай үед карт нь линк биш — дарахад анхааруулга харуулна.
+            // Coming soon үед карт дарагдахгүй.
             const CardWrapper = ({ children }: { children: React.ReactNode }) =>
-              locked ? (
+              comingSoonBlocked ? (
+                <div className={cardClass} aria-disabled>
+                  {children}
+                </div>
+              ) : locked ? (
                 <button type="button" onClick={showNotice} className={cardClass}>
                   {children}
                 </button>
@@ -200,12 +210,17 @@ export default function ReadingListPage() {
                   <span className="absolute left-3 top-3 z-20 rounded-full bg-brand px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                     {formatLevelCode(story.levelCode)}
                   </span>
+                  {comingSoon && (
+                    <span className="absolute bottom-3 right-3 z-20 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-950 shadow">
+                      Coming soon
+                    </span>
+                  )}
                   {gamesBlocked && (
                     <span className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/90 text-ink-950">
                       <Gamepad2 className="h-4 w-4" />
                     </span>
                   )}
-                  {!gamesBlocked && hasLockedChapters && (
+                  {!gamesBlocked && !comingSoonBlocked && hasLockedChapters && (
                     <span
                       className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/80 text-mist-200"
                       title="Зарим бүлэг цоожтой"
@@ -244,7 +259,11 @@ export default function ReadingListPage() {
                     gamesBlocked ? 'border-amber-500/20' : 'border-ink-600'
                   }`}
                 >
-                  {locked ? (
+                  {comingSoonBlocked ? (
+                    <span className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-500/15 py-2.5 text-xs font-semibold text-amber-300">
+                      <Clock className="h-3.5 w-3.5" /> Удахгүй нээгдэнэ
+                    </span>
+                  ) : locked ? (
                     hasVip ? (
                       <span className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-amber-500/15 py-2.5 text-xs font-semibold text-amber-300">
                         <Lock className="h-3.5 w-3.5" /> 9/14 15:00-д нээгдэнэ

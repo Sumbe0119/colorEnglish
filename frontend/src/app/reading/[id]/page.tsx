@@ -60,6 +60,13 @@ export default function ReadingStoryOverviewPage() {
           setStory(null);
           return;
         }
+        if (entry.comingSoonBlocked) {
+          setGateError({
+            message: 'Энэ өгүүллэг удахгүй нээгдэнэ. Coming soon!',
+            locked: false,
+          });
+          return;
+        }
         if (!entry.canOpen) {
           setGateError({
             message: 'Өмнөх өгүүллэгийн цээжлэх тоглоом дуусгана уу',
