@@ -12,9 +12,9 @@ export type RuleProgress = {
 
 export type GrammarProgress = Record<number, RuleProgress>;
 
-export type GrammarLevel = 'a1' | 'a2';
+export type GrammarLevel = 'a1' | 'a2' | 'b1';
 
-/** Түвшин бүр localStorage-д тусдаа түлхүүртэй — A1, A2-ийн явц хоорондоо холилдохгүй. */
+/** Түвшин бүр localStorage-д тусдаа түлхүүртэй — A1, A2, B1-ийн явц хоорондоо холилдохгүй. */
 function storageKey(level: GrammarLevel) {
   return `ce:${level}-grammar:progress:v1`;
 }
