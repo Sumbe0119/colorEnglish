@@ -17,12 +17,21 @@ import { toast } from '@/store/toast-store';
 
 const RESEND_COOLDOWN_S = 60;
 
+type VerifyEmailFormProps = {
+  /** Query-гийн оронд ашиглах и-мэйл (onboarding дотор суулгахад) */
+  email?: string;
+  /** Өгвөл /onboarding руу шилжихгүй — session үүссэний дараа дуудагдана */
+  onVerified?: () => void;
+  /** Өгвөл "Бүртгэл рүү буцах" нь /register руу шилжихгүй */
+  onBack?: () => void;
+};
+
 /** Бүртгүүлсний дараа и-мэйлээр ирсэн 6 оронтой кодыг оруулах алхам. */
-export function VerifyEmailForm() {
+export function VerifyEmailForm({ email, onVerified, onBack }: VerifyEmailFormProps = {}) {
   const router = useRouter();
   const params = useSearchParams();
   const setSession = useAuthStore((s) => s.setSession);
-  const emailFromQuery = params.get('email') ?? '';
+  const emailFromQuery = email ?? params.get('email') ?? '';
   const [serverError, setServerError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_S);
   const [resending, setResending] = useState(false);
@@ -49,7 +58,8 @@ export function VerifyEmailForm() {
       const data = await verifyEmail(values.email, values.code);
       setSession(data.user, data.accessToken);
       toast.success('И-мэйл баталгаажлаа. Тавтай морил!');
-      router.push('/onboarding');
+      if (onVerified) onVerified();
+      else router.push('/onboarding');
     } catch (err) {
       setServerError(getApiErrorMessage(err, 'Код буруу эсвэл хугацаа дууссан байна'));
     }
@@ -131,9 +141,15 @@ export function VerifyEmailForm() {
         </Button>
 
         <div className="flex items-center justify-between text-xs text-mist-400">
-          <Link href="/register" className="hover:text-mist-200">
-            ← Бүртгэл рүү буцах
-          </Link>
+          {onBack ? (
+            <button type="button" onClick={onBack} className="hover:text-mist-200">
+              ← Бүртгэл рүү буцах
+            </button>
+          ) : (
+            <Link href="/register" className="hover:text-mist-200">
+              ← Бүртгэл рүү буцах
+            </Link>
+          )}
           <button
             type="button"
             disabled={cooldown > 0 || resending}

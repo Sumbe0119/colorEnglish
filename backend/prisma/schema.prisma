@@ -70,6 +70,14 @@ enum GoalInterest {
   OTHER
 }
 
+// Суралцах арга барил (VARK загвар)
+enum LearningStyle {
+  VISUAL          // харааны
+  AUDITORY        // сонсголын
+  READING_WRITING // унших, бичих
+  KINESTHETIC     // үйлдлээр, туршилтаар
+}
+
 enum SubscriptionStatus {
   ACTIVE
   EXPIRED
@@ -184,6 +192,11 @@ model StudentProfile {
   interests        GoalInterest[] // сонирхлын судалгаа (олон сонголттой)
   dailyGoalMinutes  Int           @default(30) // өдөрт зорьж буй минут
   motivationNote    String?       // чөлөөт текст: "яагаад сурах гэж байгаа"
+
+  // Суралцах арга барилын судалгаа (VARK)
+  dominantLearningStyle LearningStyle? // хамгийн өндөр оноотой арга барил
+  learningStyleScores   Json?          // { VISUAL: 0-100, AUDITORY: .., READING_WRITING: .., KINESTHETIC: .. }
+  learningStyleCompletedAt DateTime?   // бүх асуултад хариулсан үед л тэмдэглэнэ; null бол дутуу
 
   onboardingCompleted Boolean @default(false)
   onboardingCompletedAt DateTime?

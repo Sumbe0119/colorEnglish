@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ProfileService } from './profile.service';
-import { OnboardingDto } from './onboarding.dto';
+import { LearningStyleDto, OnboardingDto } from './onboarding.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('profile')
@@ -17,5 +17,10 @@ export class ProfileController {
   @Post('onboarding')
   completeOnboarding(@CurrentUser('userId') userId: string, @Body() dto: OnboardingDto) {
     return this.profileService.completeOnboarding(userId, dto);
+  }
+
+  @Post('learning-style')
+  submitLearningStyle(@CurrentUser('userId') userId: string, @Body() dto: LearningStyleDto) {
+    return this.profileService.submitLearningStyle(userId, dto.answers);
   }
 }

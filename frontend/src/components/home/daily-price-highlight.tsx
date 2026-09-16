@@ -3,39 +3,48 @@
 import { useEffect, useState } from "react";
 import { formatMnt, getPricingPlans, type PricingPlan } from "@/lib/billing-services";
 
-const FALLBACK_DAYS = 21;
-const FALLBACK_PER_DAY = 1666;
+/** Өдөрт ногдох үнийг 1 сарын (30 хоног) багцын үнээс тооцно */
+const MONTH_DAYS = 30;
 const HIGHLIGHT_DAYS = 11;
 
-function pickFeaturedPlan(plans: PricingPlan[]) {
-  const twentyOne = plans.find((p) => p.durationDays === 21);
-  if (twentyOne) return twentyOne;
-  return plans[0] ?? null;
+/** 30 хоногийн багц; байхгүй бол хамгийн богино хугацаатай багц */
+function pickMonthlyPlan(plans: PricingPlan[]) {
+  const valid = plans.filter((p) => p.durationDays > 0 && p.amountMnt > 0);
+  return (
+    valid.find((p) => p.durationDays === MONTH_DAYS) ??
+    [...valid].sort((a, b) => a.durationDays - b.durationDays)[0] ??
+    null
+  );
 }
 
 export function DailyPriceHighlight() {
-  const [perDay, setPerDay] = useState(FALLBACK_PER_DAY);
-  const [days, setDays] = useState(FALLBACK_DAYS);
+  const [perDay, setPerDay] = useState<number | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     getPricingPlans()
       .then((plans) => {
         if (cancelled) return;
-        const plan = pickFeaturedPlan(plans);
-        if (!plan || plan.durationDays <= 0) return;
-        setDays(plan.durationDays);
-        setPerDay(Math.round(plan.amountMnt / plan.durationDays));
+        const plan = pickMonthlyPlan(plans);
+        if (!plan) {
+          setFailed(true);
+          return;
+        }
+        // 30 хоногийн дүн рүү хөрвүүлээд 30-д хуваана; бутархайгүй бүхэл төгрөг
+        const monthlyAmount = (plan.amountMnt / plan.durationDays) * MONTH_DAYS;
+        setPerDay(Math.round(monthlyAmount / MONTH_DAYS));
       })
       .catch(() => {
-        /* fallback values */
+        if (!cancelled) setFailed(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const segments = Math.min(Math.max(days, 1), 31);
+  // Статик үнэ харуулахгүй — багцын мэдээлэл ирээгүй бол хэсгийг нууна
+  if (failed) return null;
 
   return (
     <div className="mb-12 rounded-2xl border border-ink-700 bg-ink-900/80 p-6 md:p-8">
@@ -43,7 +52,11 @@ export function DailyPriceHighlight() {
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mist-500">Өдөрт ногдох нь</p>
           <p className="mt-2 flex flex-wrap items-baseline gap-2">
-            <span className="font-display text-4xl font-semibold tracking-tight text-brand md:text-5xl">{formatMnt(perDay)}</span>
+            {perDay === null ? (
+              <span className="inline-block h-10 w-32 animate-pulse rounded-lg bg-ink-700 md:h-12" aria-label="Үнэ ачаалж байна" />
+            ) : (
+              <span className="font-display text-4xl font-semibold tracking-tight text-brand md:text-5xl">{formatMnt(perDay)}</span>
+            )}
             <span className="text-sm text-mist-400">/ өдөр</span>
           </p>
         </div>
@@ -52,14 +65,14 @@ export function DailyPriceHighlight() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${segments}, minmax(0, 1fr))` }}>
-        {Array.from({ length: segments }, (_, i) => (
+      <div className="mt-8 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${MONTH_DAYS}, minmax(0, 1fr))` }}>
+        {Array.from({ length: MONTH_DAYS }, (_, i) => (
           <div key={i} className={`h-3 rounded-sm md:h-3.5 ${i < HIGHLIGHT_DAYS ? "bg-brand" : "bg-brand/45"}`} />
         ))}
       </div>
 
       <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-mist-500">
-        {days} хоног • {days} өдрийн хөтөлбөр
+        {MONTH_DAYS} хоног • {MONTH_DAYS} өдрийн хөтөлбөр
       </p>
     </div>
   );

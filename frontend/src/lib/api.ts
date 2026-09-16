@@ -99,9 +99,13 @@ api.interceptors.response.use(
         pendingQueue = [];
         if (typeof window !== 'undefined') {
           const path = window.location.pathname;
+          // Нэвтрээгүй хэрэглэгчид нээлттэй хуудсууд (onboarding-ийн судалгааг бүртгүүлэхээс өмнө бөглөнө)
           if (
             !path.startsWith('/login') &&
             !path.startsWith('/forgot-password') &&
+            !path.startsWith('/onboarding') &&
+            !path.startsWith('/register') &&
+            !path.startsWith('/verify-email') &&
             path !== '/'
           ) {
             window.location.href = '/login';

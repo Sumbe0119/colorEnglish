@@ -78,40 +78,40 @@ export class AuthService {
       include: { profile: true },
     });
     if (!user) throw new UnauthorizedException(invalidMessage);
+    // Аль хэдийн баталгаажсан бол код шалгалт алгасч token олгож болохгүй (зөвхөн и-мэйлээр бусдын бүртгэлд нэвтрэх боломж) — /auth/login ашиглана
+    if (user.isEmailVerified) throw new UnauthorizedException(invalidMessage);
 
-    if (!user.isEmailVerified) {
-      const record = await this.prisma.emailVerificationCode.findFirst({
-        where: { userId: user.id, consumedAt: null },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (!record || record.expiresAt < new Date()) {
-        throw new UnauthorizedException(invalidMessage);
-      }
-      if (record.attempts >= VERIFY_MAX_ATTEMPTS) {
-        throw new UnauthorizedException('Хэт олон буруу оролдлого хийсэн байна, шинэ код хүснэ үү');
-      }
-
-      const valid = await argon2.verify(record.codeHash, dto.code);
-      if (!valid) {
-        await this.prisma.emailVerificationCode.update({
-          where: { id: record.id },
-          data: { attempts: { increment: 1 } },
-        });
-        throw new UnauthorizedException(invalidMessage);
-      }
-
-      await this.prisma.$transaction([
-        this.prisma.user.update({
-          where: { id: user.id },
-          data: { isEmailVerified: true, lastLoginAt: new Date() },
-        }),
-        this.prisma.emailVerificationCode.update({
-          where: { id: record.id },
-          data: { consumedAt: new Date() },
-        }),
-      ]);
-      user.isEmailVerified = true;
+    const record = await this.prisma.emailVerificationCode.findFirst({
+      where: { userId: user.id, consumedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!record || record.expiresAt < new Date()) {
+      throw new UnauthorizedException(invalidMessage);
     }
+    if (record.attempts >= VERIFY_MAX_ATTEMPTS) {
+      throw new UnauthorizedException('Хэт олон буруу оролдлого хийсэн байна, шинэ код хүснэ үү');
+    }
+
+    const valid = await argon2.verify(record.codeHash, dto.code);
+    if (!valid) {
+      await this.prisma.emailVerificationCode.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException(invalidMessage);
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { isEmailVerified: true, lastLoginAt: new Date() },
+      }),
+      this.prisma.emailVerificationCode.update({
+        where: { id: record.id },
+        data: { consumedAt: new Date() },
+      }),
+    ]);
+    user.isEmailVerified = true;
 
     if (!user.isActive) throw new UnauthorizedException('Таны бүртгэл идэвхгүй болсон байна');
 

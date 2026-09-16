@@ -5,11 +5,14 @@ import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarke
 import { PublicPricingGrid } from "@/components/billing/public-pricing-grid";
 import { LazyEnglishSection } from "@/components/home/lazy-english-section";
 import { DailyPriceHighlight } from "@/components/home/daily-price-highlight";
+import { LearningStyleSection } from "@/components/home/learning-style-section";
+import { LearningStyleStickyBar } from "@/components/home/learning-style-sticky-bar";
+import { FaqSection, type FaqItem } from "@/components/home/faq-section";
 
 export const metadata: Metadata = {
   title: "ColorEnglish — Англи хэлийг өнгөөр нь ойлго",
 };
-const FAQ = [
+const FAQ: FaqItem[] = [
   {
     q: "Хэлний түвшин хамаатай юу?",
     a: "А1-B2 түвшний хооронд суралцагчдад зориулагдсан. Өмнө нь Англи хэл сураагүй ч асуудалгүй. C1 болон түүнээс дээш түвшний мундагуудад маани бол арай л тохиромжгүй.",
@@ -30,6 +33,10 @@ const FAQ = [
     q: "Анги дүүргэлт байгаа юу?",
     a: "Onile Class биш учир анги дүүргэлт гэж байхгүй дуртай үедээ бүртгүүлж дуртай үедээ хичээлээ үзэх боломжтой.",
   },
+  {
+    q: "Дүрмийн хичээл ордог уу?",
+    a: "А1-B2 түвшний бүх дүрэм, дасгал ажил, шалгалтыг багтаасан Grammer хичээлүүд орсон.",
+  },
 ];
 
 export default function HomePage() {
@@ -45,6 +52,7 @@ export default function HomePage() {
             {[
               ["#method", "Арга барил"],
               ["#pricing", "Үнэ"],
+              ["#learning-style", "Суралцах аргаа тодорхойлох"],
               ["#faq", "FAQ"],
             ].map(([href, label]) => (
               <a key={href} href={href} className="text-sm text-mist-300 hover:text-mist-50 transition-colors">
@@ -135,6 +143,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Суралцах арга барил тодорхойлох + графиктай жишээ */}
+      <LearningStyleSection />
+
       {/* Pricing — admin-ийн идэвхтэй багц (/subscriptions/plans) */}
       <section id="pricing" className="border-t border-ink-700 px-6 py-24">
         <div className="mx-auto max-w-6xl">
@@ -146,20 +157,7 @@ export default function HomePage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="border-t border-ink-700 bg-ink-900 px-6 py-24">
-        <div className="mx-auto max-w-2xl">
-          <p className="mb-3 text-xs uppercase tracking-widest text-brand">Асуулт хариулт</p>
-          <h2 className="mb-16 font-display text-3xl font-semibold text-mist-50">Түгээмэл асуулт</h2>
-          <div className="space-y-4">
-            {FAQ.map((f, i) => (
-              <div key={i} className="rounded-xl border border-ink-700 bg-ink-800 p-6">
-                <h3 className="mb-3 font-display text-base font-semibold text-mist-50">{f.q}</h3>
-                <p className="text-sm text-mist-300">{f.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FaqSection id="faq" items={FAQ} />
 
       {/* Footer CTA */}
       <section className="border-t border-ink-700 px-6 py-20 text-center">
@@ -172,7 +170,8 @@ export default function HomePage() {
           Яг одоо эхэл <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
-      <footer className="border-t border-ink-700 px-6 py-8 text-center text-xs text-mist-500">© 2026 ColorEnglish.🇲🇳</footer>
+      <footer className="border-t border-ink-700 px-6 pb-28 pt-8 text-center text-xs text-mist-500 sm:pb-24">© 2026 ColorEnglish.🇲🇳</footer>
+      <LearningStyleStickyBar />
     </div>
   );
 }

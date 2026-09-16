@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
+  BrainCircuit,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -25,6 +26,8 @@ import {
   GOAL_LABELS,
   type GoalInterest,
 } from '@/lib/onboarding-labels';
+import { parseLearningStyleScores } from '@/lib/learning-style';
+import { LearningStyleResult } from '@/components/onboarding/learning-style-result';
 
 function formatDate(iso: string | null) {
   if (!iso) return null;
@@ -105,6 +108,12 @@ export default function ProfilePage() {
     };
   }, []);
 
+  // Onboarding-ийн "Үр дүн харах"-аас ирэхэд суралцах арга барилын үр дүн рүү гүйлгэнэ
+  useEffect(() => {
+    if (loading || window.location.hash !== '#learning-style') return;
+    document.getElementById('learning-style')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loading]);
+
   if (loading) {
     return <ProfileSkeleton />;
   }
@@ -151,6 +160,7 @@ export default function ProfilePage() {
   ).toUpperCase();
 
   const completedAt = formatDate(profile.onboardingCompletedAt);
+  const styleScores = parseLearningStyleScores(profile.learningStyleScores);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-12">
@@ -507,6 +517,63 @@ export default function ProfilePage() {
           </div>
         </article>
       </div>
+
+      {/* Learning style: дутуу / бөглөөгүй */}
+      {profile.onboardingCompleted && !profile.learningStyleCompletedAt && (
+        <article className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-4 sm:p-5 lg:col-span-12">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/15">
+              <BrainCircuit className="h-4 w-4 text-brand" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-display text-sm font-semibold text-mist-50">
+                Суралцах арга барил тодорхойлогдоогүй байна
+              </h3>
+              <p className="mt-0.5 text-xs leading-5 text-mist-400">
+                5 минут зарцуулаад аль арга барил тань илүү хөгжсөнийг диаграмаар харж, тохирох зөвлөмж аваарай.
+              </p>
+            </div>
+            <Link
+              href="/learning-style?next=/profile"
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-brand px-3 py-2 text-xs font-medium text-white transition hover:bg-brand-hover sm:self-auto"
+            >
+              Суралцах арга барил тодорхойлох
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </article>
+      )}
+
+      {/* Learning style */}
+      {styleScores && profile.dominantLearningStyle && profile.learningStyleCompletedAt && (
+        <article id="learning-style" className="ce-panel scroll-mt-24 rounded-2xl p-4 sm:p-5 lg:col-span-12">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/15">
+              <BrainCircuit className="h-4 w-4 text-brand" />
+            </div>
+            <div>
+              <h3 className="font-display text-sm font-semibold text-mist-50">
+                Суралцах арга барил
+              </h3>
+              <p className="text-[11px] text-mist-500">
+                Тодорхойлсон үр дүн болон танд тохирох зөвлөмж
+              </p>
+            </div>
+            <Link
+              href="/learning-style?next=/profile"
+              className="ml-auto inline-flex shrink-0 items-center gap-1 text-xs text-mist-400 transition hover:text-brand"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Дахин тодорхойлох
+            </Link>
+          </div>
+
+          <LearningStyleResult
+            scores={styleScores}
+            dominant={profile.dominantLearningStyle}
+          />
+        </article>
+      )}
 
       {/* Motivation */}
       {profile.motivationNote && (

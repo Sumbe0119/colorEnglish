@@ -1,6 +1,7 @@
 import { api, setAccessToken } from '@/lib/api';
 import { AuthResponse, RegisterResponse, User } from '@/types/auth';
 import { DashboardData, LessonModule, LevelCode, ModuleType } from '@/types/api';
+import type { LearningStyle, LearningStyleScores } from '@/lib/learning-style';
 
 let restorePromise: Promise<AuthResponse | null> | null = null;
 
@@ -76,7 +77,9 @@ export async function restoreSession() {
 }
 
 export async function getMe() {
-  const { data } = await api.get<{ user: User & { profile?: { onboardingCompleted: boolean } } }>(
+  const { data } = await api.get<{
+    user: User & { profile?: { onboardingCompleted: boolean; learningStyleCompletedAt: string | null } };
+  }>(
     '/auth/me',
   );
   return data.user;
@@ -86,8 +89,9 @@ export async function completeOnboarding(payload: {
   interests: string[];
   selfAssessedLevel: LevelCode;
   dailyGoalMinutes: number;
+  learningStyleAnswers?: LearningStyle[];
 }) {
-  const { data } = await api.post('/profile/onboarding', payload);
+  const { data } = await api.post<Omit<StudentProfile, 'user'>>('/profile/onboarding', payload);
   return data;
 }
 
@@ -100,6 +104,9 @@ export interface StudentProfile {
   interests: string[];
   dailyGoalMinutes: number;
   motivationNote: string | null;
+  dominantLearningStyle: LearningStyle | null;
+  learningStyleScores: Partial<LearningStyleScores> | null;
+  learningStyleCompletedAt: string | null;
   onboardingCompleted: boolean;
   onboardingCompletedAt: string | null;
   user: {
@@ -108,6 +115,19 @@ export interface StudentProfile {
     lastName: string | null;
     avatarUrl: string | null;
   };
+}
+
+/** Судалгааг бүрэн бөглөсөн хариултаар хадгална (дутуу бөглөсөн хэрэглэгч дахин өгөх) */
+export async function submitLearningStyle(answers: LearningStyle[]) {
+  const { data } = await api.post<StudentProfile>('/profile/learning-style', { answers });
+  return data;
+}
+
+/** Onboarding хийсэн боловч суралцах арга барилын судалгаа дутуу эсэх */
+export function needsLearningStyleSurvey(
+  profile: { onboardingCompleted?: boolean; learningStyleCompletedAt?: string | null } | null | undefined,
+) {
+  return Boolean(profile?.onboardingCompleted && !profile.learningStyleCompletedAt);
 }
 
 export async function getProfile() {

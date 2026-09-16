@@ -1,60 +1,106 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useId, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const FAQS = [
-  {
-    q: 'Надад одоо ямар түвшин тохирохыг яаж мэдэх вэ?',
-    a: 'Бүртгүүлэх үед таны хэлний мэдлэг болон сонирхлыг тодорхойлох богино судалгаа, placement test өгөгдөнө. Үүний дагуу танд тохирсон түвшнээс эхлүүлнэ.',
-  },
-  {
-    q: 'Шалгалтанд алдвал юу болох вэ?',
-    a: 'Алдсан асуулт бүр дээр яг юун дээр, яагаад алдсаныг тайлбарлаж өгнө. Дараа нь дахин оролдох боломжтой.',
-  },
-  {
-    q: 'Өдөрт хэр их цаг зарцуулах хэрэгтэй вэ?',
-    a: 'Өдөрт ердөө 30–40 минут — 1 унших материал + 2 дагалдах ажил гэсэн бүтэцтэй тул урт хугацаанд тогтвортой үргэлжлүүлэхэд хялбар.',
-  },
-  {
-    q: 'AI-тай ярих, бичих дадлага хэрхэн ажилладаг вэ?',
-    a: 'Ярих модульд AI-тай чөлөөтэй ярилцаж, алдаа гарвал тэр дор нь зассан хувилбарыг үзүүлнэ. Бичих модульд таны бичсэн текстийг шинжилж, дүрэм, хэллэгийн алдааг тайлбартай нь засаж, дээр хувилбар санал болгоно.',
-  },
-];
+export type FaqItem = { q: string; a: string };
 
-export function FaqSection() {
-  const [open, setOpen] = useState<number | null>(0);
+type Props = {
+  items: FaqItem[];
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+  /** Анх нээлттэй байх асуултын индекс; null бол бүгд хаалттай */
+  defaultOpen?: number | null;
+};
+
+/** Нэг удаад нэг асуулт нээгддэг accordion. Хаалттай хариулт ч HTML-д үлддэг (SEO). */
+export function FaqSection({
+  items,
+  id,
+  eyebrow = 'Асуулт хариулт',
+  title = 'Түгээмэл асуулт',
+  defaultOpen = 0,
+}: Props) {
+  const [open, setOpen] = useState<number | null>(defaultOpen);
+  const baseId = useId();
 
   return (
-    <section className="border-t border-ink-700/80 px-6 py-20">
-      <div className="mx-auto max-w-3xl">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-mist-400">
-          Асуулт ба хариулт
-        </p>
-        <h2 className="mt-3 font-display text-3xl font-semibold text-mist-50">
-          Түгээмэл эргэлзээ
-        </h2>
+    <section id={id} className="border-t border-ink-700 bg-ink-900 px-6 py-24">
+      <div className="mx-auto max-w-2xl">
+        <p className="mb-3 text-xs uppercase tracking-widest text-brand">{eyebrow}</p>
+        <h2 className="mb-12 font-display text-3xl font-semibold text-mist-50">{title}</h2>
 
-        <div className="mt-10 divide-y divide-ink-700 rounded-2xl border border-ink-700">
-          {FAQS.map((item, i) => (
-            <div key={item.q}>
-              <button
-                onClick={() => setOpen(open === i ? null : i)}
-                className="flex w-full items-center justify-between px-6 py-5 text-left"
-                aria-expanded={open === i}
+        <div className="space-y-3">
+          {items.map((item, i) => {
+            const isOpen = open === i;
+            const buttonId = `${baseId}-q${i}`;
+            const panelId = `${baseId}-a${i}`;
+
+            return (
+              <div
+                key={item.q}
+                className={cn(
+                  'rounded-xl border transition-colors duration-200',
+                  isOpen ? 'border-brand/40 bg-ink-800' : 'border-ink-700 bg-ink-800/50 hover:border-ink-600 hover:bg-ink-800',
+                )}
               >
-                <span className="font-medium text-mist-50">{item.q}</span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-mist-400 transition-transform ${
-                    open === i ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-              {open === i && (
-                <div className="px-6 pb-5 text-sm leading-relaxed text-mist-300">{item.a}</div>
-              )}
-            </div>
-          ))}
+                <h3>
+                  <button
+                    id={buttonId}
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => setOpen(isOpen ? null : i)}
+                    className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 sm:px-6 sm:py-5"
+                  >
+                    <span
+                      className={cn(
+                        'flex-1 font-display text-base font-semibold transition-colors',
+                        isOpen ? 'text-mist-50' : 'text-mist-100',
+                      )}
+                    >
+                      {item.q}
+                    </span>
+                    {/* Нээгдэхэд "+" 45° эргэж "×" болно */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-300 motion-reduce:transition-none',
+                        isOpen ? 'rotate-45 border-brand/50 bg-brand/15 text-brand' : 'border-ink-600 text-mist-400',
+                      )}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </span>
+                  </button>
+                </h3>
+
+                {/* grid-rows 0fr → 1fr: өндрийг хэмжихгүйгээр зөөлөн нээгдэнэ */}
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={buttonId}
+                  aria-hidden={!isOpen}
+                  className={cn(
+                    'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+                    isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <p
+                      className={cn(
+                        'px-5 pb-5 text-sm leading-relaxed text-mist-300 transition-opacity duration-300 motion-reduce:transition-none sm:px-6',
+                        isOpen ? 'opacity-100' : 'opacity-0',
+                      )}
+                    >
+                      {item.a}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -8,7 +8,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen, Library, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { logout } from "@/lib/services";
+import { clearOnboardingDraft } from "@/lib/onboarding-draft";
 import { SubscriptionStatusBar } from "@/components/layout/subscription-status-bar";
+import { LearningStyleReminder } from "@/components/layout/learning-style-reminder";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,6 +26,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     try {
       await logout().catch(() => null);
       clearSession();
+      // Дуусаагүй onboarding-ийн хариулт дараагийн хэрэглэгчид үлдэхгүй
+      clearOnboardingDraft();
       setLogoutOpen(false);
       router.push("/login");
     } finally {
@@ -171,10 +175,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
 
             <SubscriptionStatusBar />
+            <LearningStyleReminder />
           </div>
         )}
 
-        <main className={`ce-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${isImmersiveReader ? "p-0 md:p-10" : "p-4 sm:p-6 md:p-10"}`}>
+        <main
+          className={`ce-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${isImmersiveReader ? "p-0 md:p-10" : "p-4 sm:p-6 md:p-10"}`}
+        >
           <div className={`mx-auto ${isImmersiveReader ? "max-w-none md:max-w-6xl" : "max-w-6xl"}`}>{children}</div>
         </main>
       </div>
@@ -304,7 +311,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ConfirmDialog
         open={logoutOpen}
         title="Системээс гарах уу?"
-        description="Та одоо гарахдаа итгэлтэй байна уу? Дахин нэвтрэхийн тулд email, нууц үгээ оруулна."
+        description="Та одоо гарахдаа итгэлтэй байна уу?"
         confirmLabel="Гарах"
         cancelLabel="Болих"
         isLoading={loggingOut}

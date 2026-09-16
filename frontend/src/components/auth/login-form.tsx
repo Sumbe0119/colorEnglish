@@ -10,9 +10,10 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { loginSchema, LoginFormValues } from "@/lib/auth-schemas";
-import { login, getMe } from "@/lib/services";
+import { login, getMe, needsLearningStyleSurvey } from "@/lib/services";
 import { useAuthStore } from "@/store/auth-store";
 import { EMAIL_NOT_VERIFIED } from "@/types/auth";
+import { safeNextPath } from "@/lib/safe-next";
 
 export function LoginForm() {
   const router = useRouter();
@@ -32,8 +33,13 @@ export function LoginForm() {
       const data = await login(values.email, values.password);
       setSession(data.user, data.accessToken);
       const me = await getMe();
-      const completed = (me as { profile?: { onboardingCompleted?: boolean } }).profile?.onboardingCompleted;
-      router.push(completed ? "/reading" : "/onboarding");
+      const profile = me.profile;
+      const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+      // Onboarding-ийн судалгааг нэвтрэхээс өмнө бөглөсөн бол next=/onboarding ирж, хариулт тухайн хэрэглэгч дээр хадгалагдана
+      if (!profile?.onboardingCompleted) router.push("/onboarding");
+      else if (next) router.push(next);
+      else if (needsLearningStyleSurvey(profile)) router.push("/learning-style?next=/reading");
+      else router.push("/reading");
     } catch (err: any) {
       const body = err?.response?.data as { code?: string; email?: string; message?: string } | undefined;
       if (err?.response?.status === 403 && body?.code === EMAIL_NOT_VERIFIED) {
