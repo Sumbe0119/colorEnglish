@@ -3,7 +3,22 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, BookOpen, Check, Lightbulb, RotateCcw, Trophy, X } from 'lucide-react';
+import Link from 'next/link';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  Crown,
+  Lightbulb,
+  Loader2,
+  LockOpen,
+  RotateCcw,
+  Sparkles,
+  Trophy,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GrammarRule, QuizKind, QuizQuestion } from '@/lib/grammar/types';
 import { scoreByRule, shuffle } from '@/lib/grammar/quiz-utils';
@@ -21,18 +36,41 @@ const KIND_PROMPT: Record<QuizKind, string> = {
   translate: 'Энэ өгүүлбэрийг англиар яаж хэлэх вэ?',
 };
 
+/** Шалгалтын оноог DB-д хадгалсан байдал ба шинээр нээгдсэн хичээлүүд */
+export type QuizSaveState = {
+  status: 'saving' | 'saved' | 'error';
+  passPercent: number;
+  /** passed — энэ оролдлого тэнцсэн; lessonPassed — хичээл (өмнө нь эсвэл одоо) тэнцсэн */
+  results: { ruleId: number; correct: number; total: number; passed: boolean; lessonPassed: boolean }[];
+  unlocked: { ruleId: number; title: string; canOpen: boolean; requiresVip: boolean }[];
+};
+
 type Props = {
   questions: QuizQuestion[];
   title: string;
   subtitle?: string;
   rulesById: ReadonlyMap<number, GrammarRule>;
+  /** Явцад бүртгэгддэг шалгалтын хадгалалтын төлөв (хурдан шалгалтад байхгүй) */
+  saveState?: QuizSaveState;
+  onRetrySave?: () => void;
   onFinish: (answers: Record<string, string>) => void;
   onRestart: () => void;
   onExit: () => void;
   onStudy: (ruleId: number) => void;
 };
 
-export function PracticeQuiz({ questions, title, subtitle, rulesById, onFinish, onRestart, onExit, onStudy }: Props) {
+export function PracticeQuiz({
+  questions,
+  title,
+  subtitle,
+  rulesById,
+  saveState,
+  onRetrySave,
+  onFinish,
+  onRestart,
+  onExit,
+  onStudy,
+}: Props) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -104,6 +142,8 @@ export function PracticeQuiz({ questions, title, subtitle, rulesById, onFinish, 
         answers={answers}
         rulesById={rulesById}
         title={title}
+        saveState={saveState}
+        onRetrySave={onRetrySave}
         onRestart={onRestart}
         onExit={onExit}
         onStudy={onStudy}
@@ -290,6 +330,8 @@ function QuizResult({
   answers,
   rulesById,
   title,
+  saveState,
+  onRetrySave,
   onRestart,
   onExit,
   onStudy,
@@ -298,6 +340,8 @@ function QuizResult({
   answers: Record<string, string>;
   rulesById: ReadonlyMap<number, GrammarRule>;
   title: string;
+  saveState?: QuizSaveState;
+  onRetrySave?: () => void;
   onRestart: () => void;
   onExit: () => void;
   onStudy: (ruleId: number) => void;
@@ -343,6 +387,8 @@ function QuizResult({
           <p className="font-display font-medium text-mist-50">{verdict.title}</p>
           <p className="mt-2 text-sm leading-6 text-mist-400">{verdict.body}</p>
         </div>
+
+        {saveState && <QuizSaveBanner save={saveState} onRetry={onRetrySave} onStudy={onStudy} />}
 
         {weak.length > 0 && (
           <div className="mx-auto mt-6 max-w-md text-left">
@@ -406,5 +452,102 @@ function QuizResult({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/** Оноо DB-д хадгалагдсан эсэх, тэнцсэн эсэх, шинээр нээгдсэн хичээлүүд */
+function QuizSaveBanner({
+  save,
+  onRetry,
+  onStudy,
+}: {
+  save: QuizSaveState;
+  onRetry?: () => void;
+  onStudy: (ruleId: number) => void;
+}) {
+  if (save.status === 'saving') {
+    return (
+      <p className="mx-auto mt-4 flex max-w-md items-center justify-center gap-2 text-sm text-mist-400">
+        <Loader2 className="h-4 w-4 animate-spin" /> Үр дүнг хадгалж байна…
+      </p>
+    );
+  }
+
+  if (save.status === 'error') {
+    return (
+      <div className="mx-auto mt-4 flex max-w-md flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+        <span className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" /> Үр дүнг хадгалж чадсангүй — дараагийн хичээл нээгдээгүй байна.
+        </span>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-2 rounded-lg border border-danger/40 px-3 py-1.5 text-xs font-medium text-mist-50 hover:bg-danger/20"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Дахин хадгалах
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const single = save.results.length === 1 ? save.results[0] : null;
+  const passedCount = save.results.filter((r) => r.passed).length;
+  const needed = single ? Math.ceil((single.total * save.passPercent) / 100) : 0;
+
+  return (
+    <div className="mx-auto mt-4 max-w-md space-y-3 text-left">
+      {single ? (
+        <p
+          className={cn(
+            'rounded-xl border px-4 py-3 text-sm leading-6',
+            single.passed ? 'border-success/30 bg-success/10 text-success' : 'border-ink-600 bg-ink-800/60 text-mist-300',
+          )}
+        >
+          {single.passed
+            ? 'Шалгалтад тэнцлээ! Үр дүн таны явцад хадгалагдлаа.'
+            : single.lessonPassed
+              ? `Энэ удаа ${single.correct}/${single.total}. Энэ хичээлд өмнө нь тэнцсэн тул тэнцсэн хэвээр байна.`
+              : `Тэнцэхийн тулд ${single.total}-аас дор хаяж ${needed} зөв хариулт хэрэгтэй. Дүрмээ дахин уншаад оролдоорой.`}
+        </p>
+      ) : (
+        <p className="rounded-xl border border-ink-600 bg-ink-800/60 px-4 py-3 text-sm leading-6 text-mist-300">
+          {save.results.length} дүрмээс <span className="font-semibold text-success">{passedCount}</span>-д нь тэнцлээ. Үр дүн
+          явцад хадгалагдлаа.
+        </p>
+      )}
+
+      {save.unlocked.map((u) =>
+        u.canOpen ? (
+          <button
+            key={u.ruleId}
+            type="button"
+            onClick={() => onStudy(u.ruleId)}
+            className="flex w-full items-center gap-3 rounded-xl border border-brand/40 bg-brand/10 px-4 py-3 text-left transition-colors hover:bg-brand/20"
+          >
+            <LockOpen className="h-4 w-4 shrink-0 text-brand" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] uppercase tracking-[0.15em] text-brand">Шинэ хичээл нээгдлээ</span>
+              <span className="block truncate font-display text-sm text-mist-50">{u.title}</span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+          </button>
+        ) : u.requiresVip ? (
+          <Link
+            key={u.ruleId}
+            href="/billing"
+            className="flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-ink-800/60 px-4 py-3 text-left transition-colors hover:border-brand/50"
+          >
+            <Crown className="h-4 w-4 shrink-0 text-brand" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] uppercase tracking-[0.15em] text-mist-400">VIP эрхээр нээгдэнэ</span>
+              <span className="block truncate font-display text-sm text-mist-100">{u.title}</span>
+            </span>
+            <Sparkles className="h-4 w-4 shrink-0 text-brand" />
+          </Link>
+        ) : null,
+      )}
+    </div>
   );
 }

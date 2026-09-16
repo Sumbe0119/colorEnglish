@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { AppShell } from '@/components/layout/app-shell';
-import { VipGate } from '@/components/billing/vip-gate';
 
 export default function RuleLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
@@ -25,14 +24,6 @@ export default function RuleLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  return (
-    <AppShell>
-      <VipGate
-        title="Дүрмийн хэсэг VIP багцад багтана"
-        description="VIP багцаа аваад бүх дүрэм, жишээ, шалгалтын дасгалыг бүрэн ашиглаарай."
-      >
-        {children}
-      </VipGate>
-    </AppShell>
-  );
+  // Эхний хичээлүүд үнэгүй тул бүх хэсгийг VIP-ээр хаахгүй — хичээл бүрийн түгжээг GrammarLevelPage шийднэ
+  return <AppShell>{children}</AppShell>;
 }

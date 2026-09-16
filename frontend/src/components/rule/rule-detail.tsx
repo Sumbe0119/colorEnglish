@@ -13,6 +13,7 @@ import {
   Layers,
   Lightbulb,
   ListChecks,
+  Lock,
   MessageCircle,
   Play,
   Quote,
@@ -41,8 +42,12 @@ type Props = {
   total: number;
   showMn: boolean;
   progress?: RuleProgress;
+  /** Шалгалтад тэнцэх доод хувь */
+  passPercent: number;
   prevTitle?: string;
   nextTitle?: string;
+  /** Дараагийн хичээлийн явц/түгжээ (сүүлийн хичээлд байхгүй) */
+  nextState?: RuleProgress;
   onPrev?: () => void;
   onNext?: () => void;
   onPractice: (ruleId: number) => void;
@@ -54,14 +59,27 @@ export function RuleDetail({
   total,
   showMn,
   progress,
+  passPercent,
   prevTitle,
   nextTitle,
+  nextState,
   onPrev,
   onNext,
   onPractice,
 }: Props) {
   const number = String(rule.id).padStart(2, '0');
   const mastered = isMastered(progress);
+  const passed = Boolean(progress?.passed);
+  const neededToPass = Math.ceil((rule.quiz.length * passPercent) / 100);
+  const nextLocked = Boolean(nextState && !nextState.canOpen);
+  const passHint = `${rule.quiz.length} асуултаас ${neededToPass}+ зөв хариулбал тэнцэнэ.`;
+  // Энэ шалгалтад тэнцэх нь дараагийн хичээлийг нээх эсэхээс хамаарч тайлбарлана
+  const pendingHint =
+    !nextState || nextState.unlocked
+      ? passHint
+      : nextState.requiresVip
+        ? `${passHint} Дараагийн хичээл VIP эрхээр нээгдэнэ.`
+        : `${rule.quiz.length} асуултаас ${neededToPass}+ зөв хариулбал тэнцэж, дараагийн хичээл нээгдэнэ.`;
   const separator = rule.structure.includes('+') ? '+' : '·';
 
   return (
@@ -89,9 +107,9 @@ export function RuleDetail({
             <span className="text-xs uppercase tracking-[0.18em] text-mist-400">
               Дүрэм {index + 1} / {total}
             </span>
-            {mastered && (
+            {passed && (
               <span className="inline-flex items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success">
-                <CheckCircle2 className="h-3 w-3" /> Эзэмшсэн
+                <CheckCircle2 className="h-3 w-3" /> {mastered ? 'Эзэмшсэн' : 'Тэнцсэн'}
               </span>
             )}
           </div>
@@ -266,9 +284,11 @@ export function RuleDetail({
       {/* ── Шалгах CTA ─────────────────────────────────────────── */}
       <div className="ce-panel flex flex-wrap items-center justify-between gap-4 border-brand/30 p-5">
         <div>
-          <p className="font-display text-sm font-semibold text-mist-50">Энэ дүрмийг ойлгосон уу?</p>
+          <p className="font-display text-sm font-semibold text-mist-50">
+            {passed ? 'Шалгалтад тэнцсэн' : 'Энэ дүрмийг ойлгосон уу?'}
+          </p>
           <p className="mt-1 text-xs text-mist-400">
-            {rule.quiz.length} асуулттай богино шалгалтаар бататгаарай.
+            {passed ? 'Дахин өгч оноогоо ахиулж болно.' : pendingHint}
             {progress && progress.total > 0 && (
               <span className="ml-2 text-mist-300">
                 Шилдэг: {progress.best}/{progress.total}
@@ -306,10 +326,18 @@ export function RuleDetail({
           className="flex min-w-0 flex-1 items-center justify-end gap-2 rounded-xl border border-ink-700 bg-ink-900/60 px-4 py-3 text-right transition-colors hover:border-ink-600 hover:bg-ink-800 disabled:invisible"
         >
           <span className="min-w-0">
-            <span className="block text-[10px] uppercase tracking-[0.15em] text-mist-500">Дараагийн</span>
-            <span className="block truncate font-display text-sm text-mist-200">{nextTitle}</span>
+            <span className="block text-[10px] uppercase tracking-[0.15em] text-mist-500">
+              {nextLocked ? 'Дараагийн · түгжээтэй' : 'Дараагийн'}
+            </span>
+            <span className={cn('block truncate font-display text-sm', nextLocked ? 'text-mist-400' : 'text-mist-200')}>
+              {nextTitle}
+            </span>
           </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-mist-500" />
+          {nextLocked ? (
+            <Lock className="h-4 w-4 shrink-0 text-mist-500" />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0 text-mist-500" />
+          )}
         </button>
       </nav>
     </motion.article>

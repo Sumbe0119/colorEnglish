@@ -14,6 +14,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { ReadingModule } from './reading/reading.module';
+import { GrammarModule } from './grammar/grammar.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -39,6 +40,7 @@ import { AppController } from './app.controller';
     NotificationsModule,
     AdminModule,
     ReadingModule,
+    GrammarModule,
   ],
   controllers: [AppController],
 })

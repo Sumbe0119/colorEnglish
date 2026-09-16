@@ -129,6 +129,8 @@ model User {
   streak             StudyStreak?
   readingWords       UserReadingWord[]
   storyProgress      UserStoryProgress[]
+  grammarProgress    GrammarRuleProgress[]
+  grammarQuizAttempts GrammarQuizAttempt[]
 
   @@map("users")
 }
@@ -750,4 +752,43 @@ model UserStoryProgress {
   @@unique([userId, storyId])
   @@index([userId])
   @@map("user_story_progress")
+}
+
+// ─── Дүрмийн (grammar) хичээлийн явц ───────────────────────
+// Дүрмийн агуулга frontend-д статикаар (frontend/src/lib/grammar/{a1,a2,b1}) байдаг;
+// ruleId нь түвшин доторх 1..N дараалал. Эхний хичээлүүд үнэгүй, бусад нь VIP бөгөөд
+// өмнөх хичээлийн шалгалтад тэнцсэний дараа нээгдэнэ (backend/src/grammar).
+
+model GrammarRuleProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level       LevelCode
+  ruleId      Int
+  viewedAt    DateTime? // хичээлийг анх нээж үзсэн
+  bestCorrect Int       @default(0) // шилдэг оролдлогын зөв хариулт
+  bestTotal   Int       @default(0) // шилдэг оролдлогын нийт асуулт
+  attempts    Int       @default(0)
+  passedAt    DateTime? // шалгалтад анх тэнцсэн — дараагийн хичээлийг нээнэ
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, level, ruleId])
+  @@index([userId, level])
+  @@map("grammar_rule_progress")
+}
+
+model GrammarQuizAttempt {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level     LevelCode
+  ruleId    Int
+  correct   Int
+  total     Int
+  passed    Boolean
+  createdAt DateTime  @default(now())
+
+  @@index([userId, level, ruleId])
+  @@map("grammar_quiz_attempts")
 }
