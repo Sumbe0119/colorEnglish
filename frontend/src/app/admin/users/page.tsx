@@ -283,8 +283,8 @@ export default function AdminUsersPage() {
       </div>
 
       {/* ── Хуудаслалт ───────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-mist-400">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 text-xs text-mist-400 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
           <span>
             {total === 0 ? '0' : `${from}–${to}`} / {total}
           </span>
@@ -304,21 +304,27 @@ export default function AdminUsersPage() {
           </label>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           <PageButton disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Өмнөх хуудас">
             <ChevronLeft className="h-4 w-4" />
           </PageButton>
-          {pageNumbers(page, totalPages).map((n, i) =>
-            n === null ? (
-              <span key={`gap-${i}`} className="px-1.5 text-mist-500">
-                …
-              </span>
-            ) : (
-              <PageButton key={n} active={n === page} disabled={loading} onClick={() => setPage(n)}>
-                {n}
-              </PageButton>
-            ),
-          )}
+          {/* Явцуу дэлгэц дээр дугааруудын оронд "1 / 12" — хэвтээ гүйлт үүсэхээс сэргийлнэ */}
+          <span className="px-2 tabular-nums sm:hidden">
+            {page} / {totalPages}
+          </span>
+          <span className="hidden items-center gap-1 sm:flex">
+            {pageNumbers(page, totalPages).map((n, i) =>
+              n === null ? (
+                <span key={`gap-${i}`} className="px-1.5 text-mist-500">
+                  …
+                </span>
+              ) : (
+                <PageButton key={n} active={n === page} disabled={loading} onClick={() => setPage(n)}>
+                  {n}
+                </PageButton>
+              ),
+            )}
+          </span>
           <PageButton
             disabled={page >= totalPages || loading}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
