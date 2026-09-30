@@ -1,17 +1,22 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
   Req,
   Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { Response } from 'express';
-import { AuthService } from './auth.service';
+import { Request, Response } from 'express';
+import { AuthService, ClientMeta } from './auth.service';
+import { LoginReplaceDto } from './dto/login-replace.dto';
+import { SessionsService } from '../sessions/sessions.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -21,6 +26,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Role } from '@prisma/client';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_COOKIE_MAX_AGE_MS =
@@ -34,9 +40,23 @@ const REFRESH_COOKIE_OPTS = {
   maxAge: REFRESH_COOKIE_MAX_AGE_MS,
 };
 
+/** Хүсэлтээс төхөөрөмжийн мэдээлэл (deviceId body-оос, UA/IP header-ээс). */
+function clientMeta(req: Request, deviceId?: string): ClientMeta {
+  const forwarded = req.headers['x-forwarded-for'];
+  const forwardedIp = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim();
+  return {
+    deviceId,
+    userAgent: req.headers['user-agent']?.slice(0, 512) ?? null,
+    ipAddress: forwardedIp || req.ip || null,
+  };
+}
+
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private sessions: SessionsService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -48,8 +68,15 @@ export class AuthController {
   @Public()
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Body() dto: VerifyEmailDto, @Res({ passthrough: true }) res: Response) {
-    const { user, accessToken, refreshToken } = await this.authService.verifyEmail(dto);
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, accessToken, refreshToken } = await this.authService.verifyEmail(
+      dto,
+      clientMeta(req, dto.deviceId),
+    );
     res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
     return { user, accessToken };
   }
@@ -64,8 +91,28 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { user, accessToken, refreshToken } = await this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { user, accessToken, refreshToken } = await this.authService.login(
+      dto,
+      clientMeta(req, dto.deviceId),
+    );
+    res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
+    return { user, accessToken };
+  }
+
+  /** Төхөөрөмжийн лимит дүүрсэн үед сонгосон төхөөрөмжүүдээс гаргаад нэвтрэх. */
+  @Public()
+  @Post('login/replace')
+  @HttpCode(HttpStatus.OK)
+  async loginReplace(
+    @Body() dto: LoginReplaceDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, accessToken, refreshToken } = await this.authService.loginReplace(
+      dto,
+      clientMeta(req),
+    );
     res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
     return { user, accessToken };
   }
@@ -113,5 +160,46 @@ export class AuthController {
   async me(@CurrentUser('userId') userId: string) {
     const user = await this.authService.getMe(userId);
     return { user };
+  }
+
+  // ---------- Нэвтэрсэн төхөөрөмжүүд ----------
+
+  @Get('sessions')
+  async listSessions(
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('sessionId') sessionId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    const [sessions, limits] = await Promise.all([
+      this.sessions.list(userId, sessionId),
+      this.sessions.getLimits({ id: userId, role }),
+    ]);
+    return { sessions, limits };
+  }
+
+  /** Бусад бүх төхөөрөмжөөс гарах (одоогийнх хэвээр). */
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.OK)
+  async revokeOtherSessions(
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('sessionId') sessionId: string,
+  ) {
+    const revoked = await this.sessions.revokeOthers(userId, sessionId);
+    return { revoked };
+  }
+
+  /** Тодорхой төхөөрөмжөөс гаргах. Одоогийн session-ийг хаавал frontend logout хийнэ. */
+  @Delete('sessions/:id')
+  async revokeSession(
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('sessionId') sessionId: string,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ok = await this.sessions.revoke(userId, id);
+    if (!ok) throw new NotFoundException('Төхөөрөмж олдсонгүй');
+    const isCurrent = id === sessionId;
+    if (isCurrent) res.clearCookie(REFRESH_COOKIE, { path: '/' });
+    return { success: true, isCurrent };
   }
 }

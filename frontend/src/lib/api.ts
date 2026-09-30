@@ -54,6 +54,7 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
+let lastActiveLimitToastAt = 0;
 let pendingQueue: Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }> = [];
 
 api.interceptors.response.use(
@@ -61,6 +62,16 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
     const url: string = original?.url ?? '';
+
+    // Бүртгэл өөр төхөөрөмж дээр зэрэг ашиглагдаж байна — refresh хийх шаардлагагүй, хэрэглэгчид мэдэгдэнэ
+    if (error.response?.status === 409 && error.response?.data?.code === 'SESSION_ACTIVE_LIMIT') {
+      const message: string = error.response.data.message;
+      if (typeof window !== 'undefined' && Date.now() - lastActiveLimitToastAt > 10_000) {
+        lastActiveLimitToastAt = Date.now();
+        import('@/store/toast-store').then(({ toast }) => toast.error(message)).catch(() => undefined);
+      }
+      return Promise.reject(error);
+    }
 
     if (
       url.includes('/auth/refresh') ||

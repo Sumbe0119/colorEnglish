@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
 import {
   CreateLessonDto,
   CreateLevelDto,
@@ -16,7 +17,38 @@ import {
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sessions: SessionsService,
+  ) {}
+
+  // ---------- Хэрэглэгчийн нэвтэрсэн төхөөрөмжүүд ----------
+
+  async listUserSessions(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true },
+    });
+    if (!user) throw new NotFoundException('Хэрэглэгч олдсонгүй');
+    const [sessions, limits] = await Promise.all([
+      this.sessions.list(userId),
+      this.sessions.getLimits(user),
+    ]);
+    return { user, sessions, limits };
+  }
+
+  /** sessionId өгвөл тухайн төхөөрөмжийг, өгөхгүй бол бүх төхөөрөмжийг хаана. */
+  async revokeUserSessions(userId: string, sessionId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException('Хэрэглэгч олдсонгүй');
+    if (sessionId) {
+      const ok = await this.sessions.revoke(userId, sessionId);
+      if (!ok) throw new NotFoundException('Төхөөрөмж олдсонгүй');
+      return { revoked: 1 };
+    }
+    const revoked = await this.sessions.revokeAll(userId);
+    return { revoked };
+  }
 
   async getCurriculumTree() {
     return this.prisma.level.findMany({

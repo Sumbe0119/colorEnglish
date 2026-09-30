@@ -12,6 +12,7 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
 import { QpayService } from './qpay.service';
 import { CreatePaymentDto, CreatePricingPlanDto, UpdatePricingPlanDto, CreateDiscountCodeDto, UpdateDiscountCodeDto, ValidatePromoDto } from './dto/billing.dto';
 
@@ -46,6 +47,7 @@ export class SubscriptionsService {
     private prisma: PrismaService,
     private qpay: QpayService,
     private config: ConfigService,
+    private sessions: SessionsService,
   ) {}
 
   private publicApiBase() {
@@ -66,10 +68,14 @@ export class SubscriptionsService {
       sub.expiresAt &&
       sub.expiresAt.getTime() < Date.now()
     ) {
-      return this.prisma.subscription.update({
+      const expired = await this.prisma.subscription.update({
         where: { userId },
         data: { status: SubscriptionStatus.EXPIRED, plan: FREE_PLAN },
       });
+      // VIP дууссан → FREE лимит рүү буцаж, илүү төхөөрөмжүүдийг хаана
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+      if (user) await this.sessions.enforceLimit(user).catch(() => undefined);
+      return expired;
     }
     return sub;
   }

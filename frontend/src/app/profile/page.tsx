@@ -28,6 +28,7 @@ import {
 } from '@/lib/onboarding-labels';
 import { parseLearningStyleScores } from '@/lib/learning-style';
 import { LearningStyleResult } from '@/components/onboarding/learning-style-result';
+import { DeviceSessions } from '@/components/profile/device-sessions';
 
 function formatDate(iso: string | null) {
   if (!iso) return null;
@@ -600,6 +601,9 @@ export default function ProfilePage() {
     </div>
   )}
 </section>
+
+      {/* Нэвтэрсэн төхөөрөмжүүд */}
+      <DeviceSessions />
     </div>
   );
 }

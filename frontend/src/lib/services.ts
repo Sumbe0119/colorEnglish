@@ -1,12 +1,38 @@
 import { api, setAccessToken } from '@/lib/api';
-import { AuthResponse, RegisterResponse, User } from '@/types/auth';
+import { AuthResponse, DeviceSession, RegisterResponse, SessionLimits, User } from '@/types/auth';
+import { getDeviceId } from '@/lib/device';
 import { DashboardData, LessonModule, LevelCode, ModuleType } from '@/types/api';
 import type { LearningStyle, LearningStyleScores } from '@/lib/learning-style';
 
 let restorePromise: Promise<AuthResponse | null> | null = null;
 
 export async function login(email: string, password: string) {
-  const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
+  const { data } = await api.post<AuthResponse>('/auth/login', {
+    email,
+    password,
+    deviceId: getDeviceId(),
+  });
+  return data;
+}
+
+/** Төхөөрөмжийн лимит дүүрсэн үед сонгосон төхөөрөмжүүдээс гаргаад нэвтрэх. */
+export async function loginReplace(ticket: string, revokeSessionIds: string[]) {
+  const { data } = await api.post<AuthResponse>('/auth/login/replace', { ticket, revokeSessionIds });
+  return data;
+}
+
+export async function getSessions() {
+  const { data } = await api.get<{ sessions: DeviceSession[]; limits: SessionLimits }>('/auth/sessions');
+  return data;
+}
+
+export async function revokeSession(sessionId: string) {
+  const { data } = await api.delete<{ success: boolean; isCurrent: boolean }>(`/auth/sessions/${sessionId}`);
+  return data;
+}
+
+export async function revokeOtherSessions() {
+  const { data } = await api.post<{ revoked: number }>('/auth/sessions/revoke-others');
   return data;
 }
 
@@ -17,7 +43,11 @@ export async function register(firstName: string, email: string, password: strin
 }
 
 export async function verifyEmail(email: string, code: string) {
-  const { data } = await api.post<AuthResponse>('/auth/verify-email', { email, code });
+  const { data } = await api.post<AuthResponse>('/auth/verify-email', {
+    email,
+    code,
+    deviceId: getDeviceId(),
+  });
   return data;
 }
 

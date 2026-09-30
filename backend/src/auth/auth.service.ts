@@ -17,11 +17,24 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { LoginReplaceDto } from './dto/login-replace.dto';
+import { SessionsService } from '../sessions/sessions.service';
+import { Role } from '@prisma/client';
 
 interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }
+
+/** Нэвтрэх хүсэлтийн төхөөрөмжийн мэдээлэл (controller-оос ирнэ). */
+export interface ClientMeta {
+  deviceId?: string | null;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+}
+
+const REPLACE_TICKET_PURPOSE = 'session-replace';
+const REPLACE_TICKET_TTL = '5m';
 
 const RESET_CODE_TTL_MS = 10 * 60 * 1000;
 const RESET_REQUEST_COOLDOWN_MS = 60 * 1000;
@@ -42,6 +55,7 @@ export class AuthService {
     private jwt: JwtService,
     private config: ConfigService,
     private email: EmailService,
+    private sessions: SessionsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -71,7 +85,7 @@ export class AuthService {
   }
 
   /** Бүртгүүлсний дараа и-мэйлээр ирсэн 6 оронтой кодыг шалгаад нэвтрүүлнэ. */
-  async verifyEmail(dto: VerifyEmailDto) {
+  async verifyEmail(dto: VerifyEmailDto, meta: ClientMeta = {}) {
     const invalidMessage = 'Код буруу эсвэл хугацаа дууссан байна';
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -115,7 +129,8 @@ export class AuthService {
 
     if (!user.isActive) throw new UnauthorizedException('Таны бүртгэл идэвхгүй болсон байна');
 
-    const tokens = await this.issueTokenPair(user.id, user.email, user.role);
+    // Шинэ бүртгэл — өөр session байхгүй тул лимит хэтрэхгүй
+    const tokens = await this.startSession(user, meta);
     return { user: this.sanitizeUser(user), ...tokens };
   }
 
@@ -154,7 +169,7 @@ export class AuthService {
     });
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, meta: ClientMeta = {}) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: { profile: true },
@@ -177,36 +192,96 @@ export class AuthService {
       });
     }
 
-    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    // Төхөөрөмжийн лимит дүүрсэн бол 409 SESSION_LIMIT_REACHED шидэгдэнэ.
+    // Нууц үг зөв тул frontend-д "хаах төхөөрөмжөө сонго" ticket өгнө.
+    let tokens: TokenPair;
+    try {
+      tokens = await this.startSession(user, meta);
+    } catch (err) {
+      throw await this.attachReplaceTicket(err, user.id, meta);
+    }
 
-    const tokens = await this.issueTokenPair(user.id, user.email, user.role);
+    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    return { user: this.sanitizeUser(user), ...tokens };
+  }
+
+  /**
+   * Лимит дүүрсэн үед: сонгосон session-үүдийг хааж, нэвтрэлтийг үргэлжлүүлнэ.
+   * Ticket нь login дээр нууц үг зөв шалгагдсаныг 5 минутын турш батална.
+   */
+  async loginReplace(dto: LoginReplaceDto, meta: ClientMeta = {}) {
+    const expired = 'Хугацаа дууссан байна, дахин нэвтэрнэ үү';
+    let payload: { sub: string; purpose: string; deviceId: string };
+    try {
+      payload = await this.jwt.verifyAsync(dto.ticket, {
+        secret: this.config.get<string>('JWT_ACCESS_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException(expired);
+    }
+    if (payload.purpose !== REPLACE_TICKET_PURPOSE) throw new UnauthorizedException(expired);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      include: { profile: true },
+    });
+    if (!user || !user.isActive || !user.isEmailVerified) throw new UnauthorizedException(expired);
+
+    await this.sessions.revokeMany(user.id, dto.revokeSessionIds ?? []);
+
+    const nextMeta = { ...meta, deviceId: payload.deviceId };
+    let tokens: TokenPair;
+    try {
+      tokens = await this.startSession(user, nextMeta);
+    } catch (err) {
+      throw await this.attachReplaceTicket(err, user.id, nextMeta);
+    }
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     return { user: this.sanitizeUser(user), ...tokens };
   }
 
   async refresh(refreshToken: string) {
     const stored = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
-      include: { user: true },
+      include: { user: true, session: true },
     });
 
-    if (!stored || stored.revoked || stored.expiresAt < new Date()) {
+    if (
+      !stored ||
+      stored.revoked ||
+      stored.expiresAt < new Date() ||
+      !stored.session ||
+      stored.session.revokedAt
+    ) {
       throw new UnauthorizedException('Refresh token хүчингүй байна, дахин нэвтэрнэ үү');
     }
+    if (!stored.user.isActive) {
+      throw new UnauthorizedException('Таны бүртгэл идэвхгүй болсон байна');
+    }
 
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revoked: true },
-    });
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked: true } }),
+      this.prisma.userSession.update({
+        where: { id: stored.session.id },
+        data: { lastSeenAt: new Date() },
+      }),
+    ]);
 
-    const tokens = await this.issueTokenPair(stored.user.id, stored.user.email, stored.user.role);
+    const limits = await this.sessions.getLimits(stored.user);
+    const tokens = await this.issueTokenPair(stored.user, stored.session.id, limits.refreshDays);
     return { user: this.sanitizeUser(stored.user), ...tokens };
   }
 
   async logout(refreshToken: string) {
-    await this.prisma.refreshToken.updateMany({
+    const stored = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
-      data: { revoked: true },
+      select: { id: true, userId: true, sessionId: true },
     });
+    if (!stored) return { success: true };
+    await this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked: true } });
+    // Тухайн төхөөрөмжийн session-ийг бүхэлд нь хаана (бусад төхөөрөмж хэвээр)
+    if (stored.sessionId) await this.sessions.revoke(stored.userId, stored.sessionId);
     return { success: true };
   }
 
@@ -313,31 +388,65 @@ export class AuthService {
         data: { revoked: true },
       }),
     ]);
+    // Нууц үг солигдсон тул бүх төхөөрөмжөөс гаргана
+    await this.sessions.revokeAll(user.id);
 
     return { success: true };
   }
 
-  private async issueTokenPair(userId: string, email: string, role: string): Promise<TokenPair> {
+  /** Session нээж (лимит шалгаж) token хос олгоно. */
+  private async startSession(
+    user: { id: string; email: string; role: Role },
+    meta: ClientMeta,
+  ): Promise<TokenPair> {
+    const deviceId = meta.deviceId?.trim() || randomUUID();
+    const { session, limits } = await this.sessions.openSession(user, deviceId, {
+      userAgent: meta.userAgent,
+      ipAddress: meta.ipAddress,
+    });
+    return this.issueTokenPair(user, session.id, limits.refreshDays);
+  }
+
+  /** SESSION_LIMIT_REACHED алдаанд 5 минутын ticket хавсаргана; бусад алдааг өөрчлөхгүй. */
+  private async attachReplaceTicket(err: unknown, userId: string, meta: ClientMeta) {
+    if (!(err instanceof ConflictException)) return err;
+    const body = err.getResponse();
+    if (typeof body !== 'object' || (body as { code?: string }).code !== 'SESSION_LIMIT_REACHED') {
+      return err;
+    }
+    const deviceId = meta.deviceId?.trim() || randomUUID();
+    const ticket = await this.jwt.signAsync(
+      { sub: userId, purpose: REPLACE_TICKET_PURPOSE, deviceId },
+      { secret: this.config.get<string>('JWT_ACCESS_SECRET'), expiresIn: REPLACE_TICKET_TTL },
+    );
+    return new ConflictException({ ...(body as object), ticket });
+  }
+
+  private async issueTokenPair(
+    user: { id: string; email: string; role: Role },
+    sessionId: string,
+    refreshDays: number,
+  ): Promise<TokenPair> {
     const secret = this.config.get<string>('JWT_ACCESS_SECRET');
     if (!secret) {
       throw new Error('JWT_ACCESS_SECRET тохируулаагүй байна (.env.prod / .env.local)');
     }
 
-    const payload = { sub: userId, email, role };
+    const payload = { sub: user.id, email: user.email, role: user.role, sid: sessionId };
 
     const accessToken = await this.jwt.signAsync(payload, {
       secret,
-      expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES') ?? '2h',
+      expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES') ?? '15m',
     });
 
     const refreshTokenValue = randomUUID() + randomUUID();
-    const refreshExpiresDays = Number(this.config.get<string>('JWT_REFRESH_EXPIRES_DAYS') ?? 30);
-    const expiresAt = new Date(Date.now() + refreshExpiresDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + refreshDays * 24 * 60 * 60 * 1000);
 
     await this.prisma.refreshToken.create({
       data: {
         token: refreshTokenValue,
-        userId,
+        userId: user.id,
+        sessionId,
         expiresAt,
       },
     });

@@ -27,6 +27,25 @@ export class AdminController {
   }
 
   @Roles(Role.ADMIN)
+  @Get('users/:id/sessions')
+  listUserSessions(@Param('id') id: string) {
+    return this.adminService.listUserSessions(id);
+  }
+
+  /** Хэрэглэгчийг бүх төхөөрөмжөөс хүчээр гаргах */
+  @Roles(Role.ADMIN)
+  @Delete('users/:id/sessions')
+  revokeAllUserSessions(@Param('id') id: string) {
+    return this.adminService.revokeUserSessions(id);
+  }
+
+  @Roles(Role.ADMIN)
+  @Delete('users/:id/sessions/:sessionId')
+  revokeUserSession(@Param('id') id: string, @Param('sessionId') sessionId: string) {
+    return this.adminService.revokeUserSessions(id, sessionId);
+  }
+
+  @Roles(Role.ADMIN)
   @Post('users/:id/grant-month')
   grantVipMonth(@Param('id') id: string, @Body() body?: { durationDays?: number }) {
     return this.adminService.grantVipMonth(id, body?.durationDays ?? 30);

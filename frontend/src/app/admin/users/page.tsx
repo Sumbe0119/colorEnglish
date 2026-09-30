@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, MailCheck, MailX, Search, Sparkles, Users, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MailCheck, MailX, MonitorSmartphone, Search, Sparkles, Users, X } from 'lucide-react';
 import {
   AdminUserBilling,
   AdminUsersPage as AdminUsersPageData,
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { UserSessionsDialog } from '@/components/admin/user-sessions-dialog';
 import { toast } from '@/store/toast-store';
 
 const PAGE_SIZES = [10, 20, 50] as const;
@@ -66,6 +67,7 @@ export default function AdminUsersPage() {
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(20);
 
   const [grantTarget, setGrantTarget] = useState<AdminUserBilling | null>(null);
+  const [sessionsTarget, setSessionsTarget] = useState<AdminUserBilling | null>(null);
   const [granting, setGranting] = useState(false);
   const requestId = useRef(0);
 
@@ -265,15 +267,27 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-mist-400">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-3">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="h-8 gap-1.5 px-2.5 py-1 text-xs"
-                      onClick={() => setGrantTarget(u)}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-brand" />
-                      +1 сар
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-8 gap-1.5 px-2.5 py-1 text-xs"
+                        onClick={() => setGrantTarget(u)}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-brand" />
+                        +1 сар
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-8 px-2 py-1 text-xs"
+                        title="Нэвтэрсэн төхөөрөмжүүд"
+                        aria-label="Нэвтэрсэн төхөөрөмжүүд"
+                        onClick={() => setSessionsTarget(u)}
+                      >
+                        <MonitorSmartphone className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -334,6 +348,8 @@ export default function AdminUsersPage() {
           </PageButton>
         </div>
       </div>
+
+      <UserSessionsDialog user={sessionsTarget} onClose={() => setSessionsTarget(null)} />
 
       <ConfirmDialog
         open={!!grantTarget}

@@ -115,6 +115,7 @@ model User {
   // Харилцаа
   profile           StudentProfile?
   refreshTokens      RefreshToken[]
+  sessions           UserSession[]
   passwordResetCodes PasswordResetCode[]
   emailVerificationCodes EmailVerificationCode[]
   enrollments        Enrollment[]
@@ -145,9 +146,35 @@ model RefreshToken {
   createdAt DateTime @default(now())
   userAgent String?
   ipAddress String?
+  sessionId String?
+  session   UserSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([sessionId])
   @@map("refresh_tokens")
+}
+
+// Нэвтэрсэн төхөөрөмж (session). Refresh token rotation нэг session дотроо явна.
+// Эрх/багцаас хамаарсан төхөөрөмжийн лимитийг SessionsService шалгана.
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Frontend-ийн localStorage-д хадгалагдсан UUID — нэг browser = нэг төхөөрөмж
+  deviceId   String
+  deviceName String?
+  deviceType String? // phone | tablet | desktop | unknown
+  userAgent  String?
+  ipAddress  String?
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  refreshTokens RefreshToken[]
+
+  @@unique([userId, deviceId])
+  @@index([userId, revokedAt])
+  @@map("user_sessions")
 }
 
 // Нууц үг сэргээх и-мэйл баталгаажуулах код

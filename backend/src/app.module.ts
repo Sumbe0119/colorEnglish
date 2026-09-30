@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { SessionsModule } from './sessions/sessions.module';
 import { ProfileModule } from './profile/profile.module';
 import { CurriculumModule } from './curriculum/curriculum.module';
 import { ProgressModule } from './progress/progress.module';
@@ -28,6 +29,7 @@ import { AppController } from './app.controller';
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
+    SessionsModule,
     AuthModule,
     ProfileModule,
     CurriculumModule,

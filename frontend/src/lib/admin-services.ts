@@ -236,3 +236,34 @@ export async function grantAdminUserVipMonth(userId: string, durationDays = 30) 
   }>(`/admin/users/${userId}/grant-month`, { durationDays });
   return data;
 }
+
+// ---------- Хэрэглэгчийн нэвтэрсэн төхөөрөмжүүд ----------
+
+export type AdminUserSession = {
+  id: string;
+  deviceName: string | null;
+  deviceType: string | null;
+  ipAddress: string | null;
+  lastSeenAt: string;
+  createdAt: string;
+  isActiveNow: boolean;
+};
+
+export async function getAdminUserSessions(userId: string) {
+  const { data } = await api.get<{
+    user: { id: string; email: string; role: string };
+    sessions: AdminUserSession[];
+    limits: { maxDevices: number; maxActive: number; refreshDays: number };
+  }>(`/admin/users/${userId}/sessions`);
+  return data;
+}
+
+export async function revokeAdminUserSession(userId: string, sessionId: string) {
+  const { data } = await api.delete<{ revoked: number }>(`/admin/users/${userId}/sessions/${sessionId}`);
+  return data;
+}
+
+export async function revokeAllAdminUserSessions(userId: string) {
+  const { data } = await api.delete<{ revoked: number }>(`/admin/users/${userId}/sessions`);
+  return data;
+}
