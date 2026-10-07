@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Fingerprint,
   GraduationCap,
   Mail,
   RotateCcw,
@@ -28,6 +29,8 @@ import {
 } from '@/lib/onboarding-labels';
 import { parseLearningStyleScores } from '@/lib/learning-style';
 import { LearningStyleResult } from '@/components/onboarding/learning-style-result';
+import { parseMbtiScores } from '@/lib/mbti';
+import { MbtiResult } from '@/components/onboarding/mbti-result';
 import { DeviceSessions } from '@/components/profile/device-sessions';
 
 function formatDate(iso: string | null) {
@@ -111,8 +114,9 @@ export default function ProfilePage() {
 
   // Onboarding-ийн "Үр дүн харах"-аас ирэхэд суралцах арга барилын үр дүн рүү гүйлгэнэ
   useEffect(() => {
-    if (loading || window.location.hash !== '#learning-style') return;
-    document.getElementById('learning-style')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const hash = window.location.hash;
+    if (loading || (hash !== '#learning-style' && hash !== '#mbti')) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [loading]);
 
   if (loading) {
@@ -162,6 +166,7 @@ export default function ProfilePage() {
 
   const completedAt = formatDate(profile.onboardingCompletedAt);
   const styleScores = parseLearningStyleScores(profile.learningStyleScores);
+  const mbtiScores = parseMbtiScores(profile.mbtiScores);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-12">
@@ -573,6 +578,58 @@ export default function ProfilePage() {
             scores={styleScores}
             dominant={profile.dominantLearningStyle}
           />
+        </article>
+      )}
+
+      {/* MBTI: бөглөөгүй */}
+      {profile.onboardingCompleted && !profile.mbtiCompletedAt && (
+        <article className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-4 sm:p-5 lg:col-span-12">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/15">
+              <Fingerprint className="h-4 w-4 text-brand" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-display text-sm font-semibold text-mist-50">
+                Зан чанарын төрөл (MBTI) тодорхойлогдоогүй байна
+              </h3>
+              <p className="mt-0.5 text-xs leading-5 text-mist-400">
+                20 асуултад хариулаад 16 төрлийн аль нь болохоо мэдэж, зан чанартаа тохирсон сурах зөвлөмж аваарай.
+              </p>
+            </div>
+            <Link
+              href="/mbti?next=/profile"
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-brand px-3 py-2 text-xs font-medium text-white transition hover:bg-brand-hover sm:self-auto"
+            >
+              MBTI тест өгөх
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </article>
+      )}
+
+      {/* MBTI үр дүн */}
+      {mbtiScores && profile.mbtiType && profile.mbtiCompletedAt && (
+        <article id="mbti" className="ce-panel scroll-mt-24 rounded-2xl p-4 sm:p-5 lg:col-span-12">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/15">
+              <Fingerprint className="h-4 w-4 text-brand" />
+            </div>
+            <div>
+              <h3 className="font-display text-sm font-semibold text-mist-50">Зан чанарын төрөл (MBTI)</h3>
+              <p className="text-[11px] text-mist-500">
+                {formatDate(profile.mbtiCompletedAt) ?? ''} тодорхойлсон
+              </p>
+            </div>
+            <Link
+              href="/mbti?next=/profile"
+              className="ml-auto inline-flex shrink-0 items-center gap-1 text-xs text-mist-400 transition hover:text-brand"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Дахин тодорхойлох
+            </Link>
+          </div>
+
+          <MbtiResult type={profile.mbtiType} scores={mbtiScores} />
         </article>
       )}
 

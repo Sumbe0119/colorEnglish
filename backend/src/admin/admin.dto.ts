@@ -38,6 +38,16 @@ export class ListUsersQueryDto {
   verified?: 'all' | 'verified' | 'unverified';
 }
 
+/** Админ: VIP олгох / сунгах — хоногийн тоо (1 сар = 30) */
+export class GrantVipDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  durationDays?: number;
+}
+
 export class CreateLevelDto {
   @IsEnum(LevelCode)
   code!: LevelCode;

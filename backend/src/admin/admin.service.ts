@@ -271,6 +271,7 @@ export class AdminService {
           { email: { contains: q, mode: 'insensitive' } },
           { firstName: { contains: q, mode: 'insensitive' } },
           { lastName: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q } },
         ],
       });
     }
@@ -294,6 +295,7 @@ export class AdminService {
           email: true,
           firstName: true,
           lastName: true,
+          phone: true,
           role: true,
           isActive: true,
           isEmailVerified: true,
@@ -357,6 +359,7 @@ export class AdminService {
         email: u.email,
         firstName: u.firstName,
         lastName: u.lastName,
+        phone: u.phone,
         displayName:
           [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email.split('@')[0],
         role: u.role,
@@ -402,7 +405,7 @@ export class AdminService {
     });
     if (!user) throw new NotFoundException('Хэрэглэгч олдсонгүй');
 
-    const days = Math.max(1, Math.min(365, Math.round(durationDays)));
+    const days = Math.max(1, Math.min(3650, Math.round(durationDays)));
     const monthPlan =
       (await this.prisma.pricingPlan.findFirst({
         where: { durationDays: 30, isActive: true },

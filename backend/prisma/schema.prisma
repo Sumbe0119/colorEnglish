@@ -104,6 +104,8 @@ model User {
   firstName     String?
   lastName      String?
   avatarUrl     String?
+  /// Төлбөр төлөхдөө оруулсан утасны дугаар (QPay гүйлгээг таних)
+  phone         String?
   role          Role     @default(STUDENT)
   isEmailVerified Boolean @default(false)
   isActive      Boolean  @default(true)
@@ -226,6 +228,11 @@ model StudentProfile {
   dominantLearningStyle LearningStyle? // хамгийн өндөр оноотой арга барил
   learningStyleScores   Json?          // { VISUAL: 0-100, AUDITORY: .., READING_WRITING: .., KINESTHETIC: .. }
   learningStyleCompletedAt DateTime?   // бүх асуултад хариулсан үед л тэмдэглэнэ; null бол дутуу
+
+  // MBTI зан чанарын тест
+  mbtiType        String?   // жишээ нь "INFP"
+  mbtiScores      Json?     // { E: 60, I: 40, S: .., N: .., T: .., F: .., J: .., P: .. } хувь
+  mbtiCompletedAt DateTime?
 
   onboardingCompleted Boolean @default(false)
   onboardingCompletedAt DateTime?
@@ -633,6 +640,14 @@ model Payment {
   urlsJson         Json?
   paidAt           DateTime?
   subscriptionEnds DateTime?
+  /// Төлөгчийн утас — QPay invoice дугаар/тайлбарт "COLORENGLISH <утас>" хэлбэрээр орно
+  payerPhone       String?
+  /// PAID болгосон эх сурвалж: QPAY_CALLBACK | USER_CHECK | SWEEP | ADMIN_MANUAL
+  activationSource String?
+  /// QPay-аас хамгийн сүүлд шалгасан хугацаа (pending sweeper)
+  qpayCheckedAt    DateTime?
+  /// Админ гараар баталгаажуулсан тэмдэглэл
+  adminNote        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -640,6 +655,8 @@ model Payment {
   @@index([userId, createdAt])
   @@index([qpayInvoiceId])
   @@index([promoCodeId])
+  @@index([status, createdAt])
+  @@index([payerPhone])
   @@map("payments")
 }
 

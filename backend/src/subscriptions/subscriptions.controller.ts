@@ -6,11 +6,13 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { SubscriptionsService } from './subscriptions.service';
 import {
+  AdminConfirmPaymentDto,
   CreatePaymentDto,
   CreatePricingPlanDto,
   UpdatePricingPlanDto,
   CreateDiscountCodeDto,
   UpdateDiscountCodeDto,
+  ListAdminPaymentsQueryDto,
   ValidatePromoDto,
 } from './dto/billing.dto';
 
@@ -86,6 +88,26 @@ export class SubscriptionsController {
   @Post('payments/:id/check')
   checkPayment(@CurrentUser('userId') userId: string, @Param('id') id: string) {
     return this.subscriptionsService.checkAndActivate(id, userId);
+  }
+
+  @Roles(Role.ADMIN)
+  @Get('admin/payments')
+  adminListPayments(@Query() query: ListAdminPaymentsQueryDto) {
+    return this.subscriptionsService.listAdminPayments(query);
+  }
+
+  /** QPay-аас дахин шалгаж, төлөгдсөн бол VIP идэвхжүүлнэ */
+  @Roles(Role.ADMIN)
+  @Post('admin/payments/:id/recheck')
+  adminRecheckPayment(@Param('id') id: string) {
+    return this.subscriptionsService.adminRecheckPayment(id);
+  }
+
+  /** Банкны хуулгаар баталгаажсан төлбөрийг гараар PAID болгоно */
+  @Roles(Role.ADMIN)
+  @Post('admin/payments/:id/confirm')
+  adminConfirmPayment(@Param('id') id: string, @Body() dto: AdminConfirmPaymentDto) {
+    return this.subscriptionsService.adminConfirmPayment(id, dto);
   }
 
   @Roles(Role.ADMIN)

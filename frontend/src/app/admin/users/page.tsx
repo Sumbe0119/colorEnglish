@@ -14,7 +14,7 @@ import { formatMnt } from '@/lib/billing-services';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { GrantVipDialog } from '@/components/admin/grant-vip-dialog';
 import { UserSessionsDialog } from '@/components/admin/user-sessions-dialog';
 import { toast } from '@/store/toast-store';
 
@@ -110,20 +110,21 @@ export default function AdminUsersPage() {
     load();
   }, [load]);
 
-  const handleGrantConfirm = async () => {
+  const handleGrantConfirm = async (durationDays: number) => {
     if (!grantTarget) return;
     setGranting(true);
     try {
-      const result = await grantAdminUserVipMonth(grantTarget.id, 30);
+      const result = await grantAdminUserVipMonth(grantTarget.id, durationDays);
+      const until = result.expiresAt ? formatDate(result.expiresAt) : '';
       toast.success(
         result.extended
-          ? `${grantTarget.displayName}-д +30 хоног нэмэгдлээ`
-          : `${grantTarget.displayName}-д 1 сарын VIP олголоо`,
+          ? `${grantTarget.displayName}-д +${result.durationDays} хоног нэмэгдлээ (${until} хүртэл)`
+          : `${grantTarget.displayName}-д ${result.durationDays} хоногийн VIP олголоо (${until} хүртэл)`,
       );
       setGrantTarget(null);
       load();
     } catch {
-      toast.error('Сарын эрх олгоход алдаа гарлаа');
+      toast.error('VIP эрх олгоход алдаа гарлаа');
     } finally {
       setGranting(false);
     }
@@ -170,7 +171,7 @@ export default function AdminUsersPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Нэр, имэйл…"
+            placeholder="Нэр, имэйл, утас…"
             className="py-2 pl-9 text-sm"
           />
         </div>
@@ -234,7 +235,10 @@ export default function AdminUsersPage() {
                         <MailX className="h-3.5 w-3.5 text-mist-500" aria-label="И-мэйл баталгаажаагүй" />
                       )}
                     </div>
-                    <div className="text-xs text-mist-500">{u.email}</div>
+                    <div className="text-xs text-mist-500">
+                      {u.email}
+                      {u.phone && <span className="ml-1.5 font-mono text-mist-400">· {u.phone}</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-mist-100">{u.planName}</div>
@@ -275,7 +279,7 @@ export default function AdminUsersPage() {
                         onClick={() => setGrantTarget(u)}
                       >
                         <Sparkles className="h-3.5 w-3.5 text-brand" />
-                        +1 сар
+                        {u.isPro ? 'Сунгах' : 'VIP олгох'}
                       </Button>
                       <Button
                         type="button"
@@ -351,21 +355,11 @@ export default function AdminUsersPage() {
 
       <UserSessionsDialog user={sessionsTarget} onClose={() => setSessionsTarget(null)} />
 
-      <ConfirmDialog
-        open={!!grantTarget}
-        title="Баталгаажуулах"
-        description={
-          grantTarget
-            ? grantTarget.isPro
-              ? `${grantTarget.displayName} (${grantTarget.email})-ийн одоогийн VIP дээр +30 хоног (1 сар) нэмэх үү?`
-              : `${grantTarget.displayName} (${grantTarget.email})-д 30 хоногийн (1 сар) VIP эрх олгох уу?`
-            : undefined
-        }
-        confirmLabel="Тийм, олгох"
-        cancelLabel="Болих"
+      <GrantVipDialog
+        user={grantTarget}
         isLoading={granting}
-        onConfirm={() => void handleGrantConfirm()}
-        onCancel={() => {
+        onConfirm={(days) => void handleGrantConfirm(days)}
+        onClose={() => {
           if (!granting) setGrantTarget(null);
         }}
       />

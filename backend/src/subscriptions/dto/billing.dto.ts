@@ -2,6 +2,7 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -17,10 +18,48 @@ export class CreatePaymentDto {
   @MinLength(1)
   planId!: string;
 
+  /** Төлөгчийн утас — QPay гүйлгээг "COLORENGLISH <утас>"-аар таних */
+  @IsString()
+  @Matches(/^\d{8}$/, { message: 'Утасны дугаар 8 оронтой тоо байх ёстой' })
+  phone!: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(64)
   promoCode?: string;
+}
+
+export class ListAdminPaymentsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
+
+  /** И-мэйл / нэр / утас / invoice дугаараар хайх */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  q?: string;
+
+  /** all | PENDING | PAID | CANCELED | EXPIRED | FAILED */
+  @IsOptional()
+  @IsIn(['all', 'PENDING', 'PAID', 'CANCELED', 'EXPIRED', 'FAILED'])
+  status?: 'all' | 'PENDING' | 'PAID' | 'CANCELED' | 'EXPIRED' | 'FAILED';
+}
+
+export class AdminConfirmPaymentDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  note?: string;
 }
 
 export class ValidatePromoDto {

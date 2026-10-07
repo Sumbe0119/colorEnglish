@@ -3,6 +3,7 @@ import { AuthResponse, DeviceSession, RegisterResponse, SessionLimits, User } fr
 import { getDeviceId } from '@/lib/device';
 import { DashboardData, LessonModule, LevelCode, ModuleType } from '@/types/api';
 import type { LearningStyle, LearningStyleScores } from '@/lib/learning-style';
+import type { MbtiLetter, MbtiScores } from '@/lib/mbti';
 
 let restorePromise: Promise<AuthResponse | null> | null = null;
 
@@ -120,6 +121,7 @@ export async function completeOnboarding(payload: {
   selfAssessedLevel: LevelCode;
   dailyGoalMinutes: number;
   learningStyleAnswers?: LearningStyle[];
+  mbtiAnswers?: MbtiLetter[];
 }) {
   const { data } = await api.post<Omit<StudentProfile, 'user'>>('/profile/onboarding', payload);
   return data;
@@ -137,6 +139,9 @@ export interface StudentProfile {
   dominantLearningStyle: LearningStyle | null;
   learningStyleScores: Partial<LearningStyleScores> | null;
   learningStyleCompletedAt: string | null;
+  mbtiType: string | null;
+  mbtiScores: Partial<MbtiScores> | null;
+  mbtiCompletedAt: string | null;
   onboardingCompleted: boolean;
   onboardingCompletedAt: string | null;
   user: {
@@ -150,6 +155,12 @@ export interface StudentProfile {
 /** Судалгааг бүрэн бөглөсөн хариултаар хадгална (дутуу бөглөсөн хэрэглэгч дахин өгөх) */
 export async function submitLearningStyle(answers: LearningStyle[]) {
   const { data } = await api.post<StudentProfile>('/profile/learning-style', { answers });
+  return data;
+}
+
+/** MBTI тестийг бүрэн хариултаар хадгална (дахин өгөх боломжтой) */
+export async function submitMbti(answers: MbtiLetter[]) {
+  const { data } = await api.post<StudentProfile>('/profile/mbti', { answers });
   return data;
 }
 

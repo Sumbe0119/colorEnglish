@@ -4,19 +4,41 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   PaymentStatus,
   PricingPlan,
+  Prisma,
   SubscriptionStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { QpayService } from './qpay.service';
-import { CreatePaymentDto, CreatePricingPlanDto, UpdatePricingPlanDto, CreateDiscountCodeDto, UpdateDiscountCodeDto, ValidatePromoDto } from './dto/billing.dto';
+import {
+  AdminConfirmPaymentDto,
+  CreatePaymentDto,
+  CreatePricingPlanDto,
+  UpdatePricingPlanDto,
+  CreateDiscountCodeDto,
+  UpdateDiscountCodeDto,
+  ListAdminPaymentsQueryDto,
+  ValidatePromoDto,
+} from './dto/billing.dto';
 
 const FREE_PLAN = 'FREE';
+
+/** Payment.activationSource утгууд */
+export type ActivationSource = 'QPAY_CALLBACK' | 'USER_CHECK' | 'SWEEP' | 'ADMIN_RECHECK' | 'ADMIN_MANUAL';
+
+/** Pending төлбөрүүдийг QPay-аас дахин шалгах давтамж */
+const SWEEP_INTERVAL_MS = 2 * 60 * 1000;
+/** Үүссэнээс хойш энэ хугацаанд л QPay-аас дахин шалгана; хуучин нь EXPIRED болно */
+const PENDING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Нэг sweep-д хамгийн ихдээ шалгах төлбөрийн тоо (QPay API-г ачаалахгүй) */
+const SWEEP_BATCH = 30;
 
 function finalAmount(priceMnt: number, discountPercent: number) {
   const d = Math.min(100, Math.max(0, discountPercent));
@@ -40,8 +62,10 @@ function mapPlanPublic(plan: PricingPlan) {
 }
 
 @Injectable()
-export class SubscriptionsService {
+export class SubscriptionsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SubscriptionsService.name);
+  private sweepTimer: NodeJS.Timeout | null = null;
+  private sweeping = false;
 
   constructor(
     private prisma: PrismaService,
@@ -50,11 +74,33 @@ export class SubscriptionsService {
     private sessions: SessionsService,
   ) {}
 
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return;
+    // Хэрэглэгч QR цонхоо хаасан / callback ирээгүй үед ч төлбөрийг автоматаар идэвхжүүлнэ
+    this.sweepTimer = setInterval(() => void this.sweepPendingPayments(), SWEEP_INTERVAL_MS);
+    this.sweepTimer.unref?.();
+    setTimeout(() => void this.sweepPendingPayments(), 15_000).unref?.();
+  }
+
+  onModuleDestroy() {
+    if (this.sweepTimer) clearInterval(this.sweepTimer);
+    this.sweepTimer = null;
+  }
+
+  /**
+   * Public backend URL — callback үүсгэхэд хэрэглэнэ.
+   * BACKEND_PUBLIC_URL нь "/api"-аар төгссөн ч (жишээ: http://colorenglish.mn/api)
+   * "/api/api/..." давхардуулахгүй.
+   */
   private publicApiBase() {
-    return (
+    const raw =
       this.config.get<string>('BACKEND_PUBLIC_URL') ||
-      `http://localhost:${this.config.get('PORT') ?? 8080}`
-    ).replace(/\/$/, '');
+      `http://localhost:${this.config.get('PORT') ?? 8080}`;
+    return raw.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+  }
+
+  private qpayCallbackUrl(paymentId: string) {
+    return `${this.publicApiBase()}/api/subscriptions/payments/qpay-callback?payment_id=${paymentId}`;
   }
 
   /** Ensure VIP not past expiresAt */
@@ -284,7 +330,10 @@ export class SubscriptionsService {
 
     const totalDiscount = Math.min(100, plan.discountPercent + promoDiscountPercent);
     const amountMnt = finalAmount(plan.priceMnt, totalDiscount);
+    const phone = dto.phone.trim();
     const senderInvoiceNo = `CE-${Date.now()}-${userId.slice(-6)}`;
+    // Гүйлгээний утга: "COLORENGLISH <утас>" — админ банкны хуулгаас утсаар таньж тулгана
+    const invoiceDescription = `COLORENGLISH ${phone}`;
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -300,17 +349,21 @@ export class SubscriptionsService {
         durationDays: plan.durationDays,
         status: PaymentStatus.PENDING,
         senderInvoiceNo,
+        payerPhone: phone,
       },
     });
 
-    const callbackUrl = `${this.publicApiBase()}/api/subscriptions/payments/qpay-callback?payment_id=${payment.id}`;
+    // Дараагийн төлбөрт автоматаар бөглөх + админ хайлтад
+    await this.prisma.user
+      .update({ where: { id: userId }, data: { phone } })
+      .catch(() => undefined);
 
     try {
       const invoice = await this.qpay.createInvoice({
         senderInvoiceNo,
         amount: amountMnt,
-        description: `ColorEnglish ${plan.name}`,
-        callbackUrl,
+        description: invoiceDescription,
+        callbackUrl: this.qpayCallbackUrl(payment.id),
       });
 
       return this.prisma.payment.update({
@@ -557,7 +610,12 @@ export class SubscriptionsService {
     return payment;
   }
 
-  async checkAndActivate(paymentId: string, userId?: string) {
+  /**
+   * QPay-аас төлбөрийн төлөвийг шалгаж, төлөгдсөн бол VIP идэвхжүүлнэ.
+   * PENDING-ээс гадна EXPIRED/FAILED/CANCELED төлбөрийг ч шалгана — хэрэглэгч хожуу төлсөн,
+   * эсвэл sweeper EXPIRED болгосны дараа админ дахин шалгах тохиолдолд.
+   */
+  async checkAndActivate(paymentId: string, userId?: string, source: ActivationSource = 'USER_CHECK') {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: { plan: true },
@@ -576,16 +634,25 @@ export class SubscriptionsService {
     }
 
     const check = await this.qpay.checkInvoice(payment.qpayInvoiceId);
-    const paid =
-      (check.count ?? 0) > 0 ||
-      (check.rows ?? []).some((r) => String(r.payment_status || '').toUpperCase() === 'PAID');
+    const paidRows = (check.rows ?? []).filter(
+      (r) => String(r.payment_status || '').toUpperCase() === 'PAID',
+    );
+    const paid = paidRows.length > 0 || (check.count ?? 0) > 0;
 
     if (!paid) {
-      return { payment, activated: false, alreadyPaid: false };
+      const touched = await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { qpayCheckedAt: new Date() },
+        include: { plan: true },
+      });
+      return { payment: touched, activated: false, alreadyPaid: false };
     }
 
-    const qpayPaymentId = check.rows?.[0]?.payment_id ?? null;
-    const activated = await this.activatePaidPayment(payment.id, qpayPaymentId);
+    const qpayPaymentId = paidRows[0]?.payment_id ?? check.rows?.[0]?.payment_id ?? null;
+    const activated = await this.activatePaidPayment(payment.id, qpayPaymentId, source);
+    this.logger.log(
+      `Payment ${payment.id} (${payment.senderInvoiceNo}) activated via ${source}, qpay=${qpayPaymentId ?? '-'}`,
+    );
     return { payment: activated, activated: true, alreadyPaid: false };
   }
 
@@ -604,7 +671,7 @@ export class SubscriptionsService {
       return { ok: false };
     }
     try {
-      await this.checkAndActivate(id);
+      await this.checkAndActivate(id, undefined, 'QPAY_CALLBACK');
       return { ok: true };
     } catch (err) {
       this.logger.error(`QPay callback failed for ${id}`, err as Error);
@@ -612,7 +679,210 @@ export class SubscriptionsService {
     }
   }
 
-  private async activatePaidPayment(paymentId: string, qpayPaymentId: string | null) {
+  /**
+   * Pending төлбөрүүдийг QPay-аас давтан шалгана (callback ирээгүй / хэрэглэгч цонхоо хаасан үед).
+   * 7 хоногоос хуучин PENDING-ийг EXPIRED болгоно (админ дахин шалгаж болно).
+   */
+  async sweepPendingPayments() {
+    if (this.sweeping || !this.qpay.isConfigured()) return;
+    this.sweeping = true;
+    try {
+      const now = Date.now();
+      const cutoff = new Date(now - PENDING_TTL_MS);
+
+      const expired = await this.prisma.payment.updateMany({
+        where: { status: PaymentStatus.PENDING, createdAt: { lt: cutoff } },
+        data: { status: PaymentStatus.EXPIRED },
+      });
+      if (expired.count > 0) {
+        this.logger.log(`Pending sweep: ${expired.count} payment(s) expired (older than 7 days)`);
+      }
+
+      const pending = await this.prisma.payment.findMany({
+        where: {
+          status: PaymentStatus.PENDING,
+          qpayInvoiceId: { not: null },
+          createdAt: { gte: cutoff },
+          // Сүүлийн 1 минутад шалгагдсан бол алгасна (хэрэглэгчийн polling давхцахгүй)
+          OR: [{ qpayCheckedAt: null }, { qpayCheckedAt: { lt: new Date(now - 60_000) } }],
+        },
+        orderBy: [{ qpayCheckedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
+        take: SWEEP_BATCH,
+        select: { id: true },
+      });
+
+      let activated = 0;
+      for (const p of pending) {
+        try {
+          const res = await this.checkAndActivate(p.id, undefined, 'SWEEP');
+          if (res.activated) activated += 1;
+        } catch (err) {
+          this.logger.warn(`Pending sweep: check failed for ${p.id}: ${(err as Error).message}`);
+        }
+      }
+      if (activated > 0) {
+        this.logger.log(`Pending sweep: ${activated}/${pending.length} payment(s) activated`);
+      }
+    } catch (err) {
+      this.logger.error('Pending sweep failed', err as Error);
+    } finally {
+      this.sweeping = false;
+    }
+  }
+
+  // ───────────── Админ: төлбөрийн жагсаалт / шалгах / гараар баталгаажуулах ─────────────
+
+  async listAdminPayments(query: ListAdminPaymentsQueryDto = {}) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const and: Prisma.PaymentWhereInput[] = [];
+    const q = query.q?.trim();
+    if (q) {
+      and.push({
+        OR: [
+          { payerPhone: { contains: q } },
+          { senderInvoiceNo: { contains: q, mode: 'insensitive' } },
+          { qpayInvoiceId: { contains: q, mode: 'insensitive' } },
+          { qpayPaymentId: { contains: q, mode: 'insensitive' } },
+          { promoCodeValue: { contains: q, mode: 'insensitive' } },
+          { user: { email: { contains: q, mode: 'insensitive' } } },
+          { user: { firstName: { contains: q, mode: 'insensitive' } } },
+          { user: { lastName: { contains: q, mode: 'insensitive' } } },
+          { user: { phone: { contains: q } } },
+        ],
+      });
+    }
+    if (query.status && query.status !== 'all') {
+      and.push({ status: query.status as PaymentStatus });
+    }
+    const where: Prisma.PaymentWhereInput = and.length ? { AND: and } : {};
+
+    const [rows, total, paidAgg, pendingCount, paidToday] = await Promise.all([
+      this.prisma.payment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          plan: { select: { id: true, code: true, name: true } },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              subscription: { select: { plan: true, status: true, expiresAt: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.payment.count({ where }),
+      this.prisma.payment.aggregate({
+        where: { status: PaymentStatus.PAID },
+        _sum: { amountMnt: true },
+        _count: { _all: true },
+      }),
+      this.prisma.payment.count({ where: { status: PaymentStatus.PENDING } }),
+      this.prisma.payment.aggregate({
+        where: {
+          status: PaymentStatus.PAID,
+          paidAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        },
+        _sum: { amountMnt: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const now = Date.now();
+    const items = rows.map((p) => {
+      const sub = p.user.subscription;
+      const userIsPro =
+        !!sub &&
+        sub.plan !== FREE_PLAN &&
+        (sub.status === SubscriptionStatus.ACTIVE || sub.status === SubscriptionStatus.TRIAL) &&
+        (!sub.expiresAt || sub.expiresAt.getTime() > now);
+      return {
+        id: p.id,
+        status: p.status,
+        amountMnt: p.amountMnt,
+        listPriceMnt: p.listPriceMnt,
+        discountPercent: p.discountPercent,
+        promoDiscountPercent: p.promoDiscountPercent,
+        promoCodeValue: p.promoCodeValue,
+        durationDays: p.durationDays,
+        planCode: p.planCode,
+        planName: p.plan?.name ?? p.planCode,
+        senderInvoiceNo: p.senderInvoiceNo,
+        qpayInvoiceId: p.qpayInvoiceId,
+        qpayPaymentId: p.qpayPaymentId,
+        payerPhone: p.payerPhone,
+        activationSource: p.activationSource,
+        adminNote: p.adminNote,
+        qpayCheckedAt: p.qpayCheckedAt,
+        paidAt: p.paidAt,
+        subscriptionEnds: p.subscriptionEnds,
+        createdAt: p.createdAt,
+        user: {
+          id: p.user.id,
+          email: p.user.email,
+          phone: p.user.phone,
+          displayName:
+            [p.user.firstName, p.user.lastName].filter(Boolean).join(' ').trim() ||
+            p.user.email.split('@')[0],
+          isPro: userIsPro,
+          subscriptionExpiresAt: sub?.expiresAt ?? null,
+        },
+        /** Төлсөн хэрнээ VIP биш — анхаарах мөр */
+        attention: p.status === PaymentStatus.PAID && !userIsPro,
+      };
+    });
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      stats: {
+        paidCount: paidAgg._count._all,
+        paidRevenueMnt: paidAgg._sum.amountMnt ?? 0,
+        pendingCount,
+        todayCount: paidToday._count._all,
+        todayRevenueMnt: paidToday._sum.amountMnt ?? 0,
+      },
+    };
+  }
+
+  /** Админ: QPay-аас дахин шалгаж идэвхжүүлэх */
+  async adminRecheckPayment(paymentId: string) {
+    return this.checkAndActivate(paymentId, undefined, 'ADMIN_RECHECK');
+  }
+
+  /** Админ: банкны хуулгаар баталгаажсан төлбөрийг гараар PAID болгож VIP нээх */
+  async adminConfirmPayment(paymentId: string, dto: AdminConfirmPaymentDto = {}) {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException('Төлбөр олдсонгүй');
+    if (payment.status === PaymentStatus.PAID) {
+      return { payment, activated: false, alreadyPaid: true };
+    }
+    const activated = await this.activatePaidPayment(
+      payment.id,
+      payment.qpayPaymentId,
+      'ADMIN_MANUAL',
+      dto.note?.trim() || null,
+    );
+    this.logger.log(`Payment ${payment.id} (${payment.senderInvoiceNo}) manually confirmed by admin`);
+    return { payment: activated, activated: true, alreadyPaid: false };
+  }
+
+  private async activatePaidPayment(
+    paymentId: string,
+    qpayPaymentId: string | null,
+    source: ActivationSource,
+    adminNote: string | null = null,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({ where: { id: paymentId } });
       if (!payment) throw new NotFoundException('Төлбөр олдсонгүй');
@@ -657,6 +927,9 @@ export class SubscriptionsService {
           paidAt: now,
           qpayPaymentId,
           subscriptionEnds: ends,
+          activationSource: source,
+          qpayCheckedAt: now,
+          ...(adminNote ? { adminNote } : {}),
         },
         include: { plan: true },
       });

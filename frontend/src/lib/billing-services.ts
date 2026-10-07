@@ -59,8 +59,65 @@ export type PaymentRecord = {
   urlsJson: QpayBankUrl[] | unknown | null;
   paidAt: string | null;
   subscriptionEnds: string | null;
+  payerPhone?: string | null;
+  activationSource?: string | null;
   createdAt: string;
   plan?: { id: string; name: string; code: SubscriptionPlanCode };
+};
+
+export type AdminPaymentRow = {
+  id: string;
+  status: PaymentRecord['status'];
+  amountMnt: number;
+  listPriceMnt: number;
+  discountPercent: number;
+  promoDiscountPercent: number;
+  promoCodeValue: string | null;
+  durationDays: number;
+  planCode: string;
+  planName: string;
+  senderInvoiceNo: string;
+  qpayInvoiceId: string | null;
+  qpayPaymentId: string | null;
+  payerPhone: string | null;
+  activationSource: string | null;
+  adminNote: string | null;
+  qpayCheckedAt: string | null;
+  paidAt: string | null;
+  subscriptionEnds: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    email: string;
+    phone: string | null;
+    displayName: string;
+    isPro: boolean;
+    subscriptionExpiresAt: string | null;
+  };
+  /** Төлсөн хэрнээ VIP биш */
+  attention: boolean;
+};
+
+export type AdminPaymentsQuery = {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: 'all' | PaymentRecord['status'];
+};
+
+export type AdminPaymentsPage = {
+  items: AdminPaymentRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  stats: {
+    paidCount: number;
+    paidRevenueMnt: number;
+    pendingCount: number;
+    todayCount: number;
+    todayRevenueMnt: number;
+  };
 };
 
 export type PromoValidateResult = {
@@ -115,11 +172,40 @@ export async function getPricingPlans() {
   return data;
 }
 
-export async function createPayment(planId: string, promoCode?: string) {
+export async function createPayment(planId: string, phone: string, promoCode?: string) {
   const { data } = await api.post<PaymentRecord>('/subscriptions/payments', {
     planId,
+    phone: phone.replace(/\D/g, ''),
     ...(promoCode?.trim() ? { promoCode: promoCode.trim() } : {}),
   });
+  return data;
+}
+
+export async function getAdminPayments(query: AdminPaymentsQuery = {}) {
+  const params: Record<string, string | number> = {};
+  if (query.page) params.page = query.page;
+  if (query.pageSize) params.pageSize = query.pageSize;
+  if (query.q?.trim()) params.q = query.q.trim();
+  if (query.status && query.status !== 'all') params.status = query.status;
+  const { data } = await api.get<AdminPaymentsPage>('/subscriptions/admin/payments', { params });
+  return data;
+}
+
+export async function recheckAdminPayment(id: string) {
+  const { data } = await api.post<{
+    payment: PaymentRecord;
+    activated: boolean;
+    alreadyPaid: boolean;
+  }>(`/subscriptions/admin/payments/${id}/recheck`);
+  return data;
+}
+
+export async function confirmAdminPayment(id: string, note?: string) {
+  const { data } = await api.post<{
+    payment: PaymentRecord;
+    activated: boolean;
+    alreadyPaid: boolean;
+  }>(`/subscriptions/admin/payments/${id}/confirm`, note?.trim() ? { note: note.trim() } : {});
   return data;
 }
 

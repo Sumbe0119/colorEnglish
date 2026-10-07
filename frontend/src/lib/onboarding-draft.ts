@@ -2,6 +2,7 @@
 // хариултыг алдахгүйн тулд localStorage-д түр хадгална. Хэрэглэгч дээр хадгалагдмагц устгана.
 import { LEARNING_STYLES, LEARNING_STYLE_QUESTIONS, type LearningStyle } from '@/lib/learning-style';
 import { GOAL_LABELS } from '@/lib/onboarding-labels';
+import { isMbtiLetter, MBTI_QUESTIONS, type MbtiLetter } from '@/lib/mbti';
 import { LEVEL_CODES, type LevelCode } from '@/types/api';
 
 const DRAFT_KEY = 'ce:onboarding-draft';
@@ -10,15 +11,16 @@ const HANDOFF_KEY = 'ce:onboarding-handoff';
 /** Хуучин draft-ийг (жишээ нь нэг компьютер ашигладаг өөр хүнийх) удаан хадгалахгүй */
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
-export type OnboardingStep = 'goals' | 'level' | 'time' | 'survey' | 'register' | 'result';
+export type OnboardingStep = 'goals' | 'level' | 'time' | 'survey' | 'mbti' | 'register' | 'result';
 
-const RESUMABLE_STEPS: OnboardingStep[] = ['goals', 'level', 'time', 'survey', 'register'];
+const RESUMABLE_STEPS: OnboardingStep[] = ['goals', 'level', 'time', 'survey', 'mbti', 'register'];
 
 export type OnboardingDraft = {
   interests: string[];
   selfAssessedLevel: LevelCode | '';
   dailyGoalMinutes: number;
   learningStyleAnswers: (LearningStyle | null)[];
+  mbtiAnswers: (MbtiLetter | null)[];
   step: OnboardingStep;
   /** Нэвтэрсэн үед хадгалсан бол тухайн хэрэглэгчийн id; зочноор бөглөсөн бол null */
   ownerId: string | null;
@@ -42,6 +44,7 @@ export function loadOnboardingDraft(): OnboardingDraft | null {
 
     // Гараар өөрчилсөн / хуучин хувилбарын утга backend-ийн enum шалгалтад унахаас сэргийлнэ
     const answers = Array.isArray(d.learningStyleAnswers) ? d.learningStyleAnswers : [];
+    const mbti = Array.isArray(d.mbtiAnswers) ? d.mbtiAnswers : [];
     const minutes = Number(d.dailyGoalMinutes);
     return {
       interests: Array.isArray(d.interests) ? d.interests.filter((x) => typeof x === 'string' && Object.keys(GOAL_LABELS).includes(x)) : [],
@@ -51,6 +54,7 @@ export function loadOnboardingDraft(): OnboardingDraft | null {
       learningStyleAnswers: LEARNING_STYLE_QUESTIONS.map((_, i) =>
         LEARNING_STYLES.includes(answers[i] as LearningStyle) ? (answers[i] as LearningStyle) : null,
       ),
+      mbtiAnswers: MBTI_QUESTIONS.map((_, i) => (isMbtiLetter(mbti[i]) ? (mbti[i] as MbtiLetter) : null)),
       step: RESUMABLE_STEPS.includes(d.step as OnboardingStep) ? (d.step as OnboardingStep) : 'goals',
       ownerId: typeof d.ownerId === 'string' ? d.ownerId : null,
       pendingEmail: typeof d.pendingEmail === 'string' ? d.pendingEmail : null,
@@ -89,7 +93,8 @@ export function isOnboardingDraftComplete(draft: OnboardingDraft | null): draft 
     draft &&
       draft.interests.length > 0 &&
       draft.selfAssessedLevel &&
-      draft.learningStyleAnswers.every((a) => a !== null),
+      draft.learningStyleAnswers.every((a) => a !== null) &&
+      draft.mbtiAnswers.every((a) => a !== null),
   );
 }
 

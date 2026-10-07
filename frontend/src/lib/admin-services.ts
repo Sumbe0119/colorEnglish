@@ -169,6 +169,7 @@ export type AdminUserBilling = {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  phone: string | null;
   displayName: string;
   role: string;
   isActive: boolean;

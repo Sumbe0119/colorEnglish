@@ -27,6 +27,7 @@ import { completeOnboarding } from "@/lib/services";
 import { useAuthStore } from "@/store/auth-store";
 import type { LevelCode } from "@/types/api";
 import { LEARNING_STYLE_QUESTIONS, type LearningStyle } from "@/lib/learning-style";
+import { MBTI_QUESTIONS, type MbtiLetter } from "@/lib/mbti";
 import {
   clearOnboardingDraft,
   consumeOnboardingHandoff,
@@ -38,6 +39,7 @@ import {
   type OnboardingStep,
 } from "@/lib/onboarding-draft";
 import { emptyLearningStyleAnswers, LearningStyleSurvey } from "@/components/onboarding/learning-style-survey";
+import { emptyMbtiAnswers, MbtiSurvey } from "@/components/onboarding/mbti-survey";
 import { RegisterForm } from "@/components/auth/register-form";
 import { VerifyEmailForm } from "@/components/auth/verify-email-form";
 
@@ -48,6 +50,7 @@ type SubmitPayload = {
   selfAssessedLevel: LevelCode;
   dailyGoalMinutes: number;
   learningStyleAnswers: LearningStyle[];
+  mbtiAnswers: MbtiLetter[];
 };
 
 const GOALS: Goal[] = [
@@ -74,24 +77,26 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
   level: "Түвшин",
   time: "Хугацаа",
   survey: "Арга барил",
+  mbti: "Зан чанар",
   register: "Бүртгэл",
   result: "Үр дүн",
 };
 
-const ALL_STEPS: OnboardingStep[] = ["goals", "level", "time", "survey", "register", "result"];
+const ALL_STEPS: OnboardingStep[] = ["goals", "level", "time", "survey", "mbti", "register", "result"];
 
 /** Хадгалсан draft-аас үргэлжлүүлэх алхам — өмнөх алхмууд бөглөгдөөгүй бол тэр рүү буцаана */
 function resumeStep(draft: OnboardingDraft, loggedIn: boolean): OnboardingStep {
   if (draft.interests.length === 0) return "goals";
   if (!draft.selfAssessedLevel) return "level";
   if (draft.step === "goals" || draft.step === "level" || draft.step === "time") return draft.step;
-  if (!isOnboardingDraftComplete(draft) || loggedIn) return "survey";
+  if (draft.learningStyleAnswers.some((a) => a === null)) return "survey";
+  if (!isOnboardingDraftComplete(draft) || loggedIn) return "mbti";
   return "register";
 }
 
-function lastSurveyIndex(answers: (LearningStyle | null)[]) {
+function lastSurveyIndex<T>(answers: (T | null)[]) {
   const firstEmpty = answers.findIndex((a) => a === null);
-  return firstEmpty === -1 ? LEARNING_STYLE_QUESTIONS.length - 1 : firstEmpty;
+  return firstEmpty === -1 ? answers.length - 1 : firstEmpty;
 }
 
 export default function OnboardingPage() {
@@ -107,6 +112,8 @@ export default function OnboardingPage() {
   const [dailyMins, setDailyMins] = useState(30);
   const [answers, setAnswers] = useState<(LearningStyle | null)[]>(emptyLearningStyleAnswers);
   const [surveyStartIndex, setSurveyStartIndex] = useState(0);
+  const [mbtiAnswers, setMbtiAnswers] = useState<(MbtiLetter | null)[]>(emptyMbtiAnswers);
+  const [mbtiStartIndex, setMbtiStartIndex] = useState(0);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -117,6 +124,8 @@ export default function OnboardingPage() {
 
   const answered = useMemo(() => answers.filter((a): a is LearningStyle => a !== null), [answers]);
   const surveyComplete = answered.length === LEARNING_STYLE_QUESTIONS.length;
+  const mbtiAnswered = useMemo(() => mbtiAnswers.filter((a): a is MbtiLetter => a !== null), [mbtiAnswers]);
+  const mbtiComplete = mbtiAnswered.length === MBTI_QUESTIONS.length;
 
   const steps = needsAuth ? ALL_STEPS : ALL_STEPS.filter((s) => s !== "register");
   const stepIndex = Math.max(0, steps.indexOf(step));
@@ -142,26 +151,33 @@ export default function OnboardingPage() {
     }
   }
 
-  /** `all` — судалгааны onComplete-ээс ирсэн хариулт (setAnswers хараахан render болоогүй байж болно) */
-  function currentPayload(all: LearningStyle[] = answered): SubmitPayload | null {
-    if (!level || goals.length === 0 || all.length !== LEARNING_STYLE_QUESTIONS.length) return null;
+  /** `allMbti` — MBTI тестийн onComplete-ээс ирсэн хариулт (setMbtiAnswers хараахан render болоогүй байж болно) */
+  function currentPayload(allMbti: MbtiLetter[] = mbtiAnswered): SubmitPayload | null {
+    if (!level || goals.length === 0 || !surveyComplete || allMbti.length !== MBTI_QUESTIONS.length) return null;
     return {
       interests: goals,
       selfAssessedLevel: level,
       dailyGoalMinutes: dailyMins,
-      learningStyleAnswers: all,
+      learningStyleAnswers: answered,
+      mbtiAnswers: allMbti,
     };
   }
 
-  function submitCurrent(all?: LearningStyle[]) {
-    const payload = currentPayload(all);
+  function submitCurrent(allMbti?: MbtiLetter[]) {
+    const payload = currentPayload(allMbti);
     if (payload) void submit(payload);
   }
 
-  function handleSurveyComplete(all: LearningStyle[]) {
+  /** Суралцах арга барилын судалгаа дууссан — MBTI тест рүү */
+  function handleSurveyComplete() {
+    setMbtiStartIndex(lastSurveyIndex(mbtiAnswers));
+    setStep("mbti");
+  }
+
+  function handleMbtiComplete(allMbti: MbtiLetter[]) {
     // Нэвтэрсэн бол шууд хадгална, үгүй бол үр дүнг харахын тулд бүртгүүлэх алхам руу
     if (user) {
-      submitCurrent(all);
+      submitCurrent(allMbti);
     } else {
       markOnboardingHandoff();
       setStep("register");
@@ -170,8 +186,8 @@ export default function OnboardingPage() {
 
   function backToSurvey() {
     setSaveError(null);
-    setSurveyStartIndex(LEARNING_STYLE_QUESTIONS.length - 1);
-    setStep("survey");
+    setMbtiStartIndex(MBTI_QUESTIONS.length - 1);
+    setStep("mbti");
   }
 
   // Бүртгүүлэх/нэвтрэхээс өмнө бөглөсөн хариултыг сэргээнэ
@@ -201,15 +217,18 @@ export default function OnboardingPage() {
       setDailyMins(draft.dailyGoalMinutes);
       setAnswers(draft.learningStyleAnswers);
       setSurveyStartIndex(lastSurveyIndex(draft.learningStyleAnswers));
+      setMbtiAnswers(draft.mbtiAnswers);
+      setMbtiStartIndex(lastSurveyIndex(draft.mbtiAnswers));
 
       if (user && draft.ownerId === null && draft.step === "register" && isOnboardingDraftComplete(draft) && draft.selfAssessedLevel) {
         // Судалгаагаа бөглөөд нэвтэрсэн / и-мэйлээ баталгаажуулсан — хариултыг тухайн хэрэглэгч дээр хадгална
-        setStep("survey");
+        setStep("mbti");
         void submit({
           interests: draft.interests,
           selfAssessedLevel: draft.selfAssessedLevel,
           dailyGoalMinutes: draft.dailyGoalMinutes,
           learningStyleAnswers: draft.learningStyleAnswers as LearningStyle[],
+          mbtiAnswers: draft.mbtiAnswers as MbtiLetter[],
         });
       } else {
         const resume = resumeStep(draft, Boolean(user));
@@ -229,17 +248,18 @@ export default function OnboardingPage() {
   useEffect(() => {
     // Профайлд хадгалагдсаны дараа ("Буцах" дарсан ч) дахин draft үүсгэхгүй
     if (!restored || step === "result" || saved) return;
-    if (goals.length === 0 && !level && answers.every((a) => a === null)) return;
+    if (goals.length === 0 && !level && answers.every((a) => a === null) && mbtiAnswers.every((a) => a === null)) return;
     saveOnboardingDraft({
       interests: goals,
       selfAssessedLevel: level,
       dailyGoalMinutes: dailyMins,
       learningStyleAnswers: answers,
+      mbtiAnswers,
       step,
       ownerId: user?.id ?? null,
       pendingEmail: registeredEmail,
     });
-  }, [restored, step, saved, goals, level, dailyMins, answers, user, registeredEmail]);
+  }, [restored, step, saved, goals, level, dailyMins, answers, mbtiAnswers, user, registeredEmail]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -447,7 +467,28 @@ export default function OnboardingPage() {
                 />
                 {/* Бүх асуултад хариулсан хэрэглэгч буцаж ирээд хариултаа өөрчлөхгүйгээр үргэлжлүүлэх */}
                 {surveyComplete && (
-                  <Button onClick={() => handleSurveyComplete(answered)} className="mt-3 w-full gap-2">
+                  <Button onClick={handleSurveyComplete} className="mt-3 w-full gap-2">
+                    Үргэлжлүүлэх <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </motion.div>
+            )}
+
+            {/* Step: MBTI зан чанарын тест */}
+            {!showSavePanel && step === "mbti" && (
+              <motion.div key="mbti" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <MbtiSurvey
+                  answers={mbtiAnswers}
+                  onAnswersChange={setMbtiAnswers}
+                  onComplete={handleMbtiComplete}
+                  onBackAtStart={() => {
+                    setSurveyStartIndex(LEARNING_STYLE_QUESTIONS.length - 1);
+                    setStep("survey");
+                  }}
+                  initialIndex={mbtiStartIndex}
+                />
+                {mbtiComplete && (
+                  <Button onClick={() => handleMbtiComplete(mbtiAnswered)} className="mt-3 w-full gap-2">
                     Үргэлжлүүлэх <ChevronRight className="h-4 w-4" />
                   </Button>
                 )}
@@ -509,7 +550,7 @@ export default function OnboardingPage() {
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success/15">
                     <CheckCircle2 className="h-7 w-7 text-success" />
                   </span>
-                  <h1 className="mt-5 font-display text-2xl font-semibold text-mist-50">Суралцах арга барил тань тодорхойлогдлоо</h1>
+                  <h1 className="mt-5 font-display text-2xl font-semibold text-mist-50">Суралцах арга барил, зан чанар тань тодорхойлогдлоо</h1>
                   <p className="mt-2 max-w-sm text-sm leading-6 text-mist-400">
                     Хариултууд тань профайлд хадгалагдлаа. Үр дүн болон танд тохирох зөвлөмжийг профайл хэсгээс хараарай.
                   </p>

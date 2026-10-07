@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, RefreshCw, X } from 'lucide-react';
+import { CreditCard, Loader2, Phone, RefreshCw, X } from 'lucide-react';
 import {
   checkPayment,
   createPayment,
@@ -47,6 +47,26 @@ function amountWithPromo(plan: PricingPlan, promoPercent: number) {
   return Math.max(100, Math.round(plan.priceMnt * (1 - total / 100)));
 }
 
+const PHONE_STORAGE_KEY = 'ce_pay_phone';
+const PHONE_RE = /^\d{8}$/;
+
+function readStoredPhone() {
+  if (typeof window === 'undefined') return '';
+  try {
+    return localStorage.getItem(PHONE_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function storePhone(phone: string) {
+  try {
+    localStorage.setItem(PHONE_STORAGE_KEY, phone);
+  } catch {
+    // ignore
+  }
+}
+
 export function BillingPanel({
   compact = false,
   redirectTo,
@@ -68,6 +88,8 @@ export function BillingPanel({
     null,
   );
   const [promoChecking, setPromoChecking] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -81,6 +103,8 @@ export function BillingPanel({
       setSub(s);
       setPlans(p);
       setHistory(h);
+      // Утас: өмнөх төлбөрөөс, эсвэл энэ төхөөрөмж дээр хадгалсныг автоматаар бөглөнө
+      setPhone((prev) => prev || h.find((x) => x.payerPhone)?.payerPhone || readStoredPhone());
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Төлбөрийн мэдээлэл ачаалж чадсангүй'));
     } finally {
@@ -156,9 +180,18 @@ export function BillingPanel({
   };
 
   const handlePay = async (planId: string) => {
+    const digits = phone.replace(/\D/g, '');
+    if (!PHONE_RE.test(digits)) {
+      setPhoneError('8 оронтой утасны дугаараа оруулна уу');
+      toast.error('Төлбөр төлөхийн өмнө утасны дугаараа оруулна уу');
+      document.getElementById('pay-phone')?.focus();
+      return;
+    }
+    setPhoneError(null);
     setPayingId(planId);
     try {
-      const payment = await createPayment(planId, appliedPromo?.code);
+      const payment = await createPayment(planId, digits, appliedPromo?.code);
+      storePhone(digits);
       setActivePayment(payment);
       startPoll(payment.id);
       toast.info('QPay QR гарлаа — төлсний дараа автоматаар шалгана');
@@ -166,6 +199,24 @@ export function BillingPanel({
       toast.error(getApiErrorMessage(err, 'Invoice үүсгэхэд алдаа гарлаа'));
     } finally {
       setPayingId(null);
+    }
+  };
+
+  /** Хүлээгдэж буй төлбөрийг дахин нээж (QR + шалгалт) үргэлжлүүлнэ */
+  const resumePayment = async (p: PaymentRecord) => {
+    setActivePayment(p);
+    startPoll(p.id);
+    setChecking(true);
+    try {
+      const res = await checkPayment(p.id);
+      setActivePayment(res.payment);
+      if (res.payment.status === 'PAID') {
+        await onPaid();
+      }
+    } catch {
+      // polling үргэлжилнэ
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -266,6 +317,32 @@ export function BillingPanel({
             {appliedPromo.code} идэвхтэй · −{appliedPromo.discountPercent}% хямдрал үнэ дээр нэмэгдэнэ
           </p>
         )}
+      </section>
+
+      <section>
+        <h3 className="flex items-center gap-2 font-display text-base font-semibold text-mist-50">
+          <Phone className="h-4 w-4 text-brand" /> Утасны дугаар
+        </h3>
+        <p className="mt-1 text-xs text-mist-400">
+          Гүйлгээ таны утсаар бүртгэгдэнэ — гүйлгээний утга:{' '}
+          <span className="font-mono text-mist-300">COLORENGLISH {PHONE_RE.test(phone) ? phone : '<утас>'}</span>
+        </p>
+        <div className="mt-3 max-w-xs">
+          <Input
+            id="pay-phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            placeholder="88112233"
+            maxLength={8}
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value.replace(/\D/g, '').slice(0, 8));
+              if (phoneError) setPhoneError(null);
+            }}
+            error={phoneError ?? undefined}
+          />
+        </div>
       </section>
 
       <section>
@@ -430,21 +507,35 @@ export function BillingPanel({
                   </p>
                   <p className="mt-0.5 text-xs text-mist-500">
                     {new Date(p.createdAt).toLocaleString('mn-MN')}
+                    {p.payerPhone && ` · ${p.payerPhone}`}
                     {p.subscriptionEnds &&
                       ` · дуусах: ${new Date(p.subscriptionEnds).toLocaleDateString('mn-MN')}`}
                   </p>
                 </div>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs ${
-                    p.status === 'PAID'
-                      ? 'bg-emerald-500/15 text-emerald-300'
-                      : p.status === 'PENDING'
-                        ? 'bg-amber-500/15 text-amber-200'
-                        : 'bg-ink-700 text-mist-400'
-                  }`}
-                >
-                  {statusLabel(p.status)}
-                </span>
+                <div className="flex items-center gap-2">
+                  {p.status === 'PENDING' && p.qpayInvoiceId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-8 gap-1 px-2.5 py-1 text-xs"
+                      title="Төлсөн бол энд дарж шалгана уу"
+                      onClick={() => void resumePayment(p)}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" /> Шалгах
+                    </Button>
+                  )}
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs ${
+                      p.status === 'PAID'
+                        ? 'bg-emerald-500/15 text-emerald-300'
+                        : p.status === 'PENDING'
+                          ? 'bg-amber-500/15 text-amber-200'
+                          : 'bg-ink-700 text-mist-400'
+                    }`}
+                  >
+                    {statusLabel(p.status)}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

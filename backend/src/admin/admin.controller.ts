@@ -9,6 +9,7 @@ import {
   CreateQuestionDto,
   CreateUnitDto,
   CreateVocabDto,
+  GrantVipDto,
   ListUsersQueryDto,
   UpdateLessonDto,
   UpdateQuestionDto,
@@ -45,9 +46,10 @@ export class AdminController {
     return this.adminService.revokeUserSessions(id, sessionId);
   }
 
+  /** VIP олгох / сунгах — durationDays (default 30 = 1 сар) */
   @Roles(Role.ADMIN)
   @Post('users/:id/grant-month')
-  grantVipMonth(@Param('id') id: string, @Body() body?: { durationDays?: number }) {
+  grantVipMonth(@Param('id') id: string, @Body() body: GrantVipDto) {
     return this.adminService.grantVipMonth(id, body?.durationDays ?? 30);
   }
 
