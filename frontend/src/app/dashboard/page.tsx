@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { BookOpen, ArrowRight } from 'lucide-react';
+import { BookOpen, ArrowRight, Car } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { AppShell } from '@/components/layout/app-shell';
 
@@ -45,6 +45,22 @@ export default function DashboardPage() {
             <p className="font-display text-lg font-semibold text-mist-50">Унших өгүүллэг</p>
             <p className="mt-1 text-sm text-mist-400">
               Үг дээр дарж монгол орчуулга харах, voice-оор англи дуудлага сонсох
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-mist-500 group-hover:text-brand" />
+        </Link>
+
+        <Link
+          href="/type-rush"
+          className="mt-4 group flex items-center gap-5 rounded-2xl border border-brand/30 bg-brand/5 p-6 transition-colors hover:border-brand/50 hover:bg-brand/10"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand/15 text-brand">
+            <Car className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display text-lg font-semibold text-mist-50">Type Rush — бичих уралдаан</p>
+            <p className="mt-1 text-sm text-mist-400">
+              5 замтай машины уралдаан: англи өгүүлбэрийг хурдан бичих тусам таны машин түрүүлнэ. Бүх хэрэглэгчид үнэгүй.
             </p>
           </div>
           <ArrowRight className="h-5 w-5 text-mist-500 group-hover:text-brand" />

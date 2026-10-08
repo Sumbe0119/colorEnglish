@@ -1,0 +1,28 @@
+// frontend/src/app/type-rush/layout.tsx
+// Type Rush — зөвхөн нэвтэрсэн хэрэглэгч. VIP шаардахгүй: бүртгүүлсэн бүх хэрэглэгч үнэгүй тоглоно.
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
+import { AppShell } from '@/components/layout/app-shell';
+
+export default function TypeRushLayout({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) router.push('/login?next=/type-rush');
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+      </div>
+    );
+  }
+
+  return <AppShell>{children}</AppShell>;
+}

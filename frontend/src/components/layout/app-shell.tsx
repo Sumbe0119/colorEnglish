@@ -5,7 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Library, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Car, Library, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { logout } from "@/lib/services";
 import { clearOnboardingDraft } from "@/lib/onboarding-draft";
@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isStories = pathname === "/reading" || (pathname.startsWith("/reading/") && !pathname.startsWith("/reading/words"));
   const isMyWords = pathname.startsWith("/reading/words");
+  const isTypeRush = pathname.startsWith("/type-rush");
   const isProfile = pathname.startsWith("/profile");
   const isRuleA2 = pathname.startsWith("/rule/a2");
   const isRuleB1 = pathname.startsWith("/rule/b1");
@@ -73,6 +74,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Library className="h-4 w-4" />
             Цээжилсэн үгс
+          </Link>
+          <Link
+            href="/type-rush"
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              isTypeRush ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+            }`}
+          >
+            <Car className="h-4 w-4" />
+            Type Rush
           </Link>
           <Link
             href="/rule"
@@ -228,6 +238,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Library className="h-4 w-4" />
                 Цээжилсэн үгс
+              </Link>
+
+              <Link
+                href="/type-rush"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isTypeRush ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <Car className="h-4 w-4" />
+                Type Rush
               </Link>
 
               <Link
