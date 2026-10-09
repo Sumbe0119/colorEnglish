@@ -1,5 +1,5 @@
 // frontend/src/lib/type-rush.ts
-// Type Rush — бичих уралдааны өгөгдөл: өгүүлбэрийн сан, машинууд, бот хурд.
+// Тоглоом — бичих уралдааны өгөгдөл: өгүүлбэрийн сан, машинууд, бот хурд, цагийн хязгаар.
 import { A1_RULES } from '@/lib/grammar/a1';
 import { A2_RULES } from '@/lib/grammar/a2';
 import { B1_RULES } from '@/lib/grammar/b1';
@@ -25,6 +25,71 @@ export const RACE_LEVELS: RaceLevelConfig[] = [
 ];
 
 export const LANES = 5;
+
+/** Цагийн хязгаар (секунд). 0 = хязгааргүй (өгүүлбэр дуустал). */
+export type TimeLimit = 0 | 15 | 30 | 60 | 120;
+
+export type TimeLimitOption = {
+  value: TimeLimit;
+  label: string;
+  hint: string;
+};
+
+export const TIME_LIMITS: TimeLimitOption[] = [
+  { value: 0, label: 'Хязгааргүй', hint: 'Дуустал бич' },
+  { value: 15, label: '15 сек', hint: 'Богино текст' },
+  { value: 30, label: '30 сек', hint: 'Дунд текст' },
+  { value: 60, label: '60 сек', hint: 'Бүтэн текст' },
+  { value: 120, label: '120 сек', hint: 'Тайван, бүтэн' },
+];
+
+export function getTimeLimitOption(limit: TimeLimit): TimeLimitOption {
+  return TIME_LIMITS.find((t) => t.value === limit) ?? TIME_LIMITS[0];
+}
+
+/** Өөрийн өгүүлбэрийн урт — backend-ийн MIN_TEXT_LEN/MAX_TEXT_LEN-тэй нийцүүлсэн. */
+export const CUSTOM_TEXT_MIN = 10;
+export const CUSTOM_TEXT_MAX = 300;
+
+/** Мөр дамжилт, давхар зай, тусгай хашилтыг цэвэрлэж, дээд уртад хүртэл тайрна. */
+export function sanitizeCustomText(raw: string): string {
+  return raw
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[\u0000-\u001f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, CUSTOM_TEXT_MAX);
+}
+
+/** Өөрийн өгүүлбэрийг шалгана. ok=false бол error-т монгол тайлбар байна. */
+export function validateCustomText(raw: string): { ok: boolean; text: string; error?: string } {
+  const text = sanitizeCustomText(raw);
+  if (text.length === 0) return { ok: false, text, error: 'Өгүүлбэрээ бичнэ үү.' };
+  if (text.length < CUSTOM_TEXT_MIN) return { ok: false, text, error: `Дор хаяж ${CUSTOM_TEXT_MIN} тэмдэгт байх ёстой.` };
+  return { ok: true, text };
+}
+
+const CUSTOM_KEY = 'ce-type-rush-custom';
+
+export function loadCustomText(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(CUSTOM_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveCustomText(text: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (text.trim()) window.localStorage.setItem(CUSTOM_KEY, text);
+    else window.localStorage.removeItem(CUSTOM_KEY);
+  } catch {
+    /* localStorage хаалттай байж болно */
+  }
+}
 
 export type RaceCar = {
   id: string;
@@ -98,24 +163,39 @@ export function getLevelConfig(level: RaceLevel): RaceLevelConfig {
   return RACE_LEVELS.find((l) => l.code === level) ?? RACE_LEVELS[0];
 }
 
+/** Цагийн хязгаартай үед биелүүлж болохуйц бичих хурд (тэмдэгт/сек ≈ 26 WPM). */
+const TARGET_CPS = 2.2;
+
 /**
  * Түвшний санд байгаа өгүүлбэрүүдээс санамсаргүй сонгож, доод уртад хүртэл нийлүүлнэ.
- * Хамгийн ихдээ 3 өгүүлбэр.
+ * Хамгийн ихдээ 3 өгүүлбэр. Цагийн хязгаартай бол тухайн хугацаанд дуусгах боломжтой
+ * урттай текст гаргана (жишээ нь 15 сек → ~33 тэмдэгт).
  */
-export function buildRaceText(level: RaceLevel, avoid?: string): string {
+export function buildRaceText(level: RaceLevel, avoid?: string, limit: TimeLimit = 0): string {
   const cfg = getLevelConfig(level);
   const base = getPools()[level];
-  const pool = base.length >= 3 ? base : FALLBACK_SENTENCES;
+  const basePool = base.length >= 3 ? base : FALLBACK_SENTENCES;
+  const minChars = limit > 0 ? Math.min(cfg.minChars, Math.round(limit * TARGET_CPS)) : cfg.minChars;
+  // Цагтай үед дээд урт ч бий — өөрөөр бол 15 сек-д 110 тэмдэгт гарч, биелэшгүй болно.
+  const maxChars = limit > 0 ? Math.max(minChars, Math.round(limit * TARGET_CPS * 1.2)) : Infinity;
+
+  let pool = basePool;
+  if (limit > 0) {
+    const fits = basePool.filter((s) => s.length <= maxChars);
+    // Нэг ч өгүүлбэр багтахгүй бол хамгийн богиныг авна.
+    pool = fits.length ? fits : [[...basePool].sort((a, b) => a.length - b.length)[0]];
+  }
 
   const compose = () => {
     const parts: string[] = [];
     let len = 0;
     let guard = 0;
-    while (len < cfg.minChars && parts.length < 3 && guard++ < 30) {
+    while (len < minChars && parts.length < 3 && guard++ < 40) {
       const s = pool[Math.floor(Math.random() * pool.length)];
       if (parts.includes(s)) continue;
+      if (len + s.length + (parts.length ? 1 : 0) > maxChars) continue;
       parts.push(s);
-      len += s.length + 1;
+      len += s.length + (parts.length > 1 ? 1 : 0);
     }
     return parts.join(' ');
   };
@@ -183,10 +263,15 @@ const BEST_KEY = 'ce-type-rush-best';
 
 export type BestRecord = { ms: number; wpm: number };
 
-export function loadBest(level: RaceLevel): BestRecord | null {
+/** Рекордыг түвшин + цагийн хязгаар тус бүрээр хадгална (хязгааргүй = хуучин түлхүүр). */
+function bestKey(level: RaceLevel, limit: TimeLimit): string {
+  return limit > 0 ? `${BEST_KEY}:${level}:${limit}` : `${BEST_KEY}:${level}`;
+}
+
+export function loadBest(level: RaceLevel, limit: TimeLimit = 0): BestRecord | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(`${BEST_KEY}:${level}`);
+    const raw = window.localStorage.getItem(bestKey(level, limit));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as BestRecord;
     if (typeof parsed.ms !== 'number') return null;
@@ -197,12 +282,12 @@ export function loadBest(level: RaceLevel): BestRecord | null {
 }
 
 /** Шинэ рекорд бол хадгалаад true буцаана. */
-export function saveBestIfBetter(level: RaceLevel, record: BestRecord): boolean {
+export function saveBestIfBetter(level: RaceLevel, record: BestRecord, limit: TimeLimit = 0): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    const prev = loadBest(level);
+    const prev = loadBest(level, limit);
     if (prev && prev.ms <= record.ms) return false;
-    window.localStorage.setItem(`${BEST_KEY}:${level}`, JSON.stringify(record));
+    window.localStorage.setItem(bestKey(level, limit), JSON.stringify(record));
     return true;
   } catch {
     return false;

@@ -417,7 +417,7 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-5 shadow-card">
+          <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-5">
             <h3 className="font-display text-base font-semibold text-mist-50">Шинэ өрөө үүсгэх</h3>
             <p className="mt-1 text-xs text-mist-400">Код гарч ирнэ, найзууддаа илгээгээд 5 хүртэл хүн уралдана. Хоосон замд бот орно.</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -444,7 +444,7 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
             </button>
           </div>
 
-          <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-5 shadow-card">
+          <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-5">
             <h3 className="font-display text-base font-semibold text-mist-50">Кодоор нэгдэх</h3>
             <p className="mt-1 text-xs text-mist-400">Найзынхаа илгээсэн 5 оронтой кодыг оруул.</p>
             <form
@@ -471,7 +471,7 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
           </div>
         </div>
 
-        <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-5 shadow-card">
+        <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-5">
           <div className="flex items-center justify-between">
             <h3 className="inline-flex items-center gap-2 font-display text-base font-semibold text-mist-50">
               <Users className="h-4 w-4 text-brand" /> Нээлттэй өрөөнүүд
@@ -489,7 +489,7 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
           ) : (
             <ul className="mt-3 divide-y divide-ink-600/60">
               {openRooms.map((r) => (
-                <li key={r.code} className="flex items-center gap-3 py-2.5">
+                <li key={r.code} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
                   <span className="font-mono text-base tracking-widest text-mist-50">{r.code}</span>
                   <span className="text-xs text-mist-400">{r.hostName}</span>
                   <span className="rounded bg-ink-800 px-2 py-0.5 text-[11px] text-mist-300">{levelLabel(r.level)}</span>
@@ -540,10 +540,10 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
           </button>
         </div>
 
-        <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-5 shadow-card sm:p-6">
+        <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-6">
           <h2 className="font-display text-lg font-semibold text-mist-50">Машинаа сонго</h2>
           <p className="mt-1 text-sm text-mist-400">Тоглогч бүр өөр машинтай. Сонгогдоогүй замд бот уралдана.</p>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
             {RACE_CARS.map((car, lane) => {
               const owner = takenBy(lane);
               const mine = owner?.userId === userId;
@@ -554,7 +554,7 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
                   type="button"
                   disabled={disabled || busy}
                   onClick={() => !mine && pickLane(lane)}
-                  className={`flex flex-col items-center gap-3 rounded-2xl border p-4 transition-all ${
+                  className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition-all sm:gap-3 sm:p-4 ${
                     mine
                       ? 'border-brand bg-brand/10 shadow-glow'
                       : disabled
@@ -562,7 +562,7 @@ export function OnlineRace({ playerName, userId }: { playerName: string; userId:
                         : 'border-ink-600/80 bg-ink-800/60 hover:border-ink-500 hover:bg-ink-800'
                   }`}
                 >
-                  <CarSprite color={car.color} dark={car.dark} width={72} />
+                  <CarSprite color={car.color} dark={car.dark} width={64} className="max-w-full" />
                   <div className="text-center">
                     <p className="text-sm font-semibold text-mist-50">{car.name}</p>
                     <p className="text-[11px] uppercase tracking-wider text-mist-500">{car.nick}</p>

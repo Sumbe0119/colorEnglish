@@ -58,7 +58,7 @@ export default function DashboardPage() {
             <Car className="h-7 w-7" />
           </div>
           <div className="flex-1">
-            <p className="font-display text-lg font-semibold text-mist-50">Type Rush — бичих уралдаан</p>
+            <p className="font-display text-lg font-semibold text-mist-50">Тоглоом — бичих уралдаан</p>
             <p className="mt-1 text-sm text-mist-400">
               5 замтай машины уралдаан: англи өгүүлбэрийг хурдан бичих тусам таны машин түрүүлнэ. Бүх хэрэглэгчид үнэгүй.
             </p>

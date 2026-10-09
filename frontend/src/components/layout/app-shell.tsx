@@ -82,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }`}
           >
             <Car className="h-4 w-4" />
-            Type Rush
+            Тоглоом
           </Link>
           <Link
             href="/rule"
@@ -248,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <Car className="h-4 w-4" />
-                Type Rush
+                Тоглоом
               </Link>
 
               <Link

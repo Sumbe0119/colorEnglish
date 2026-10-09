@@ -3,12 +3,17 @@
 // шинэчилнэ — ингэснээр бот болон өрсөлдөгчийн хөдөлгөөн гөлгөр явна.
 'use client';
 
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
 import { Flag } from 'lucide-react';
 import { LANES, RACE_CARS } from '@/lib/type-rush';
 import { CAR_W, CarSprite } from './car-sprite';
 
 export const LANE_H = 58;
+/** Багтаамж багатай (нарийн) дэлгэц дээрх замын өндөр ба машины өргөн. */
+export const LANE_H_SM = 42;
+export const CAR_W_SM = 42;
+/** Үүнээс нарийн дэлгэц дээр зам, машиныг багасгана. */
+const COMPACT_W = 520;
 export const CURB_H = 12;
 export const TRACK_START = 5; // %
 export const TRACK_END = 90; // % — бариа
@@ -80,6 +85,26 @@ export const RaceTrack = forwardRef<
   const boostTimers = useRef<Record<number, number>>({});
   const puffIdRef = useRef(0);
   const [puffs, setPuffs] = useState<Puff[]>([]);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  // Замын өндөр/машины хэмжээг эзэмшигч элементийн өргөнөөс тохируулна.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    setWidth(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const compact = width > 0 && width < COMPACT_W;
+  const laneH = compact ? LANE_H_SM : LANE_H;
+  const carW = compact ? CAR_W_SM : CAR_W;
 
   const emitPuffs = useCallback((lane: number, count: number, size: number) => {
     const x = TRACK_START + clamp01(progRef.current[lane] ?? 0) * (TRACK_END - TRACK_START);
@@ -137,9 +162,10 @@ export const RaceTrack = forwardRef<
 
   return (
     <div
+      ref={wrapRef}
       onClick={onClick}
-      className="relative select-none overflow-hidden rounded-2xl border border-ink-600 shadow-card"
-      style={{ height: LANES * LANE_H + CURB_H * 2, background: '#1F6B3A' }}
+      className="relative w-full select-none overflow-hidden rounded-2xl border border-ink-600 shadow-card"
+      style={{ height: LANES * laneH + CURB_H * 2, background: '#1F6B3A' }}
     >
       {/* Хашлага */}
       <div
@@ -175,7 +201,7 @@ export const RaceTrack = forwardRef<
             key={i}
             className="tr-dash absolute inset-x-0"
             style={{
-              top: (i + 1) * LANE_H - 1,
+              top: (i + 1) * laneH - 1,
               height: 2,
               backgroundImage: 'repeating-linear-gradient(to right, #E6ECF5 0 30px, transparent 30px 64px)',
               opacity: 0.6,
@@ -200,23 +226,35 @@ export const RaceTrack = forwardRef<
             backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0',
           }}
         />
-        <div
-          className="absolute flex items-center gap-1 rounded-md bg-ink-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-mist-100"
-          style={{ left: `calc(${TRACK_END}% - 70px)`, top: 6 }}
-        >
-          <Flag className="h-3 w-3" /> Бариа
-        </div>
+        {!compact && (
+          <div
+            className="absolute flex items-center gap-1 rounded-md bg-ink-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-mist-100"
+            style={{ left: `calc(${TRACK_END}% - 70px)`, top: 6 }}
+          >
+            <Flag className="h-3 w-3" /> Бариа
+          </div>
+        )}
 
         {/* Замын нэр */}
         {lanes.map((lane, i) => (
-          <div key={i} className="absolute left-2 flex items-center gap-1.5 text-[10px] font-medium" style={{ top: i * LANE_H + 5 }}>
+          <div
+            key={i}
+            className={`absolute left-1.5 flex max-w-[62%] items-center gap-1 font-medium sm:left-2 sm:gap-1.5 ${
+              compact ? 'text-[9px]' : 'text-[10px]'
+            }`}
+            style={{ top: i * laneH + (compact ? 3 : 5) }}
+          >
             {lane.tag && (
-              <span className={`rounded px-1.5 py-0.5 ${lane.isPlayer ? 'bg-brand text-white' : 'bg-ink-950/60 text-mist-300'}`}>
+              <span
+                className={`shrink-0 rounded px-1 py-0.5 sm:px-1.5 ${
+                  lane.isPlayer ? 'bg-brand text-white' : 'bg-ink-950/60 text-mist-300'
+                }`}
+              >
                 {lane.tag}
               </span>
             )}
-            <span className={`drop-shadow ${lane.dim ? 'text-mist-500' : 'text-mist-200'}`}>{lane.name}</span>
-            {lane.sub && <span className="text-mist-500">{lane.sub}</span>}
+            <span className={`min-w-0 truncate drop-shadow ${lane.dim ? 'text-mist-500' : 'text-mist-200'}`}>{lane.name}</span>
+            {lane.sub && <span className="shrink-0 text-mist-500">{lane.sub}</span>}
           </div>
         ))}
 
@@ -226,8 +264,8 @@ export const RaceTrack = forwardRef<
             key={p.id}
             className="tr-puff absolute"
             style={{
-              left: `calc(${p.x}% - ${CAR_W / 2 + 2}px)`,
-              top: p.lane * LANE_H + LANE_H * 0.62,
+              left: `calc(${p.x}% - ${carW / 2 + 2}px)`,
+              top: p.lane * laneH + laneH * 0.62,
               width: p.size,
               height: p.size,
               animationDelay: `${p.delay}ms`,
@@ -248,14 +286,14 @@ export const RaceTrack = forwardRef<
               className="absolute"
               style={{
                 left: carLeft(progRef.current[lane] ?? 0),
-                top: lane * LANE_H + LANE_H * 0.62,
+                top: lane * laneH + laneH * 0.62,
                 transform: 'translate(-50%, -50%)',
                 zIndex: info?.isPlayer ? 3 : 2,
                 opacity: info?.dim ? 0.35 : 1,
                 willChange: 'left',
               }}
             >
-              <CarSprite color={car.color} dark={car.dark} />
+              <CarSprite color={car.color} dark={car.dark} width={carW} />
             </div>
           );
         })}

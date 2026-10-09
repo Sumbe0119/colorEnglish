@@ -1,7 +1,9 @@
 // frontend/src/components/type-rush/typing-panel.tsx
+// Бичих самбар. Урт өгүүлбэр ч мөр дамжиж (whitespace-pre-wrap) дэлгэцнээс гарахгүй,
+// курсор харагдах хэсгээс гарвал автоматаар скролл болно.
 'use client';
 
-import type { RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 export function TypingPanel({
   text,
@@ -23,23 +25,43 @@ export function TypingPanel({
   placeholder?: string;
 }) {
   const block = (e: React.SyntheticEvent) => e.preventDefault();
+  const caretRef = useRef<HTMLSpanElement>(null);
+
+  // Курсор харагдах хүрээнээс гарвал тэр хэсэг руу гүйлгэнэ.
+  useEffect(() => {
+    if (!active) return;
+    caretRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [typed.length, active]);
 
   return (
-    <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-5">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wider text-mist-500">Энэ өгүүлбэрийг бич</p>
-      <p className="font-mono text-base leading-8 tracking-wide sm:text-lg" aria-label={text}>
-        {text.split('').map((ch, i) => {
-          let cls = 'text-mist-500';
-          if (i < correctLen) cls = 'text-success';
-          else if (i < typed.length) cls = 'rounded-sm bg-danger/35 text-danger';
-          const isCaret = i === typed.length && active;
-          return (
-            <span key={i} className={`${cls} ${isCaret ? 'tr-caret border-b-2 border-brand' : ''}`}>
-              {ch === ' ' ? ' ' : ch}
-            </span>
-          );
-        })}
+    <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-3 shadow-card sm:p-5">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-mist-500 sm:mb-3 sm:text-xs">
+        Энэ өгүүлбэрийг бич
       </p>
+      <div className="max-h-[34vh] overflow-y-auto overscroll-contain pr-1 sm:max-h-[40vh]">
+        <p
+          className="whitespace-pre-wrap break-words font-mono text-sm leading-7 tracking-wide sm:text-base sm:leading-8 md:text-lg"
+          aria-label={text}
+        >
+          {text.split('').map((ch, i) => {
+            let cls = 'text-mist-500';
+            if (i < correctLen) cls = 'text-success';
+            else if (i < typed.length) cls = 'rounded-sm bg-danger/35 text-danger';
+            const isCaret = i === typed.length && active;
+            return (
+              <span
+                key={i}
+                ref={isCaret ? caretRef : undefined}
+                className={`${cls} ${isCaret ? 'tr-caret border-b-2 border-brand' : ''}`}
+              >
+                {ch}
+              </span>
+            );
+          })}
+          {/* Текстийн төгсгөлд курсор */}
+          {active && typed.length >= text.length && <span ref={caretRef} className="tr-caret border-b-2 border-brand">&nbsp;</span>}
+        </p>
+      </div>
       <input
         ref={inputRef}
         value={typed}
@@ -52,11 +74,11 @@ export function TypingPanel({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className={`mt-4 w-full rounded-xl border bg-ink-800 px-4 py-3 font-mono text-base text-mist-50 outline-none transition-colors placeholder:text-mist-500 read-only:opacity-70 ${
+        className={`mt-3 w-full rounded-xl border bg-ink-800 px-3 py-2.5 font-mono text-sm text-mist-50 outline-none transition-colors placeholder:text-mist-500 read-only:opacity-70 sm:mt-4 sm:px-4 sm:py-3 sm:text-base ${
           hasError ? 'border-danger focus:border-danger' : 'border-ink-600 focus:border-brand'
         }`}
       />
-      <p className="mt-2 text-[11px] text-mist-500">
+      <p className="mt-2 text-[11px] leading-4 text-mist-500">
         {hasError
           ? 'Алдаа — Backspace дараад засаарай. Машин зөв бичтэл хөдлөхгүй.'
           : 'Хуулж буулгах боломжгүй. Үг бүр дуусахад утаа гарна, хурдан бичвэл илүү их.'}

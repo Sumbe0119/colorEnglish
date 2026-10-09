@@ -1,5 +1,5 @@
 // frontend/src/lib/type-rush-socket.ts
-// Type Rush онлайн уралдааны Socket.IO client + backend-тэй ижил төрлүүд (backend/src/type-rush/type-rush.types.ts).
+// Тоглоом — онлайн уралдааны Socket.IO client + backend-тэй ижил төрлүүд (backend/src/type-rush/type-rush.types.ts).
 import { io, Socket } from 'socket.io-client';
 import { api, getAccessToken, setAccessToken } from '@/lib/api';
 import type { RaceLevel } from '@/lib/type-rush';

@@ -1,5 +1,5 @@
 // frontend/src/components/type-rush/type-rush-game.tsx
-// Type Rush root: горим сонгох (ганцаараа ботуудтай / онлайн найзуудтай).
+// Тоглоом (бичих уралдаан) root: горим сонгох (ганцаараа ботуудтай / онлайн найзуудтай).
 'use client';
 
 import { useState } from 'react';

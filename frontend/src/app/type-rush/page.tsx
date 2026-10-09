@@ -15,9 +15,10 @@ export default function TypeRushPage() {
           <Car className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="font-display text-2xl font-semibold text-mist-50">Type Rush — бичих уралдаан</h1>
+          <h1 className="font-display text-2xl font-semibold text-mist-50">Тоглоом</h1>
           <p className="mt-1 text-sm text-mist-400">
             5 зам дээр машинууд уралдана. Англи өгүүлбэрийг хурдан, зөв бичих тусам таны машин урагшилна.
+            Цагаа 15/30/60/120 секундээр тохируулах, өөрийн өгүүлбэрээ оруулах боломжтой.
             Бүртгүүлсэн бүх хэрэглэгчид үнэгүй.
           </p>
         </div>

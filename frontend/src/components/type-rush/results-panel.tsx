@@ -2,7 +2,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Trophy, Zap } from 'lucide-react';
+import { TimerOff, Trophy, Zap } from 'lucide-react';
 import { RACE_CARS } from '@/lib/type-rush';
 
 export type StandingRow = {
@@ -15,6 +15,8 @@ export type StandingRow = {
   /** 'БОТ' | 'ТОГЛОГЧ' гэх мэт */
   tag?: string;
   note?: string;
+  /** Уралдаан дууссан ч бариа хүрээгүй (цаг дууссан) — 'явж байна' гэж харуулахгүй. */
+  failed?: boolean;
 };
 
 export function formatSeconds(ms: number): string {
@@ -40,6 +42,8 @@ export function ResultsPanel({
   standings,
   actions,
   footnote,
+  timedOut,
+  totalChars,
 }: {
   finishMs: number;
   rank: number;
@@ -50,33 +54,47 @@ export function ResultsPanel({
   standings: StandingRow[];
   actions: ReactNode;
   footnote?: ReactNode;
+  /** Цаг дуусаад өгүүлбэр дуусгаж чадаагүй. */
+  timedOut?: boolean;
+  /** Өгүүлбэрийн бүтэн урт — timedOut үед хэр явсныг харуулахад. */
+  totalChars?: number;
 }) {
   const rows = sortStandings(standings);
+  const donePct = timedOut && totalChars ? Math.round((chars / totalChars) * 100) : 100;
   return (
-    <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-5 shadow-card sm:p-6">
+    <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-6">
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-mist-500">Зарцуулсан хугацаа</p>
-          <p className="mt-1 font-display text-5xl font-bold text-mist-50">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wider text-mist-500">
+            {timedOut ? 'Хугацаа дууслаа' : 'Зарцуулсан хугацаа'}
+          </p>
+          <p className={`mt-1 font-display text-4xl font-bold sm:text-5xl ${timedOut ? 'text-danger' : 'text-mist-50'}`}>
             {formatSeconds(finishMs)}
-            <span className="ml-2 text-xl font-medium text-mist-400">сек</span>
+            <span className="ml-2 text-lg font-medium text-mist-400 sm:text-xl">сек</span>
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${
-                rank === 1
-                  ? 'bg-modifier/20 text-modifier'
-                  : rank === 2
-                    ? 'bg-mist-200/20 text-mist-100'
-                    : rank === 3
-                      ? 'bg-verb/20 text-verb'
-                      : 'bg-ink-700 text-mist-300'
-              }`}
-            >
-              <Trophy className="h-4 w-4" />
-              {rank}-р байр
-            </span>
-            {isNewBest && (
+            {timedOut ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-3 py-1 text-sm font-semibold text-danger">
+                <TimerOff className="h-4 w-4" />
+                Өгүүлбэрийн {donePct}% бичсэн
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${
+                  rank === 1
+                    ? 'bg-modifier/20 text-modifier'
+                    : rank === 2
+                      ? 'bg-mist-200/20 text-mist-100'
+                      : rank === 3
+                        ? 'bg-verb/20 text-verb'
+                        : 'bg-ink-700 text-mist-300'
+                }`}
+              >
+                <Trophy className="h-4 w-4" />
+                {rank}-р байр
+              </span>
+            )}
+            {isNewBest && !timedOut && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success/20 px-3 py-1 text-sm font-semibold text-success">
                 <Zap className="h-4 w-4" /> Шинэ рекорд!
               </span>
@@ -84,24 +102,26 @@ export function ResultsPanel({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-3 py-3">
-            <p className="font-mono text-2xl font-semibold text-mist-50">{wpm}</p>
+        <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
+          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-3 sm:px-3">
+            <p className="font-mono text-xl font-semibold text-mist-50 sm:text-2xl">{wpm}</p>
             <p className="text-[11px] uppercase tracking-wider text-mist-500">WPM</p>
           </div>
-          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-3 py-3">
-            <p className="font-mono text-2xl font-semibold text-mist-50">{accuracy}%</p>
+          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-3 sm:px-3">
+            <p className="font-mono text-xl font-semibold text-mist-50 sm:text-2xl">{accuracy}%</p>
             <p className="text-[11px] uppercase tracking-wider text-mist-500">Нарийвчлал</p>
           </div>
-          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-3 py-3">
-            <p className="font-mono text-2xl font-semibold text-mist-50">{chars}</p>
+          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-3 sm:px-3">
+            <p className="font-mono text-xl font-semibold text-mist-50 sm:text-2xl">
+              {timedOut && totalChars ? `${chars}/${totalChars}` : chars}
+            </p>
             <p className="text-[11px] uppercase tracking-wider text-mist-500">Тэмдэгт</p>
           </div>
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-ink-600/80">
-        <table className="w-full text-sm">
+      <div className="mt-5 overflow-x-auto rounded-xl border border-ink-600/80">
+        <table className="w-full min-w-[420px] text-sm">
           <thead className="bg-ink-800/80 text-left text-[11px] uppercase tracking-wider text-mist-500">
             <tr>
               <th className="px-3 py-2">#</th>
@@ -126,7 +146,11 @@ export function ResultsPanel({
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-mist-100">
-                  {row.time == null ? 'явж байна…' : `${formatSeconds(row.time)} сек`}
+                  {row.time == null
+                    ? row.failed
+                      ? <span className="text-mist-500">дуусгаагүй</span>
+                      : 'явж байна…'
+                    : `${formatSeconds(row.time)} сек`}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-mist-300">{row.wpm ?? '—'}</td>
               </tr>
