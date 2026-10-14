@@ -1,5 +1,5 @@
 // frontend/src/app/draw-guess/layout.tsx
-// Зурж таах тоглоом — зөвхөн нэвтэрсэн хэрэглэгч. VIP шаардахгүй.
+// Зураг таах тоглоом — зөвхөн нэвтэрсэн хэрэглэгч. VIP шаардахгүй.
 'use client';
 
 import { useEffect } from 'react';

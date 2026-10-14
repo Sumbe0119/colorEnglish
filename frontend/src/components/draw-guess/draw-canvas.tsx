@@ -324,7 +324,8 @@ export const DrawCanvas = forwardRef<CanvasHandle, Props>(function DrawCanvas(
           width={CANVAS_W}
           height={CANVAS_H}
           className="block w-full select-none"
-          style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}`, touchAction: 'none', cursor }}
+          // Таагч дээр touch-action auto байх ёстой — үгүй бол утсан дээр самбарыг дарж хуудас гүйлгэж чадахгүй
+          style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}`, touchAction: canDraw ? 'none' : 'auto', cursor }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -335,7 +336,7 @@ export const DrawCanvas = forwardRef<CanvasHandle, Props>(function DrawCanvas(
       </div>
 
       {canDraw && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-600/80 bg-ink-900 p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-ink-600/80 bg-ink-900 p-2 sm:gap-3 sm:p-3">
           <div className="grid grid-cols-10 gap-1">
             {PALETTE.map((p) => (
               <button
@@ -346,7 +347,7 @@ export const DrawCanvas = forwardRef<CanvasHandle, Props>(function DrawCanvas(
                   setColor(p);
                   if (tool === 'eraser') setTool('pen');
                 }}
-                className={`h-6 w-6 rounded-md border transition-transform ${
+                className={`h-7 w-7 rounded-md border transition-transform sm:h-6 sm:w-6 ${
                   color === p && tool !== 'eraser' ? 'scale-110 border-brand ring-2 ring-brand/40' : 'border-ink-600'
                 }`}
                 style={{ background: p }}

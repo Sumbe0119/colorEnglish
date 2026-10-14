@@ -1,5 +1,5 @@
 // backend/src/draw-guess/draw-guess.types.ts
-// Зурж таах тоглоомын өрөөний төрлүүд. Frontend-ийн lib/draw-guess-socket.ts-тэй ижил бүтэцтэй.
+// Зураг таах тоглоомын өрөөний төрлүүд. Frontend-ийн lib/draw-guess-socket.ts-тэй ижил бүтэцтэй.
 
 export type RoomStatus = 'lobby' | 'choosing' | 'drawing' | 'reveal' | 'finished';
 export type DrawTool = 'pen' | 'eraser' | 'fill';

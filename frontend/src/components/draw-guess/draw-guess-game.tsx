@@ -1,5 +1,5 @@
 // frontend/src/components/draw-guess/draw-guess-game.tsx
-// Зурж таах тоглоом: өрөө үүсгэх / нэгдэх → lobby → ээлж бүрт нэг хүн 3 үгнээс сонгож зурна, бусад нь таана.
+// Зураг таах тоглоом: өрөө үүсгэх / нэгдэх → lobby → ээлж бүрт нэг хүн 3 үгнээс сонгож зурна, бусад нь таана.
 // 40 сек, 10 сек тутамд нэг үсэг тип болно. Бүх тоглогч 3 удаа зурсны дараа оноогоор ялагч тодорно.
 'use client';
 
@@ -24,7 +24,7 @@ import {
 import { toast } from '@/store/toast-store';
 import { DrawCanvas, type CanvasHandle } from './draw-canvas';
 import { GuessFeed, type FeedItem } from './guess-feed';
-import { Scoreboard } from './scoreboard';
+import { PlayersStrip, Scoreboard } from './scoreboard';
 
 type Conn = 'connecting' | 'online' | 'offline';
 
@@ -380,7 +380,7 @@ export function DrawGuessGame({ userId }: { userId: string }) {
         <div className="rounded-2xl border border-ink-600/80 bg-ink-900/60 p-4 text-xs text-mist-400 sm:p-5">
           <p className="font-medium text-mist-200">Дүрэм</p>
           <ul className="mt-2 list-disc space-y-1 pl-4">
-            <li>Ээлжийн тоглогч 3 үгнээс нэгийг сонгож 40 секундэд зурна, бусад нь англиар таана.</li>
+            <li>Ээлжийн тоглогч B1 ба түүнээс дээш түвшний 3 үгнээс нэгийг сонгож 40 секундэд зурна, бусад нь англиар таана.</li>
             <li>10 секунд тутамд үгний нэг үсэг тип болж нээгдэнэ. Үсгийн тоо эхнээсээ харагдана.</li>
             <li>Түрүүлж таасан хүн 100 оноо, дараагийнх 80, 60… гэж буурна. Зурсан хүн таасан хүн бүрээс +10.</li>
             <li>Бүх тоглогч 3 удаа зурсны дараа хамгийн их оноотой нь ялна.</li>
@@ -548,22 +548,22 @@ export function DrawGuessGame({ userId }: { userId: string }) {
   let overlay: React.ReactNode = null;
   if (room.status === 'choosing') {
     overlay = (
-      <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink-950/70 p-4 backdrop-blur-[2px]">
+      <div className="absolute inset-0 z-10 flex items-center justify-center overflow-y-auto bg-ink-950/70 p-2 backdrop-blur-[2px] sm:p-4">
         {isDrawer ? (
-          <div className="w-full max-w-md rounded-2xl border border-ink-600/80 bg-ink-900 p-5 shadow-card">
-            <p className="text-xs font-medium uppercase tracking-wider text-mist-500">Таны ээлж — зурах үгээ сонго</p>
-            <p className="mt-1 text-xs text-mist-400">{chooseRemaining ?? 0} секундийн дараа эхнийх нь автоматаар сонгогдоно.</p>
-            <div className="mt-4 grid gap-2">
+          <div className="max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-ink-600/80 bg-ink-900 p-3 shadow-card sm:p-5">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-mist-500 sm:text-xs">Таны ээлж — зурах үгээ сонго</p>
+            <p className="mt-0.5 text-[11px] text-mist-400 sm:mt-1 sm:text-xs">{chooseRemaining ?? 0} секундийн дараа эхнийх нь автоматаар сонгогдоно.</p>
+            <div className="mt-2 grid gap-1.5 sm:mt-4 sm:gap-2">
               {(liveSecret?.options ?? []).map((w, i) => (
                 <button
                   key={w.word}
                   type="button"
                   disabled={busy}
                   onClick={() => chooseWord(i)}
-                  className="flex items-center justify-between rounded-xl border border-ink-600/80 bg-ink-800/60 px-4 py-3 text-left hover:border-brand hover:bg-brand/10 disabled:opacity-50"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-ink-600/80 bg-ink-800/60 px-3 py-2 text-left hover:border-brand hover:bg-brand/10 disabled:opacity-50 sm:px-4 sm:py-3"
                 >
-                  <span className="font-display text-lg font-semibold text-mist-50">{w.word}</span>
-                  <span className="text-sm text-mist-400">{w.meaning}</span>
+                  <span className="font-display text-base font-semibold text-mist-50 sm:text-lg">{w.word}</span>
+                  <span className="truncate text-xs text-mist-400 sm:text-sm">{w.meaning}</span>
                 </button>
               ))}
               {!liveSecret?.options && <p className="text-sm text-mist-400">Үгнүүдийг ачаалж байна…</p>}
@@ -571,8 +571,8 @@ export function DrawGuessGame({ userId }: { userId: string }) {
           </div>
         ) : (
           <div className="text-center">
-            <Pencil className="mx-auto h-8 w-8 text-brand" />
-            <p className="mt-2 font-display text-lg font-semibold text-mist-50">{drawer?.name ?? '…'} үг сонгож байна</p>
+            <Pencil className="mx-auto h-6 w-6 text-brand sm:h-8 sm:w-8" />
+            <p className="mt-2 font-display text-base font-semibold text-mist-50 sm:text-lg">{drawer?.name ?? '…'} үг сонгож байна</p>
             <p className="text-sm text-mist-400">{chooseRemaining ?? 0} сек</p>
           </div>
         )}
@@ -581,12 +581,12 @@ export function DrawGuessGame({ userId }: { userId: string }) {
   } else if (room.status === 'reveal') {
     const guessed = room.players.filter((p) => p.guessedAt != null).sort((a, b) => (a.guessedAt ?? 0) - (b.guessedAt ?? 0));
     overlay = (
-      <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink-950/70 p-4 backdrop-blur-[2px]">
-        <div className="w-full max-w-md rounded-2xl border border-ink-600/80 bg-ink-900 p-5 text-center shadow-card">
-          <p className="text-xs font-medium uppercase tracking-wider text-mist-500">Үг нь</p>
-          <p className="mt-1 font-display text-3xl font-bold text-mist-50">{room.revealedWord?.word ?? '—'}</p>
-          <p className="text-sm text-mist-400">{room.revealedWord?.meaning}</p>
-          <div className="mt-4 space-y-1 text-sm">
+      <div className="absolute inset-0 z-10 flex items-center justify-center overflow-y-auto bg-ink-950/70 p-2 backdrop-blur-[2px] sm:p-4">
+        <div className="max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-ink-600/80 bg-ink-900 p-3 text-center shadow-card sm:p-5">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-mist-500 sm:text-xs">Үг нь</p>
+          <p className="mt-0.5 font-display text-2xl font-bold text-mist-50 sm:mt-1 sm:text-3xl">{room.revealedWord?.word ?? '—'}</p>
+          <p className="text-xs text-mist-400 sm:text-sm">{room.revealedWord?.meaning}</p>
+          <div className="mt-2 space-y-1 text-xs sm:mt-4 sm:text-sm">
             {guessed.length === 0 ? (
               <p className="text-mist-500">Хэн ч таасангүй</p>
             ) : (
@@ -618,10 +618,10 @@ export function DrawGuessGame({ userId }: { userId: string }) {
     if (room.status === 'drawing' && isDrawer) {
       return (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-xs uppercase tracking-wider text-mist-500">Таны үг</span>
-          <span className="font-display text-2xl font-bold text-mist-50">{liveSecret?.word?.word ?? '…'}</span>
-          <span className="text-sm text-mist-400">{liveSecret?.word?.meaning}</span>
-          <span className="ml-auto text-xs text-mist-500">Бусдад харагдахгүй — зур!</span>
+          <span className="text-[11px] uppercase tracking-wider text-mist-500 sm:text-xs">Таны үг</span>
+          <span className="font-display text-xl font-bold text-mist-50 sm:text-2xl">{liveSecret?.word?.word ?? '…'}</span>
+          <span className="text-xs text-mist-400 sm:text-sm">{liveSecret?.word?.meaning}</span>
+          <span className="ml-auto hidden text-xs text-mist-500 sm:inline">Бусдад харагдахгүй — зур!</span>
         </div>
       );
     }
@@ -629,15 +629,15 @@ export function DrawGuessGame({ userId }: { userId: string }) {
       const chars = [...room.masked];
       const letterCount = chars.filter((c) => c !== ' ').length;
       return (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex flex-wrap items-end gap-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:gap-x-4 sm:gap-y-2">
+          <div className="flex flex-wrap items-end gap-0.5 sm:gap-1">
             {chars.map((ch, i) =>
               ch === ' ' ? (
-                <span key={i} className="w-3" />
+                <span key={i} className="w-2 sm:w-3" />
               ) : (
                 <span
                   key={i}
-                  className={`flex h-9 w-7 items-center justify-center rounded-md border-b-2 font-mono text-xl font-semibold ${
+                  className={`flex h-7 w-5 items-center justify-center rounded-md border-b-2 font-mono text-base font-semibold sm:h-9 sm:w-7 sm:text-xl ${
                     ch === '_' ? 'border-ink-500 text-mist-500' : 'border-brand bg-brand/15 text-mist-50'
                   }`}
                 >
@@ -646,10 +646,10 @@ export function DrawGuessGame({ userId }: { userId: string }) {
               ),
             )}
           </div>
-          <span className="text-xs text-mist-500">{letterCount} үсэг</span>
+          <span className="text-[11px] text-mist-500 sm:text-xs">{letterCount} үсэг</span>
           {nextHintIn != null && me?.guessedAt == null && (
-            <span className="inline-flex items-center gap-1 text-xs text-modifier">
-              <Lightbulb className="h-3.5 w-3.5" /> Дараагийн тип {nextHintIn} сек
+            <span className="inline-flex items-center gap-1 text-[11px] text-modifier sm:text-xs">
+              <Lightbulb className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Дараагийн </span>тип {nextHintIn} сек
             </span>
           )}
         </div>
@@ -667,18 +667,23 @@ export function DrawGuessGame({ userId }: { userId: string }) {
   })();
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        {connBadge}
-        <span className="rounded-full border border-ink-600/80 bg-ink-900 px-3 py-1.5 font-mono tracking-[0.25em] text-mist-200">{room.code}</span>
-        <span className="rounded-full border border-ink-600/80 bg-ink-900 px-3 py-1.5 text-mist-300">
-          Тойрог {room.round}/{room.totalRounds}
+    <div className="space-y-3 sm:space-y-4">
+      {/* Толгой — утсан дээр зөвхөн чухал pill-үүд: тойрог/ээлж, цаг, гарах. Холболт тасарвал л badge гарна. */}
+      <div className="flex items-center gap-1.5 text-xs sm:gap-2">
+        <span className={conn === 'online' ? 'hidden sm:inline-flex' : 'inline-flex'}>{connBadge}</span>
+        <span className="hidden rounded-full border border-ink-600/80 bg-ink-900 px-3 py-1.5 font-mono tracking-[0.25em] text-mist-200 sm:inline">
+          {room.code}
         </span>
-        <span className="rounded-full border border-ink-600/80 bg-ink-900 px-3 py-1.5 text-mist-300">
-          Ээлж {room.turn}/{room.totalTurns}
+        <span className="rounded-full border border-ink-600/80 bg-ink-900 px-2.5 py-1.5 text-mist-300 sm:px-3">
+          <span className="sm:hidden">
+            Т {room.round}/{room.totalRounds} · Э {room.turn}/{room.totalTurns}
+          </span>
+          <span className="hidden sm:inline">
+            Тойрог {room.round}/{room.totalRounds} · Ээлж {room.turn}/{room.totalTurns}
+          </span>
         </span>
         <span
-          className={`ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-sm ${
+          className={`ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-sm font-semibold ${
             remaining != null && remaining <= 10 ? 'border-danger/40 bg-danger/10 text-danger' : 'border-ink-600/80 bg-ink-900 text-mist-100'
           }`}
         >
@@ -688,19 +693,24 @@ export function DrawGuessGame({ userId }: { userId: string }) {
         <button
           type="button"
           onClick={leaveRoom}
-          className="inline-flex items-center gap-1.5 rounded-full border border-ink-600 px-3 py-1.5 text-mist-300 hover:bg-ink-800"
+          aria-label="Гарах"
+          className="inline-flex items-center gap-1.5 rounded-full border border-ink-600 px-2.5 py-1.5 text-mist-300 hover:bg-ink-800 sm:px-3"
         >
-          <LogOut className="h-3.5 w-3.5" /> Гарах
+          <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Гарах</span>
         </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
-        <div className="order-3 lg:order-1">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
+        {/* Оноо: утсан дээр хэвтээ chip мөр, том дэлгэцэд зүүн талын хүснэгт */}
+        <div className="order-1 lg:hidden">
+          <PlayersStrip players={room.players} drawerUserId={room.drawerUserId} userId={userId} />
+        </div>
+        <div className="hidden lg:order-1 lg:block">
           <Scoreboard players={room.players} drawerUserId={room.drawerUserId} userId={userId} showTurnPoints={room.status !== 'choosing'} />
         </div>
 
-        <div className="order-1 space-y-3 lg:order-2">
-          <div className="rounded-2xl border border-ink-600/80 bg-ink-900 px-4 py-3 shadow-card">{wordBar}</div>
+        <div className="order-2 space-y-2 sm:space-y-3">
+          <div className="rounded-2xl border border-ink-600/80 bg-ink-900 px-3 py-2 shadow-card sm:px-4 sm:py-3">{wordBar}</div>
           <DrawCanvas
             ref={canvasRef}
             canDraw={isDrawer && room.status === 'drawing'}
@@ -711,7 +721,7 @@ export function DrawGuessGame({ userId }: { userId: string }) {
           />
         </div>
 
-        <div className="order-2 h-[380px] lg:order-3 lg:h-[560px]">
+        <div className="order-3 h-[300px] sm:h-[380px] lg:h-[560px]">
           <GuessFeed items={feed} canGuess={canGuess} disabledNote={disabledNote} onGuess={onGuess} />
         </div>
       </div>

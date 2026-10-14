@@ -1,11 +1,11 @@
 // frontend/src/components/layout/app-shell.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Car, Library, LogOut, Menu, Palette, Settings, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Car, ChevronDown, Gamepad2, Library, LogOut, Menu, Palette, Settings, UserRound, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { logout } from "@/lib/services";
 import { clearOnboardingDraft } from "@/lib/onboarding-draft";
@@ -39,6 +39,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isMyWords = pathname.startsWith("/reading/words");
   const isTypeRush = pathname.startsWith("/type-rush");
   const isDrawGuess = pathname.startsWith("/draw-guess");
+  const isGames = isTypeRush || isDrawGuess;
+  // "Тоглоомнууд" дэд цэс — тоглоомын хуудсан дээр байвал автоматаар нээлттэй
+  const [gamesOpen, setGamesOpen] = useState(isGames);
+  useEffect(() => {
+    if (isGames) setGamesOpen(true);
+  }, [isGames]);
   const isProfile = pathname.startsWith("/profile");
   const isRuleA2 = pathname.startsWith("/rule/a2");
   const isRuleB1 = pathname.startsWith("/rule/b1");
@@ -76,24 +82,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Library className="h-4 w-4" />
             Цээжилсэн үгс
           </Link>
-          <Link
-            href="/type-rush"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-              isTypeRush ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+          <button
+            type="button"
+            onClick={() => setGamesOpen((o) => !o)}
+            aria-expanded={gamesOpen}
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              isGames && !gamesOpen ? "bg-brand/20 text-brand shadow-glow" : isGames ? "text-brand" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
             }`}
           >
-            <Car className="h-4 w-4" />
-            Бичих уралдаан
-          </Link>
-          <Link
-            href="/draw-guess"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-              isDrawGuess ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
-            }`}
-          >
-            <Palette className="h-4 w-4" />
-            Зурж таах
-          </Link>
+            <Gamepad2 className="h-4 w-4" />
+            Тоглоомнууд
+            <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${gamesOpen ? "rotate-180" : ""}`} />
+          </button>
+          {gamesOpen && (
+            <div className="ml-5 space-y-1 border-l border-ink-600/80 pl-2">
+              <Link
+                href="/type-rush"
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                  isTypeRush ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <Car className="h-4 w-4" />
+                Бичих уралдаан
+              </Link>
+              <Link
+                href="/draw-guess"
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                  isDrawGuess ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <Palette className="h-4 w-4" />
+                Зураг таах
+              </Link>
+            </div>
+          )}
           <Link
             href="/rule"
             className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
@@ -250,27 +272,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Цээжилсэн үгс
               </Link>
 
-              <Link
-                href="/type-rush"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                  isTypeRush ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+              <button
+                type="button"
+                onClick={() => setGamesOpen((o) => !o)}
+                aria-expanded={gamesOpen}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isGames && !gamesOpen ? "bg-brand/20 text-brand shadow-glow" : isGames ? "text-brand" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
                 }`}
               >
-                <Car className="h-4 w-4" />
-                Бичих уралдаан
-              </Link>
-
-              <Link
-                href="/draw-guess"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                  isDrawGuess ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
-                }`}
-              >
-                <Palette className="h-4 w-4" />
-                Зурж таах
-              </Link>
+                <Gamepad2 className="h-4 w-4" />
+                Тоглоомнууд
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${gamesOpen ? "rotate-180" : ""}`} />
+              </button>
+              {gamesOpen && (
+                <div className="ml-5 space-y-1 border-l border-ink-600/80 pl-2">
+                  <Link
+                    href="/type-rush"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                      isTypeRush ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                    }`}
+                  >
+                    <Car className="h-4 w-4" />
+                    Бичих уралдаан
+                  </Link>
+                  <Link
+                    href="/draw-guess"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                      isDrawGuess ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                    }`}
+                  >
+                    <Palette className="h-4 w-4" />
+                    Зураг таах
+                  </Link>
+                </div>
+              )}
 
               <Link
                 href="/rule"

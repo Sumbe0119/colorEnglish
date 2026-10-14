@@ -1,5 +1,5 @@
 // backend/src/draw-guess/draw-guess.service.ts
-// Зурж таах тоглоомын өрөөнүүд — санах ойд хадгална (нэг backend instance).
+// Зураг таах тоглоомын өрөөнүүд — санах ойд хадгална (нэг backend instance).
 // Урсгал: lobby → (choosing → drawing → reveal) × (тоглогч бүр × ROUNDS) → finished.
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -78,6 +78,8 @@ interface Room {
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+/** Үсэг мөн үү — зай, зураас зэрэг тусгай тэмдэгт нуугдахгүй, тип болохгүй. */
+const isLetter = (ch: string) => /[a-z]/i.test(ch);
 
 function normalizeGuess(s: string): string {
   return (s ?? '')
@@ -498,7 +500,7 @@ export class DrawGuessService {
     room.turnStartAt = Date.now();
     room.turnEndAt = room.turnStartAt + TURN_MS;
 
-    const letters = [...word.word].filter((ch) => ch !== ' ').length;
+    const letters = [...word.word].filter((ch) => isLetter(ch)).length;
     const maxHints = Math.max(0, letters - 1);
     for (let i = 1; i * HINT_EVERY_MS < TURN_MS && i <= maxHints; i++) {
       room.timers.push(
@@ -523,7 +525,7 @@ export class DrawGuessService {
     const chars = [...room.word.word];
     const hidden: number[] = [];
     chars.forEach((ch, i) => {
-      if (ch !== ' ' && !room.revealed.has(i)) hidden.push(i);
+      if (isLetter(ch) && !room.revealed.has(i)) hidden.push(i);
     });
     // Үгийг бүхэлд нь нээхгүй — дор хаяж нэг үсэг нуугдсан хэвээр байна
     if (hidden.length <= 1) return;
@@ -647,7 +649,7 @@ export class DrawGuessService {
 
   private masked(room: Room): string | null {
     if (room.status !== 'drawing' || !room.word) return null;
-    return [...room.word.word].map((ch, i) => (ch === ' ' ? ' ' : room.revealed.has(i) ? ch : '_')).join('');
+    return [...room.word.word].map((ch, i) => (!isLetter(ch) ? ch : room.revealed.has(i) ? ch : '_')).join('');
   }
 
   private toState(room: Room): RoomState {

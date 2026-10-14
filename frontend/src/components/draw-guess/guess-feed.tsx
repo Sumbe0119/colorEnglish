@@ -52,17 +52,18 @@ export function GuessFeed({ items, canGuess, disabledNote, onGuess }: Props) {
   };
 
   return (
-    <div className="flex h-full min-h-[320px] flex-col rounded-2xl border border-ink-600/80 bg-ink-900 shadow-card lg:min-h-0">
-      <div className="border-b border-ink-600/80 px-4 py-2.5">
+    <div className="flex h-full flex-col rounded-2xl border border-ink-600/80 bg-ink-900 shadow-card">
+      <div className="hidden border-b border-ink-600/80 px-4 py-2.5 lg:block">
         <p className="text-xs font-medium uppercase tracking-wider text-mist-500">Таалтууд</p>
       </div>
-      <div ref={listRef} className="ce-scroll flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
+      <div ref={listRef} className="ce-scroll order-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 py-2.5 sm:py-3">
         {items.length === 0 && <p className="text-xs text-mist-500">Таасан үгнүүд энд урсана…</p>}
         {items.map((it) => (
           <FeedRow key={it.id} item={it} />
         ))}
       </div>
-      <form onSubmit={submit} className="border-t border-ink-600/80 p-2.5">
+      {/* Утсан дээр input-ийг самбарын шууд доор (жагсаалтын дээр) байрлуулна — гүйлгэлгүй бичнэ */}
+      <form onSubmit={submit} className="order-1 border-b border-ink-600/80 p-2 lg:order-3 lg:border-b-0 lg:border-t lg:p-2.5">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -73,7 +74,8 @@ export function GuessFeed({ items, canGuess, disabledNote, onGuess }: Props) {
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
-            className="w-full rounded-xl border border-ink-600 bg-ink-800 px-3 py-2.5 text-sm text-mist-50 outline-none placeholder:text-mist-500 focus:border-brand disabled:opacity-60"
+            // text-base: iOS Safari 16px-ээс бага input дээр focus хийхэд zoom хийдэг
+            className="w-full rounded-xl border border-ink-600 bg-ink-800 px-3 py-2.5 text-base text-mist-50 outline-none placeholder:text-mist-500 focus:border-brand disabled:opacity-60 sm:text-sm"
           />
           <button
             type="submit"

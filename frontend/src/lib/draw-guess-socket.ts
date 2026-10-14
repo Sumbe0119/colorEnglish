@@ -1,5 +1,5 @@
 // frontend/src/lib/draw-guess-socket.ts
-// Зурж таах тоглоомын Socket.IO client + backend-тэй ижил төрлүүд (backend/src/draw-guess/draw-guess.types.ts).
+// Зураг таах тоглоомын Socket.IO client + backend-тэй ижил төрлүүд (backend/src/draw-guess/draw-guess.types.ts).
 import { io, Socket } from 'socket.io-client';
 import { getAccessToken } from '@/lib/api';
 import { socketBaseUrl } from '@/lib/type-rush-socket';

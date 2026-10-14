@@ -74,7 +74,7 @@ export default function DashboardPage() {
             <Palette className="h-7 w-7" />
           </div>
           <div className="flex-1">
-            <p className="font-display text-lg font-semibold text-mist-50">Тоглоом — зурж таах</p>
+            <p className="font-display text-lg font-semibold text-mist-50">Тоглоом — зураг таах</p>
             <p className="mt-1 text-sm text-mist-400">
               Найзуудтайгаа бөөнөөрөө: нэг нь англи үгийг зурна, бусад нь таана. 40 сек, 10 сек тутамд үсгийн тип, түрүүлж таасан нь их оноо авна.
             </p>
