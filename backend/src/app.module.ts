@@ -17,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { ReadingModule } from './reading/reading.module';
 import { GrammarModule } from './grammar/grammar.module';
 import { TypeRushModule } from './type-rush/type-rush.module';
+import { DrawGuessModule } from './draw-guess/draw-guess.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -45,6 +46,7 @@ import { AppController } from './app.controller';
     ReadingModule,
     GrammarModule,
     TypeRushModule,
+    DrawGuessModule,
   ],
   controllers: [AppController],
 })

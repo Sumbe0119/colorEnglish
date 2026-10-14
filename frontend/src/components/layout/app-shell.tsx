@@ -5,7 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Car, Library, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Car, Library, LogOut, Menu, Palette, Settings, UserRound, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { logout } from "@/lib/services";
 import { clearOnboardingDraft } from "@/lib/onboarding-draft";
@@ -38,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isStories = pathname === "/reading" || (pathname.startsWith("/reading/") && !pathname.startsWith("/reading/words"));
   const isMyWords = pathname.startsWith("/reading/words");
   const isTypeRush = pathname.startsWith("/type-rush");
+  const isDrawGuess = pathname.startsWith("/draw-guess");
   const isProfile = pathname.startsWith("/profile");
   const isRuleA2 = pathname.startsWith("/rule/a2");
   const isRuleB1 = pathname.startsWith("/rule/b1");
@@ -82,7 +83,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }`}
           >
             <Car className="h-4 w-4" />
-            Тоглоом
+            Бичих уралдаан
+          </Link>
+          <Link
+            href="/draw-guess"
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              isDrawGuess ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+            }`}
+          >
+            <Palette className="h-4 w-4" />
+            Зурж таах
           </Link>
           <Link
             href="/rule"
@@ -248,7 +258,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <Car className="h-4 w-4" />
-                Тоглоом
+                Бичих уралдаан
+              </Link>
+
+              <Link
+                href="/draw-guess"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isDrawGuess ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <Palette className="h-4 w-4" />
+                Зурж таах
               </Link>
 
               <Link
