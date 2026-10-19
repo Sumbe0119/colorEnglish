@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Car, Palette } from 'lucide-react';
+import { BookOpen, ArrowRight, Car, Palette, Puzzle } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { AppShell } from '@/components/layout/app-shell';
 
@@ -77,6 +77,22 @@ export default function DashboardPage() {
             <p className="font-display text-lg font-semibold text-mist-50">Тоглоом — зураг таах</p>
             <p className="mt-1 text-sm text-mist-400">
               Найзуудтайгаа бөөнөөрөө: нэг нь англи үгийг зурна, бусад нь таана. 40 сек, 10 сек тутамд үсгийн тип, түрүүлж таасан нь их оноо авна.
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-mist-500 group-hover:text-brand" />
+        </Link>
+
+        <Link
+          href="/sentence-builder"
+          className="mt-4 group flex items-center gap-5 rounded-2xl border border-brand/30 bg-brand/5 p-6 transition-colors hover:border-brand/50 hover:bg-brand/10"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand/15 text-brand">
+            <Puzzle className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display text-lg font-semibold text-mist-50">Тоглоом — өгүүлбэр бүтээх</p>
+            <p className="mt-1 text-sm text-mist-400">
+              Санамсаргүй 3 үгээр хялбар англи өгүүлбэр бүтээ. 30 секундийн таймер, зөв бол салют, чадахгүй бол Tip.
             </p>
           </div>
           <ArrowRight className="h-5 w-5 text-mist-500 group-hover:text-brand" />
