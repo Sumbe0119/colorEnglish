@@ -14,9 +14,9 @@ export type SentencePuzzle = {
 };
 
 export const ROUNDS_PER_GAME = 10;
-/** 5 үгтэй өгүүлбэрийн хугацаа; нэмэлт үг бүрт SECONDS_PER_EXTRA_WORD нэмэгдэнэ. */
+/** 5 үгтэй өгүүлбэрийн хугацаа; нэмэлт үг бүрт SECONDS_PER_EXTRA_WORD нэмэгдэнэ (8 үг = 60с). */
 export const BASE_ROUND_SECONDS = 30;
-export const SECONDS_PER_EXTRA_WORD = 6;
+export const SECONDS_PER_EXTRA_WORD = 10;
 export const MIN_WORDS = 5;
 export const MAX_WORDS = 8;
 /** Tip ашигласан раундын тогтмол оноо. */
@@ -169,7 +169,7 @@ export function wordCountForRound(round: number, total = ROUNDS_PER_GAME): numbe
   return Math.max(MIN_WORDS, Math.min(MAX_WORDS, n));
 }
 
-/** Тухайн өгүүлбэрт өгөх секунд: 5 үг = 30с, үг бүрт +6с (8 үг = 48с). */
+/** Тухайн өгүүлбэрт өгөх секунд: 5 үг = 30с, нэмэлт үг бүрт +10с (8 үг = 60с). */
 export function roundSeconds(puzzle: SentencePuzzle): number {
   return BASE_ROUND_SECONDS + (wordCount(puzzle) - MIN_WORDS) * SECONDS_PER_EXTRA_WORD;
 }

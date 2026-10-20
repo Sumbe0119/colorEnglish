@@ -35,6 +35,7 @@ import {
   roundSeconds,
   saveBestIfBetter,
   scoreFor,
+  SECONDS_PER_EXTRA_WORD,
   shuffledWords,
   wordCount,
   type BestScore,
@@ -418,7 +419,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
   const failed = log.find((r) => r.state === 'fall') ?? null;
 
   return (
-    <div className="relative flex h-[calc(100dvh-6rem)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-ink-600/80 bg-ink-950 shadow-card md:h-[calc(100dvh-8.5rem)] lg:h-[calc(100dvh-5rem)]">
+    <div className="relative flex h-[calc(100dvh-6rem-300px)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-ink-600/80 bg-ink-950 shadow-card md:h-[calc(100dvh-8.5rem-300px)] lg:h-[calc(100dvh-5rem-300px)]">
       {/* ── Тоглоомын дэлгэц ── */}
       <div className="relative min-h-0 flex-1">
         <GameScene
@@ -453,7 +454,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
                 дээр дарж нэм.
               </Rule>
               <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>
-                Тавцан ахих тусам хүндэрнэ: {MIN_WORDS} үгээс эхлээд {MAX_WORDS} үг хүртэл. Үг бүрт +6 секунд.
+                Тавцан ахих тусам хүндэрнэ: {MIN_WORDS} үгээс эхлээд {MAX_WORDS} үг хүртэл. Нэмэлт үг бүрт +{SECONDS_PER_EXTRA_WORD} секунд.
               </Rule>
               <Rule icon={<Skull className="h-3.5 w-3.5 text-danger" />}>
                 Цаг дуусвал тавцан хагарч робот унана — <b className="text-danger">GAME OVER</b>. Амь нэг л бий!
