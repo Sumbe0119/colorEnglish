@@ -604,8 +604,9 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
   const correctCount = log.filter((r) => r.state === 'correct').length;
   const failed = log.find((r) => r.state === 'fall') ?? null;
 
+  // Өндөр — дэлгэцийн өндрийн 70% (h-[70dvh]); доод хязгаар 480px, дээд хязгаар нь header + padding хассан viewport
   return (
-    <div className="relative flex h-[calc(100dvh-6rem-300px)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-ink-600/80 bg-ink-950 shadow-card md:h-[calc(100dvh-8.5rem-300px)] lg:h-[calc(100dvh-5rem-300px)]">
+    <div className="relative flex h-[70dvh] max-h-[calc(100dvh-6rem)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-ink-600/80 bg-ink-950 shadow-card md:max-h-[calc(100dvh-8.5rem)] lg:max-h-[calc(100dvh-5rem)]">
       {/* ── Тоглоомын дэлгэц ── */}
       <div className="relative min-h-0 flex-1">
         <GameScene

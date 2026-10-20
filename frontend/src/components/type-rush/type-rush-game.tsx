@@ -19,7 +19,8 @@ export function TypeRushGame({ playerName, userId }: { playerName: string; userI
     <>
       <style dangerouslySetInnerHTML={{ __html: TR_STYLES }} />
       <Fireworks burst={burst} />
-      <div className="relative flex h-[calc(100dvh-6rem-300px)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-ink-600/80 bg-ink-950 shadow-card md:h-[calc(100dvh-8.5rem-300px)] lg:h-[calc(100dvh-5rem-300px)]">
+      {/* Өндөр — дэлгэцийн өндрийн 70% (h-[70dvh]); доод хязгаар 480px, дээд хязгаар нь header + padding хассан viewport */}
+      <div className="relative flex h-[70dvh] max-h-[calc(100dvh-6rem)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-ink-600/80 bg-ink-950 shadow-card md:max-h-[calc(100dvh-8.5rem)] lg:max-h-[calc(100dvh-5rem)]">
         {mode === 'solo' ? (
           <SoloRace playerName={playerName} mode={mode} onMode={setMode} onFinale={celebrate} />
         ) : (
