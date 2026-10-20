@@ -106,6 +106,21 @@ export const sfx = {
   boom() {
     tone(90, 0.3, { type: 'sawtooth', gain: 0.05, slideTo: 40 });
   },
+  /** Тавцан хагарах — богино шажигнах */
+  crack() {
+    tone(180, 0.06, { type: 'square', gain: 0.07, slideTo: 60 });
+    tone(140, 0.08, { type: 'sawtooth', gain: 0.06, at: 0.07, slideTo: 40 });
+    tone(110, 0.1, { type: 'sawtooth', gain: 0.06, at: 0.16, slideTo: 30 });
+  },
+  /** Робот унах — урт доошилсон исгэрээ */
+  fall() {
+    tone(900, 0.9, { type: 'triangle', gain: 0.09, slideTo: 60 });
+  },
+  /** Game over — минор аккорд доошоо */
+  gameOver() {
+    const notes = [392, 349, 311, 262];
+    notes.forEach((f, i) => tone(f, i === notes.length - 1 ? 0.7 : 0.22, { type: 'square', gain: 0.07, at: 0.2 + i * 0.2 }));
+  },
   /** Тоглоом дууссаны фанфар */
   fanfare() {
     const notes = [523, 659, 784, 1046, 784, 1046];
