@@ -11,19 +11,23 @@ export type SentencePuzzle = {
   mn: string;
   /** Мөн зөв гэж тооцох бусад дараалал. */
   alt?: string[];
+  /** Хүндрэлийн түвшин 1–10 (SENTENCE_LEVELS үүсгэхэд автоматаар бөглөгдөнө). */
+  level?: number;
 };
 
+/** Тоглолт бүр 10 раунд = 10 level (раунд i → level i+1). */
 export const ROUNDS_PER_GAME = 10;
+export const LEVEL_COUNT = 10;
 /**
  * Суурь хугацаа. Үүн дээр үг бүрт SECONDS_PER_WORD, 5-аас илүү үг бүрт SECONDS_PER_EXTRA_WORD нэмэгдэнэ
- * (5 үг = 55с, 8 үг = 94с).
+ * (суурь 30с: 5 үг = 45с, 8 үг = 84с, 12 үг = 136с).
  */
-export const BASE_ROUND_SECONDS = 40;
+export const BASE_ROUND_SECONDS = 30;
 export const SECONDS_PER_EXTRA_WORD = 10;
 /** Өгүүлбэрийн үг тус бүрт нэмэгдэх секунд. */
 export const SECONDS_PER_WORD = 3;
 export const MIN_WORDS = 5;
-export const MAX_WORDS = 8;
+export const MAX_WORDS = 12;
 /** Tip ашигласан раундын тогтмол оноо. */
 export const POINTS_WITH_TIP = 4;
 /** Үг тутмын үндсэн оноо (5 үг = 10, 8 үг = 16). */
@@ -31,10 +35,8 @@ export const POINTS_PER_WORD = 2;
 /** Үлдсэн хугацааны урамшуулал (дээд тал нь). */
 export const BONUS_MAX = 10;
 
-type Pool = Record<number, SentencePuzzle[]>;
-
-/** Үгийн тоогоор бүлэглэсэн өгүүлбэрийн сан. Үгийн тоо яг таарч байх ёстой (тестээр шалгана). */
-export const SENTENCE_POOL: Pool = {
+/** Level 1–4: үгийн тоогоор (5, 6, 7, 8) бүлэглэсэн хялбар өгүүлбэрүүд (одоо цаг, be, энгийн бүтэц). */
+const BY_LENGTH: Record<number, SentencePuzzle[]> = {
   5: [
     { answer: 'I go to school today', mn: 'Би өнөөдөр сургуульд явна.', alt: ['Today I go to school'] },
     { answer: 'She likes to read books', mn: 'Тэр ном уншихдаа дуртай.' },
@@ -147,8 +149,146 @@ export const SENTENCE_POOL: Pool = {
   ],
 };
 
+/** Level 5: өнгөрсөн ба ирээдүй цаг (past simple, will / going to), 8–9 үг */
+const LEVEL_5: SentencePuzzle[] = [
+  { answer: 'Yesterday we visited my grandparents in the countryside', mn: 'Өчигдөр бид хөдөө өвөө эмээ дээрээ очсон.', alt: ['We visited my grandparents in the countryside yesterday'] },
+  { answer: 'She will call you after the meeting tomorrow', mn: 'Тэр маргааш хурлын дараа чам руу залгана.', alt: ['Tomorrow she will call you after the meeting'] },
+  { answer: 'They did not go to school last Monday', mn: 'Тэд өнгөрсөн даваа гарагт сургуульд яваагүй.', alt: ['Last Monday they did not go to school'] },
+  { answer: 'I am going to buy a new bicycle soon', mn: 'Би удахгүй шинэ дугуй авах гэж байна.' },
+  { answer: 'We played basketball in the park last weekend', mn: 'Бид өнгөрсөн амралтын өдөр цэцэрлэгт хүрээлэнд сагсан бөмбөг тоглосон.', alt: ['Last weekend we played basketball in the park'] },
+  { answer: 'He forgot his keys at the office again', mn: 'Тэр түлхүүрээ дахиад л оффист мартчихжээ.' },
+  { answer: 'My parents will travel to Japan next spring', mn: 'Аав ээж маань ирэх хавар Япон руу аялна.', alt: ['Next spring my parents will travel to Japan'] },
+  { answer: 'The students finished the exam before the bell rang', mn: 'Оюутнууд хонх дуугарахаас өмнө шалгалтаа дуусгасан.' },
+  { answer: 'Did you see the new movie last night', mn: 'Чи өчигдөр орой шинэ киног үзсэн үү?' },
+  { answer: 'We are going to have a party on Friday', mn: 'Бид баасан гарагт үдэшлэг хийх гэж байна.', alt: ['On Friday we are going to have a party'] },
+  { answer: 'She wrote a long letter to her best friend', mn: 'Тэр хамгийн сайн найздаа урт захиа бичсэн.' },
+  { answer: 'I will help you with your homework tonight', mn: 'Би өнөө орой чамд гэрийн даалгавраар чинь тусална.', alt: ['Tonight I will help you with your homework'] },
+  { answer: 'The bus arrived twenty minutes late this morning', mn: 'Өнөө өглөө автобус хорин минут хоцорч ирсэн.', alt: ['This morning the bus arrived twenty minutes late'] },
+];
+
+/** Level 6: present perfect, past continuous, 8–10 үг */
+const LEVEL_6: SentencePuzzle[] = [
+  { answer: 'I have never been to the sea before', mn: 'Би урьд өмнө далайд очиж үзээгүй.' },
+  { answer: 'She has already finished reading that long book', mn: 'Тэр нөгөө урт номоо аль хэдийн уншиж дууссан.' },
+  { answer: 'We were watching TV when the lights went out', mn: 'Гэрэл унтрахад бид зурагт үзэж байсан.', alt: ['When the lights went out we were watching TV'] },
+  { answer: 'Have you ever eaten Korean food in Ulaanbaatar', mn: 'Чи Улаанбаатарт солонгос хоол идэж үзсэн үү?' },
+  { answer: 'They have lived in this city for ten years', mn: 'Тэд энэ хотод арван жил амьдарч байна.' },
+  { answer: 'He was sleeping while his mother was cooking dinner', mn: 'Ээжийг нь оройн хоол хийж байхад тэр унтаж байсан.', alt: ['While his mother was cooking dinner he was sleeping'] },
+  { answer: 'My brother has just bought a new phone', mn: 'Ах маань дөнгөж сая шинэ утас авлаа.' },
+  { answer: 'It was raining when we left the house', mn: 'Биднийг гэрээс гарахад бороо орж байсан.', alt: ['When we left the house it was raining'] },
+  { answer: 'I have known my best friend since childhood', mn: 'Би хамгийн сайн найзтайгаа багаасаа танил.' },
+  { answer: 'The children were playing outside all afternoon yesterday', mn: 'Хүүхдүүд өчигдөр үдээс хойш бүхэлдээ гадаа тоглож байсан.', alt: ['Yesterday the children were playing outside all afternoon'] },
+  { answer: 'She has not seen her cousin for a long time', mn: 'Тэр үеэлтэйгээ удаан хугацаанд уулзаагүй.' },
+  { answer: 'We have just arrived at the airport in Tokyo', mn: 'Бид дөнгөж сая Токиогийн нисэх буудалд ирлээ.' },
+  { answer: 'Somebody was knocking on the door at midnight', mn: 'Шөнө дунд хэн нэгэн хаалга тогшиж байсан.', alt: ['At midnight somebody was knocking on the door'] },
+];
+
+/** Level 7: modal үйл үг (should, must, can, may, might), харьцуулал, 8–10 үг */
+const LEVEL_7: SentencePuzzle[] = [
+  { answer: 'You should drink more water during the hot summer', mn: 'Чи халуун зуны улиралд илүү их ус уух хэрэгтэй.' },
+  { answer: 'This mountain is much higher than the one near us', mn: 'Энэ уул манай ойролцоох уулаас хамаагүй өндөр.' },
+  { answer: 'We must finish the project before the end of May', mn: 'Бид тавдугаар сарын эцсээс өмнө төслөө дуусгах ёстой.' },
+  { answer: 'She is the best singer in our whole school', mn: 'Тэр манай бүх сургуулийн хамгийн сайн дуучин.' },
+  { answer: 'Can you speak a little more slowly please', mn: 'Та жаахан удаан ярьж өгнө үү?' },
+  { answer: 'My new laptop is faster than my old one', mn: 'Миний шинэ зөөврийн компьютер хуучныхаасаа хурдан.' },
+  { answer: 'Students may not use their phones during the exam', mn: 'Оюутнууд шалгалтын үеэр утсаа ашиглаж болохгүй.' },
+  { answer: 'He could swim across the river when he was young', mn: 'Тэр залуудаа голыг сэлж гаталж чаддаг байсан.' },
+  { answer: 'Winter in Mongolia is colder than winter in Korea', mn: 'Монголын өвөл Солонгосын өвлөөс хүйтэн.' },
+  { answer: 'You do not have to come early tomorrow morning', mn: 'Чи маргааш өглөө эрт ирэх шаардлагагүй.', alt: ['Tomorrow morning you do not have to come early'] },
+  { answer: 'This is the most interesting book I have read', mn: 'Энэ бол миний уншсан хамгийн сонирхолтой ном.' },
+  { answer: 'We might go camping if the weather is nice', mn: 'Цаг агаар сайхан байвал бид аялалд гарч магадгүй.', alt: ['If the weather is nice we might go camping'] },
+  { answer: 'Her little brother runs faster than anyone in the class', mn: 'Түүний дүү ангийнхаа хэнээс ч хурдан гүйдэг.' },
+];
+
+/** Level 8: нөхцөлт өгүүлбэр (if / unless), холбоос үгтэй (who, which, where, whose), 9–11 үг */
+const LEVEL_8: SentencePuzzle[] = [
+  { answer: 'If it rains tomorrow we will stay at home', mn: 'Маргааш бороо орвол бид гэртээ байна.', alt: ['We will stay at home if it rains tomorrow'] },
+  { answer: 'The woman who lives next door is a famous doctor', mn: 'Хажуу айлд амьдардаг эмэгтэй бол алдартай эмч.' },
+  { answer: 'This is the restaurant where we had dinner last year', mn: 'Энэ бол бидний өнгөрсөн жил оройн хоол идсэн ресторан.' },
+  { answer: 'If I were rich I would travel around the world', mn: 'Хэрэв би баян байсан бол дэлхийгээр аялах байсан.', alt: ['I would travel around the world if I were rich'] },
+  { answer: 'The book that you gave me was really interesting', mn: 'Чиний надад өгсөн ном үнэхээр сонирхолтой байсан.' },
+  { answer: 'I will lend you my car if you drive carefully', mn: 'Чи болгоомжтой жолоодвол би машинаа чамд өгнө.', alt: ['If you drive carefully I will lend you my car'] },
+  { answer: 'He is the teacher whose class everyone wants to join', mn: 'Тэр бол ангид нь бүгд орохыг хүсдэг багш.' },
+  { answer: 'Unless you study harder you will fail the exam', mn: 'Чи илүү хичээж суралцахгүй бол шалгалтад унана.', alt: ['You will fail the exam unless you study harder'] },
+  { answer: 'The movie which we watched yesterday was about space', mn: 'Бидний өчигдөр үзсэн кино сансрын тухай байсан.' },
+  { answer: 'When the water boils add the rice and some salt', mn: 'Ус буцлахаар будаа болон жаахан давс нэм.' },
+  { answer: 'People who exercise every day usually feel much better', mn: 'Өдөр бүр дасгал хийдэг хүмүүс ихэвчлэн хамаагүй сайн мэдрэмжтэй байдаг.' },
+  { answer: 'If you heat ice it turns into water quickly', mn: 'Мөсийг халаавал тэр хурдан ус болдог.', alt: ['Ice turns into water quickly if you heat it'] },
+  { answer: 'I do not know the man who is talking to Bat', mn: 'Баттай ярьж байгаа эрийг би танихгүй.' },
+];
+
+/** Level 9: үйлдэгдэх хэв (passive), шууд бус яриа, too / enough, 9–11 үг */
+const LEVEL_9: SentencePuzzle[] = [
+  { answer: 'This beautiful bridge was built more than a hundred years ago', mn: 'Энэ үзэсгэлэнт гүүрийг зуу гаруй жилийн өмнө барьсан.' },
+  { answer: 'She told me that she would come to the party', mn: 'Тэр надад үдэшлэгт ирнэ гэж хэлсэн.' },
+  { answer: 'English is spoken in many countries around the world', mn: 'Англи хэлээр дэлхийн олон оронд ярьдаг.' },
+  { answer: 'The letter was sent to the wrong address by mistake', mn: 'Захиаг андуураад буруу хаягаар илгээжээ.' },
+  { answer: 'My teacher said that the test would be very easy', mn: 'Багш маань шалгалт маш амархан байна гэж хэлсэн.' },
+  { answer: 'The tea was too hot for the little girl to drink', mn: 'Цай бяцхан охиныг уухад хэтэрхий халуун байсан.' },
+  { answer: 'These old photos were taken by my grandfather in 1980', mn: 'Эдгээр хуучин зургийг өвөө маань 1980 онд авсан.' },
+  { answer: 'He asked me whether I had seen his black jacket', mn: 'Тэр надаас хар хүрмийг нь харсан эсэхийг асуусан.' },
+  { answer: 'The new hospital will be opened by the mayor next month', mn: 'Шинэ эмнэлгийг ирэх сард хотын дарга нээнэ.', alt: ['Next month the new hospital will be opened by the mayor'] },
+  { answer: 'She is not old enough to drive a car yet', mn: 'Тэр машин жолоодох насанд хараахан хүрээгүй.' },
+  { answer: 'Thousands of trees are planted in the city every spring', mn: 'Хавар бүр хотод олон мянган мод тарьдаг.', alt: ['Every spring thousands of trees are planted in the city'] },
+  { answer: 'They said that they had never visited the Gobi desert', mn: 'Тэд Говийн цөлд хэзээ ч очиж үзээгүй гэж хэлсэн.' },
+  { answer: 'The homework must be handed in before Friday afternoon', mn: 'Гэрийн даалгаврыг баасан гарагийн үдээс өмнө өгөх ёстой.' },
+];
+
+/** Level 10: нийлмэл өгүүлбэр (although, even though, by the time, wish, 3-р нөхцөл, perfect continuous), 10–12 үг */
+const LEVEL_10: SentencePuzzle[] = [
+  { answer: 'Although it was snowing heavily we decided to climb the mountain', mn: 'Цас их орж байсан ч бид уул руу авирахаар шийдсэн.' },
+  { answer: 'If she had studied harder she would have passed the exam', mn: 'Тэр илүү хичээж суралцсан бол шалгалтад тэнцэх байсан.' },
+  { answer: 'By the time we arrived the concert had already started', mn: 'Биднийг ирэх үед концерт аль хэдийн эхэлсэн байлаа.' },
+  { answer: 'I wish I could speak English as fluently as you', mn: 'Би чам шиг англиар чөлөөтэй ярьдаг байсан ч болоосой.' },
+  { answer: 'The man who was arrested yesterday had stolen three cars', mn: 'Өчигдөр баривчлагдсан эр гурван машин хулгайлсан байжээ.' },
+  { answer: 'Even though he was tired he kept working until midnight', mn: 'Тэр ядарсан ч шөнө дунд хүртэл ажилласаар байсан.' },
+  { answer: 'She has been learning English since she was six years old', mn: 'Тэр зургаан настайгаасаа хойш англи хэл сурч байгаа.' },
+  { answer: 'Nobody knew why the old factory had been closed so suddenly', mn: 'Хуучин үйлдвэр яагаад ийм гэнэт хаагдсаныг хэн ч мэдээгүй.' },
+  { answer: 'The faster you finish your work the sooner you can leave', mn: 'Ажлаа хэдий чинээ хурдан дуусгана төдий чинээ эрт явж болно.' },
+  { answer: 'It is important that children learn to read at an early age', mn: 'Хүүхэд бага наснаасаа уншиж сурах нь чухал.' },
+  { answer: 'He would have caught the train if he had left earlier', mn: 'Тэр эрт гарсан бол галт тэргэндээ амжих байсан.' },
+  { answer: 'We have been waiting for the bus for almost an hour', mn: 'Бид автобусыг бараг нэг цаг хүлээж байна.' },
+  { answer: 'Despite the heavy traffic they managed to arrive on time', mn: 'Замын түгжрэлтэй байсан ч тэд цагтаа ирж чадсан.' },
+];
+
+export type SentenceLevel = {
+  level: number;
+  /** Богино нэр (HUD, консол) */
+  title: string;
+  /** Дүрмийн тайлбар (эхлэх дэлгэц, зөвлөмж) */
+  grammar: string;
+  sentences: SentencePuzzle[];
+};
+
+function withLevel(level: number, list: SentencePuzzle[]): SentencePuzzle[] {
+  return list.map((p) => ({ ...p, level }));
+}
+
+/** 1–10 level: тавцан бүр нэг level. Level ахих тусам үг нэмэгдэж, дүрэм хүндэрнэ. */
+export const SENTENCE_LEVELS: SentenceLevel[] = [
+  { level: 1, title: 'Одоо цаг · энгийн', grammar: 'Энгийн одоо цаг, be үйл үг', sentences: withLevel(1, BY_LENGTH[5]) },
+  { level: 2, title: 'Одоо цаг · цагийн үг', grammar: 'Одоо цаг, цагийн нэмэлт (every day, at seven)', sentences: withLevel(2, BY_LENGTH[6]) },
+  { level: 3, title: 'Одоо үргэлжлэх', grammar: 'Одоо цаг ба одоо үргэлжлэх цаг (is doing)', sentences: withLevel(3, BY_LENGTH[7]) },
+  { level: 4, title: 'Урт өгүүлбэр', grammar: 'Урт өгүүлбэр, going to, after / before', sentences: withLevel(4, BY_LENGTH[8]) },
+  { level: 5, title: 'Өнгөрсөн · ирээдүй', grammar: 'Past simple, will, going to', sentences: withLevel(5, LEVEL_5) },
+  { level: 6, title: 'Perfect · continuous', grammar: 'Present perfect (have done), past continuous (was doing)', sentences: withLevel(6, LEVEL_6) },
+  { level: 7, title: 'Modal · харьцуулал', grammar: 'should / must / can / may, -er than, the most', sentences: withLevel(7, LEVEL_7) },
+  { level: 8, title: 'If · who / which', grammar: 'Нөхцөлт өгүүлбэр, холбоос үг (who, which, where, whose)', sentences: withLevel(8, LEVEL_8) },
+  { level: 9, title: 'Passive · шууд бус яриа', grammar: 'Үйлдэгдэх хэв (was built), said that, too / enough', sentences: withLevel(9, LEVEL_9) },
+  { level: 10, title: 'Нийлмэл өгүүлбэр', grammar: 'Although, by the time, wish, 3-р нөхцөл, perfect continuous', sentences: withLevel(10, LEVEL_10) },
+];
+
 /** Бүх өгүүлбэр нэг жагсаалтаар (тест, статистик). */
-export const SENTENCE_PUZZLES: SentencePuzzle[] = Object.values(SENTENCE_POOL).flat();
+export const SENTENCE_PUZZLES: SentencePuzzle[] = SENTENCE_LEVELS.flatMap((l) => l.sentences);
+
+export function levelInfo(level: number): SentenceLevel {
+  return SENTENCE_LEVELS[Math.max(1, Math.min(LEVEL_COUNT, level)) - 1];
+}
+
+/** Эзэмшлийн түлхүүр: жижиг үсэг, цэг таслалгүй хариулт. */
+export function puzzleKey(puzzle: SentencePuzzle): string {
+  return normalizeSentence(puzzle.answer);
+}
 
 /** Өгүүлбэрийн үгс (цэг таслалгүй). Эхний үгийг жижиг үсгээр — зөв дарааллыг үсгээр таахгүй. */
 export function wordsOf(puzzle: SentencePuzzle): string[] {
@@ -167,14 +307,14 @@ export function wordCount(puzzle: SentencePuzzle): number {
   return tokenize(puzzle.answer).length;
 }
 
-/** Раунд ахих тусам үгийн тоо: 10 раунд → 5,5,5,6,6,6,7,7,8,8. */
-export function wordCountForRound(round: number, total = ROUNDS_PER_GAME): number {
-  const k = total <= 1 ? 1 : round / (total - 1); // 0 → 1
-  const n = MIN_WORDS + Math.floor(k * (MAX_WORDS - MIN_WORDS + 1) * 0.999);
-  return Math.max(MIN_WORDS, Math.min(MAX_WORDS, n));
+/** Раунд (0-based) → level 1..10. Раундын тоо 10-аас өөр бол тэнцүү тараана. */
+export function levelForRound(round: number, total = ROUNDS_PER_GAME): number {
+  if (total <= 1) return 1;
+  const k = round / (total - 1); // 0 → 1
+  return Math.max(1, Math.min(LEVEL_COUNT, 1 + Math.floor(k * LEVEL_COUNT * 0.999)));
 }
 
-/** Тухайн өгүүлбэрт өгөх секунд: суурь 40с + үг бүрт 3с + нэмэлт үг бүрт 10с (5 үг = 55с, 8 үг = 94с). */
+/** Тухайн өгүүлбэрт өгөх секунд: суурь + үг бүрт 3с + 5-аас илүү үг бүрт 10с (суурь 30с: 5 үг = 45с, 8 үг = 84с). */
 export function roundSeconds(puzzle: SentencePuzzle): number {
   const n = wordCount(puzzle);
   return BASE_ROUND_SECONDS + n * SECONDS_PER_WORD + (n - MIN_WORDS) * SECONDS_PER_EXTRA_WORD;
@@ -234,29 +374,57 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * Нэг тоглолтын өгүүлбэрүүд: раунд бүрт хүндрэлд тохирох урттай, давтагдахгүй санамсаргүй өгүүлбэр.
- * Тухайн урттай сан дуусвал хамгийн ойр урттайгаас авна.
+ * Нэг тоглолтын өгүүлбэрүүд: раунд бүр өөрийн level-ээс санамсаргүй нэг өгүүлбэр.
+ * Асуудалгүй зөв хариулж эзэмшсэн (mastered) өгүүлбэрийг алгасна; тухайн level-ийн бүх өгүүлбэр
+ * эзэмшигдсэн бол тэднээс дахин авна (тоглоом зогсохгүй).
  */
-export function pickRoundPuzzles(count = ROUNDS_PER_GAME): SentencePuzzle[] {
-  const pools: Pool = {};
-  for (const [len, list] of Object.entries(SENTENCE_POOL)) pools[Number(len)] = shuffle(list);
+export function pickRoundPuzzles(count = ROUNDS_PER_GAME, mastered: ReadonlySet<string> = new Set()): SentencePuzzle[] {
+  const fresh = new Map<number, SentencePuzzle[]>();
+  const all = new Map<number, SentencePuzzle[]>();
+  for (const lv of SENTENCE_LEVELS) {
+    all.set(lv.level, shuffle(lv.sentences));
+    fresh.set(lv.level, shuffle(lv.sentences.filter((p) => !mastered.has(puzzleKey(p)))));
+  }
   const out: SentencePuzzle[] = [];
   for (let i = 0; i < count; i++) {
-    const want = wordCountForRound(i, count);
-    let picked: SentencePuzzle | undefined;
-    for (let d = 0; d <= MAX_WORDS - MIN_WORDS && !picked; d++) {
-      for (const len of [want + d, want - d]) {
-        const pool = pools[len];
-        if (pool && pool.length) {
-          picked = pool.pop();
-          break;
-        }
-      }
-    }
+    const level = levelForRound(i, count);
+    const picked = fresh.get(level)?.pop() ?? all.get(level)?.pop();
     if (!picked) break;
     out.push(picked);
   }
   return out;
+}
+
+/** Хэрэглэгч тухайн level-д хэдэн өгүүлбэр эзэмшсэнийг тоолно (эхлэх дэлгэцийн явц). */
+export function masteryByLevel(mastered: ReadonlySet<string>): { level: number; done: number; total: number }[] {
+  return SENTENCE_LEVELS.map((lv) => ({
+    level: lv.level,
+    done: lv.sentences.filter((p) => mastered.has(puzzleKey(p))).length,
+    total: lv.sentences.length,
+  }));
+}
+
+const MASTERY_KEY = 'ce.sentence-builder.mastered';
+
+/** Эзэмшсэн өгүүлбэрүүдийн түлхүүр (localStorage — сервертэй нэгтгэж ашиглана). */
+export function loadMasteredLocal(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(MASTERY_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(arr) ? arr.filter((k): k is string => typeof k === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function saveMasteredLocal(keys: ReadonlySet<string>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(MASTERY_KEY, JSON.stringify([...keys]));
+  } catch {
+    // хадгалах боломжгүй (private mode г.м.) — үл тоомсорлоно
+  }
 }
 
 /** Үгсийг холино — анхны дараалалтай яг адил бол дахин холино. */

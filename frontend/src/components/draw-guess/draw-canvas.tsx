@@ -4,8 +4,10 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Eraser, PaintBucket, Pen, Trash2, Undo2 } from 'lucide-react';
 import type { DrawOp, DrawTool } from '@/lib/draw-guess-socket';
+import { sfx } from '@/lib/draw-guess-sfx';
 
 export const CANVAS_W = 800;
 export const CANVAS_H = 600;
@@ -52,6 +54,15 @@ interface Props {
   onUndo?: () => void;
   onClear?: () => void;
   overlay?: React.ReactNode;
+  /**
+   * Хэрэгслийн самбарыг энэ элемент рүү portal-оор зурна (бүтэн хуудасны консол).
+   * undefined → самбарын доор шууд; null → host mount болтол зурахгүй.
+   */
+  toolbarHost?: HTMLElement | null;
+  /** Самбарын гадна хүрээний нэмэлт class (бүтэн хуудасны горимд easel дотор) */
+  frameClassName?: string;
+  /** Хэрэгслийн самбарын төгсгөлд нэмэх товчнууд (дуу, гарах) */
+  toolbarExtra?: React.ReactNode;
 }
 
 interface Live {
@@ -173,7 +184,7 @@ function renderOp(c: CanvasRenderingContext2D, op: DrawOp) {
 }
 
 export const DrawCanvas = forwardRef<CanvasHandle, Props>(function DrawCanvas(
-  { canDraw, onOp, onUndo, onClear, overlay },
+  { canDraw, onOp, onUndo, onClear, overlay, toolbarHost, frameClassName, toolbarExtra },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -271,6 +282,7 @@ export const DrawCanvas = forwardRef<CanvasHandle, Props>(function DrawCanvas(
     opsRef.current.push(op);
     paintDot(c, op, x, y);
     liveRef.current = { op, last: [x, y], pending: [x, y], lastEmit: 0 };
+    sfx.brush();
     flush();
   };
 
@@ -316,86 +328,105 @@ export const DrawCanvas = forwardRef<CanvasHandle, Props>(function DrawCanvas(
 
   const cursor = !canDraw ? 'default' : tool === 'fill' ? 'cell' : 'crosshair';
 
-  return (
-    <div className="space-y-3">
-      <div className="relative overflow-hidden rounded-2xl border border-ink-600/80 bg-white shadow-card">
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          className="block w-full select-none"
-          // Таагч дээр touch-action auto байх ёстой — үгүй бол утсан дээр самбарыг дарж хуудас гүйлгэж чадахгүй
-          style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}`, touchAction: canDraw ? 'none' : 'auto', cursor }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onPointerLeave={(e) => liveRef.current && onPointerUp(e)}
-        />
-        {overlay}
+  const toolbar = canDraw ? (
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <div className="grid grid-cols-10 gap-[3px]">
+        {PALETTE.map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-label={`Өнгө ${p}`}
+            onClick={() => {
+              setColor(p);
+              if (tool === 'eraser') setTool('pen');
+              sfx.tap();
+            }}
+            className={`h-5 w-5 rounded-md border transition-transform sm:h-6 sm:w-6 ${
+              color === p && tool !== 'eraser' ? 'scale-110 border-mist-50 ring-2 ring-brand/60' : 'border-ink-950/60'
+            }`}
+            style={{ background: p }}
+          />
+        ))}
       </div>
 
-      {canDraw && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-ink-600/80 bg-ink-900 p-2 sm:gap-3 sm:p-3">
-          <div className="grid grid-cols-10 gap-1">
-            {PALETTE.map((p) => (
-              <button
-                key={p}
-                type="button"
-                aria-label={`Өнгө ${p}`}
-                onClick={() => {
-                  setColor(p);
-                  if (tool === 'eraser') setTool('pen');
-                }}
-                className={`h-7 w-7 rounded-md border transition-transform sm:h-6 sm:w-6 ${
-                  color === p && tool !== 'eraser' ? 'scale-110 border-brand ring-2 ring-brand/40' : 'border-ink-600'
-                }`}
-                style={{ background: p }}
-              />
-            ))}
-          </div>
+      <div className="flex items-center gap-1 rounded-lg border border-ink-600/80 bg-ink-950/70 p-0.5">
+        {BRUSH_SIZES.map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-label={`Зузаан ${s}`}
+            onClick={() => setSize(s)}
+            className={`flex h-7 w-7 items-center justify-center rounded-md ${size === s ? 'bg-brand/25 ring-1 ring-brand' : 'hover:bg-ink-700'}`}
+          >
+            <span
+              className="rounded-full"
+              style={{
+                width: Math.min(18, s + 2),
+                height: Math.min(18, s + 2),
+                background: tool === 'eraser' ? '#fff' : color,
+                outline: '1px solid rgba(255,255,255,0.35)',
+              }}
+            />
+          </button>
+        ))}
+      </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-1.5">
-            {BRUSH_SIZES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-label={`Зузаан ${s}`}
-                onClick={() => setSize(s)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                  size === s ? 'bg-brand/20 ring-1 ring-brand' : 'hover:bg-ink-700'
-                }`}
-              >
-                <span
-                  className="rounded-full"
-                  style={{ width: Math.min(22, s + 2), height: Math.min(22, s + 2), background: tool === 'eraser' ? '#fff' : color, outline: '1px solid rgba(255,255,255,0.35)' }}
-                />
-              </button>
-            ))}
-          </div>
+      <div className="flex items-center gap-0.5 rounded-lg border border-ink-600/80 bg-ink-950/70 p-0.5">
+        <ToolButton active={tool === 'pen'} onClick={() => setTool('pen')} label="Үзэг">
+          <Pen className="h-4 w-4" />
+        </ToolButton>
+        <ToolButton active={tool === 'eraser'} onClick={() => setTool('eraser')} label="Баллуур">
+          <Eraser className="h-4 w-4" />
+        </ToolButton>
+        <ToolButton active={tool === 'fill'} onClick={() => setTool('fill')} label="Будах">
+          <PaintBucket className="h-4 w-4" />
+        </ToolButton>
+      </div>
 
-          <div className="flex items-center gap-1 rounded-xl border border-ink-600/80 bg-ink-800/60 p-1">
-            <ToolButton active={tool === 'pen'} onClick={() => setTool('pen')} label="Үзэг">
-              <Pen className="h-4 w-4" />
-            </ToolButton>
-            <ToolButton active={tool === 'eraser'} onClick={() => setTool('eraser')} label="Баллуур">
-              <Eraser className="h-4 w-4" />
-            </ToolButton>
-            <ToolButton active={tool === 'fill'} onClick={() => setTool('fill')} label="Будах">
-              <PaintBucket className="h-4 w-4" />
-            </ToolButton>
-          </div>
+      <div className="ml-auto flex items-center gap-0.5 rounded-lg border border-ink-600/80 bg-ink-950/70 p-0.5">
+        <ToolButton onClick={undo} label="Буцаах">
+          <Undo2 className="h-4 w-4" />
+        </ToolButton>
+        <ToolButton onClick={clear} label="Цэвэрлэх" danger>
+          <Trash2 className="h-4 w-4" />
+        </ToolButton>
+      </div>
+      {toolbarExtra}
+    </div>
+  ) : null;
 
-          <div className="ml-auto flex items-center gap-1">
-            <ToolButton onClick={undo} label="Буцаах">
-              <Undo2 className="h-4 w-4" />
-            </ToolButton>
-            <ToolButton onClick={clear} label="Цэвэрлэх" danger>
-              <Trash2 className="h-4 w-4" />
-            </ToolButton>
-          </div>
-        </div>
-      )}
+  const board = (
+    <div className={`relative overflow-hidden bg-white ${frameClassName ?? 'rounded-2xl border border-ink-600/80 shadow-card'}`}>
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_W}
+        height={CANVAS_H}
+        className="block w-full select-none"
+        // Таагч дээр touch-action auto байх ёстой — үгүй бол утсан дээр самбарыг дарж хуудас гүйлгэж чадахгүй
+        style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}`, touchAction: canDraw ? 'none' : 'auto', cursor }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={(e) => liveRef.current && onPointerUp(e)}
+      />
+      {overlay}
+    </div>
+  );
+
+  if (toolbarHost !== undefined) {
+    return (
+      <>
+        {board}
+        {toolbar && toolbarHost ? createPortal(toolbar, toolbarHost) : null}
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {board}
+      {toolbar && <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-2 sm:p-3">{toolbar}</div>}
     </div>
   );
 });
@@ -419,16 +450,16 @@ function ToolButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs transition-colors ${
+      className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs transition-colors ${
         active
-          ? 'bg-brand text-white'
+          ? 'bg-brand text-white shadow-[0_2px_0_#2A5BB8]'
           : danger
             ? 'text-danger hover:bg-danger/10'
             : 'text-mist-300 hover:bg-ink-700 hover:text-mist-50'
       }`}
     >
       {children}
-      <span className="hidden sm:inline">{label}</span>
+      <span className="hidden 2xl:inline">{label}</span>
     </button>
   );
 }

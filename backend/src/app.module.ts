@@ -18,6 +18,7 @@ import { ReadingModule } from './reading/reading.module';
 import { GrammarModule } from './grammar/grammar.module';
 import { TypeRushModule } from './type-rush/type-rush.module';
 import { DrawGuessModule } from './draw-guess/draw-guess.module';
+import { GamesModule } from './games/games.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -45,6 +46,7 @@ import { AppController } from './app.controller';
     AdminModule,
     ReadingModule,
     GrammarModule,
+    GamesModule,
     TypeRushModule,
     DrawGuessModule,
   ],

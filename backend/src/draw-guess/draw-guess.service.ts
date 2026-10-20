@@ -125,6 +125,8 @@ export class DrawGuessService {
 
   /** Timer-ээр төлөв өөрчлөгдөхөд gateway-д мэдэгдэнэ. */
   onRoomChanged: ((room: RoomState) => void) | null = null;
+  /** Тоглоом дуусахад (эцсийн оноотой төлөв) — gateway оноог leaderboard-д бүртгэнэ */
+  onGameFinished: ((room: RoomState) => void) | null = null;
   /** Системийн мэдээ (feed) илгээх. */
   onFeed: ((code: string, event: FeedEvent) => void) | null = null;
 
@@ -561,7 +563,9 @@ export class DrawGuessService {
     room.chooseEndAt = null;
     room.turnStartAt = null;
     room.turnEndAt = null;
-    this.onRoomChanged?.(this.toState(room));
+    const state = this.toState(room);
+    this.onRoomChanged?.(state);
+    this.onGameFinished?.(state);
   }
 
   private feed(room: Room, text: string) {

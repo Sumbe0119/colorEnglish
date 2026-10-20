@@ -14,7 +14,8 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Role } from '@prisma/client';
+import { GameKind, Role } from '@prisma/client';
+import { GamesService } from '../games/games.service';
 import { Namespace, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
@@ -49,12 +50,19 @@ export class DrawGuessGateway
     private readonly sessions: SessionsService,
     private readonly prisma: PrismaService,
     private readonly rooms: DrawGuessService,
+    private readonly games: GamesService,
   ) {}
 
   onModuleInit() {
     this.rooms.onRoomChanged = (room) => {
       this.emitRoom(room);
       if (room.status === 'lobby' || room.status === 'finished') this.emitOpenRooms();
+    };
+    // Тоглоом дуусахад тоглогч бүрийн оноог leaderboard-д бүртгэнэ
+    this.rooms.onGameFinished = (room) => {
+      for (const p of room.players) {
+        this.games.recordQuietly(p.userId, GameKind.DRAW_GUESS, p.score, { code: room.code, players: room.players.length, round: room.round });
+      }
     };
     this.rooms.onFeed = (code, event) => this.server.to(code).emit('feed:event', event);
     this.sweepTimer = setInterval(() => {

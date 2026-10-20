@@ -29,24 +29,31 @@ import {
   answerHint,
   exampleSentence,
   isCorrectAnswer,
+  LEVEL_COUNT,
+  levelInfo,
   loadBest,
-  MAX_WORDS,
-  MIN_WORDS,
+  loadMasteredLocal,
+  masteryByLevel,
   normalizeSentence,
   pickRoundPuzzles,
   POINTS_WITH_TIP,
+  puzzleKey,
   ROUNDS_PER_GAME,
   roundSeconds,
   saveBestIfBetter,
+  saveMasteredLocal,
   scoreFor,
   SECONDS_PER_EXTRA_WORD,
   SECONDS_PER_WORD,
+  SENTENCE_PUZZLES,
   shuffledWords,
   wordCount,
   type BestScore,
   type SentencePuzzle,
 } from '@/lib/sentence-builder';
 import { isMuted, setMuted, sfx, unlockAudio } from '@/lib/sentence-builder-sfx';
+import { addSentenceMastery, fetchSentenceMastery, resetSentenceMastery, submitGameScore, type SubmitScoreResult } from '@/lib/games-services';
+import { LeaderboardPanel } from '@/components/games/leaderboard';
 import { Fireworks } from './fireworks';
 import { GameScene, type SceneStatus } from './game-scene';
 
@@ -60,6 +67,8 @@ type RoundLog = {
   points: number;
   usedTip: boolean;
   answer: string;
+  /** Tip-гүй, буруу оролдлогогүй зөв хариулсан → эзэмшсэн, дахин харуулахгүй */
+  clean: boolean;
 };
 
 /** Зөв хариулсны дараа дараагийн тавцан руу автоматаар үсрэх хүртэлх хугацаа */
@@ -194,11 +203,21 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
   const [chosen, setChosen] = useState<string[]>([]);
   /** true бол текст оролт нээгдэж, тоглогч гараар бичнэ */
   const [manual, setManual] = useState(false);
+  /** Эзэмшсэн өгүүлбэрийн тоо (эхлэх дэлгэц) */
+  const [masteredCount, setMasteredCount] = useState(0);
+  /** Серверт бүртгэгдсэн оноо: байр, шинэ рекорд эсэх */
+  const [serverResult, setServerResult] = useState<SubmitScoreResult | null>(null);
+  /** Оноо илгээсний дараа leaderboard-ийг дахин ачаалах түлхүүр */
+  const [lbRefresh, setLbRefresh] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const chosenRef = useRef<string[]>([]);
   const manualRef = useRef(false);
   const autoCheckRef = useRef<number | null>(null);
+  /** Эзэмшсэн өгүүлбэрүүдийн түлхүүр (localStorage + сервер нэгтгэсэн) */
+  const masteredRef = useRef<Set<string>>(new Set());
+  /** Энэ раундад буруу хариулсан тоо — 0 бол "асуудалгүй" */
+  const wrongAttemptsRef = useRef(0);
   manualRef.current = manual;
   const startAtRef = useRef(0);
   const roundMsRef = useRef(30000);
@@ -219,6 +238,48 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
   useEffect(() => {
     setBest(loadBest());
+    // Эзэмшсэн өгүүлбэрүүд: эхлээд localStorage, дараа нь серверийнхтэй нэгтгэнэ
+    const local = loadMasteredLocal();
+    masteredRef.current = local;
+    setMasteredCount(local.size);
+    let cancelled = false;
+    fetchSentenceMastery()
+      .then((res) => {
+        if (cancelled) return;
+        const merged = new Set([...local, ...res.keys]);
+        masteredRef.current = merged;
+        saveMasteredLocal(merged);
+        setMasteredCount(merged.size);
+        // Серверт байхгүй локал түлхүүрүүдийг илгээнэ (өөр төхөөрөмж дээр ч алгасагдана)
+        const missing = [...local].filter((k) => !res.keys.includes(k));
+        if (missing.length) {
+          void addSentenceMastery(missing.slice(0, 50).map((key) => ({ key }))).catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Асуудалгүй зөв хариулсан өгүүлбэрийг эзэмшсэнд тооцно (локал + сервер). */
+  const markMastered = useCallback((pz: SentencePuzzle) => {
+    const key = puzzleKey(pz);
+    if (masteredRef.current.has(key)) return;
+    const next = new Set(masteredRef.current);
+    next.add(key);
+    masteredRef.current = next;
+    saveMasteredLocal(next);
+    setMasteredCount(next.size);
+    void addSentenceMastery([{ key, level: pz.level ?? 0 }]).catch(() => undefined);
+  }, []);
+
+  /** Эзэмшсэн өгүүлбэрүүдийг цэвэрлэж бүх өгүүлбэрийг дахин харуулна. */
+  const resetMastered = useCallback(async () => {
+    masteredRef.current = new Set();
+    saveMasteredLocal(masteredRef.current);
+    setMasteredCount(0);
+    await resetSentenceMastery().catch(() => undefined);
   }, []);
 
   const clearAutoNext = () => {
@@ -253,6 +314,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       setWords(shuffledWords(pz));
       setRoundState('typing');
       roundStateRef.current = 'typing';
+      wrongAttemptsRef.current = 0;
       setChosenBoth([]);
       // Оролт uncontrolled: DOM утгыг шууд цэвэрлэнэ (controlled байх үед 50мс таймерын
       // re-render Android IME-ийн бичилтийг тасалж, «a», «the» мэт богино үг алга болдог байсан).
@@ -273,7 +335,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
   const startGame = useCallback(() => {
     unlockAudio();
-    const list = pickRoundPuzzles(ROUNDS_PER_GAME);
+    const list = pickRoundPuzzles(ROUNDS_PER_GAME, masteredRef.current);
     setPuzzles(list);
     setScore(0);
     setStreak(0);
@@ -281,6 +343,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
     setBestStreak(0);
     setLog([]);
     setIsNewBest(false);
+    setServerResult(null);
     setOverlayReady(true);
     setPhase('playing');
     beginRound(list, 0);
@@ -292,6 +355,18 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       const correct = finalLog.filter((r) => r.state === 'correct').length;
       setIsNewBest(saveBestIfBetter({ score: finalScore, correct }));
       setBest(loadBest());
+      // Leaderboard: оноог серверт бүртгэнэ (амжилтгүй бол чимээгүй — тоглоом үргэлжилнэ)
+      submitGameScore('SENTENCE_BUILDER', finalScore, {
+        correct,
+        won,
+        clean: finalLog.filter((r) => r.clean).length,
+        maxLevel: finalLog.filter((r) => r.state === 'correct').length,
+      })
+        .then((res) => {
+          setServerResult(res);
+          setLbRefresh((k) => k + 1);
+        })
+        .catch(() => undefined);
       if (won) {
         setPhase('won');
         setOverlayReady(false);
@@ -330,21 +405,23 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       setRoundState('correct');
       roundStateRef.current = 'correct';
       setLastPoints(points);
-      setLog((prev) => [...prev, { puzzle, state: 'correct', points, usedTip: usedTipRef.current, answer }]);
+      const clean = !usedTipRef.current && wrongAttemptsRef.current === 0;
+      if (clean) markMastered(puzzle);
+      setLog((prev) => [...prev, { puzzle, state: 'correct', points, usedTip: usedTipRef.current, answer, clean }]);
       setScore((s) => s + points);
       streakRef.current += 1;
       setStreak(streakRef.current);
       setBestStreak((b) => Math.max(b, streakRef.current));
       sfx.correct();
     },
-    [puzzle],
+    [markMastered, puzzle],
   );
 
   /** Цаг дууссан → робот унана, тоглоом дуусна. */
   const fail = useCallback(() => {
     if (!puzzle) return;
     clearAutoCheck();
-    const finalLog: RoundLog[] = [...log, { puzzle, state: 'fall', points: 0, usedTip: usedTipRef.current, answer: currentAnswer() }];
+    const finalLog: RoundLog[] = [...log, { puzzle, state: 'fall', points: 0, usedTip: usedTipRef.current, answer: currentAnswer(), clean: false }];
     setLog(finalLog);
     streakRef.current = 0;
     setStreak(0);
@@ -391,6 +468,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       const remain = Math.max(0, roundMsRef.current - (performance.now() - startAtRef.current));
       settleCorrect(scoreFor(puzzle, remain, usedTipRef.current), value);
     } else {
+      wrongAttemptsRef.current += 1;
       setShaking(true);
       setWrongMsg(answerHint(puzzle, value));
       sfx.wrong();
@@ -551,7 +629,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
         {/* ── Эхлэх дэлгэц ── */}
         {phase === 'idle' && (
-          <Overlay>
+          <Overlay wide>
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Color English · Game</p>
             <h1 className="mt-2 text-center font-display text-3xl font-bold tracking-wide text-mist-50 sm:text-4xl">ӨГҮҮЛБЭР БҮТЭЭХ</h1>
             <p className="mt-3 text-center text-sm text-mist-300">
@@ -565,8 +643,12 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
                 нүдэнд зөв дарааллаар оруул. Хүсвэл «Гараар бичих» товчоор бичиж болно.
               </Rule>
               <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>
-                Тавцан ахих тусам хүндэрнэ: {MIN_WORDS} үгээс эхлээд {MAX_WORDS} үг хүртэл. Үг бүрт +{SECONDS_PER_WORD}с, нэмэлт үг бүрт +
-                {SECONDS_PER_EXTRA_WORD}с.
+                Тавцан бүр нэг level: <b className="text-mist-50">1–{LEVEL_COUNT}</b>. Level 1 — 5 үгтэй энгийн өгүүлбэр, level {LEVEL_COUNT} —
+                12 хүртэл үгтэй нийлмэл өгүүлбэр. Үг бүрт +{SECONDS_PER_WORD}с, нэмэлт үг бүрт +{SECONDS_PER_EXTRA_WORD}с.
+              </Rule>
+              <Rule icon={<Check className="h-3.5 w-3.5 text-success" />}>
+                Tip-гүй, алдаагүй зөв бүтээсэн өгүүлбэр <b className="text-mist-50">эзэмшсэнд</b> тооцогдож дараагийн тоглолтод дахин
+                ирэхгүй — шинэ өгүүлбэр ирнэ.
               </Rule>
               <Rule icon={<Skull className="h-3.5 w-3.5 text-danger" />}>
                 Цаг дуусвал тавцан хагарч робот унана — <b className="text-danger">GAME OVER</b>. Амь нэг л бий!
@@ -588,6 +670,36 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
                 Шилдэг: {best.score} оноо · {best.correct}/{ROUNDS_PER_GAME} тавцан
               </p>
             )}
+
+            {/* Эзэмшсэн өгүүлбэрийн явц — level бүрээр */}
+            <div className="mt-4 rounded-xl border border-ink-600/70 bg-ink-800/50 px-3 py-2.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-semibold uppercase tracking-wider text-mist-400">Эзэмшсэн өгүүлбэр</span>
+                <span className="font-mono text-mist-200">
+                  {masteredCount}/{SENTENCE_PUZZLES.length}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-10 gap-1" aria-label="Level бүрийн явц">
+                {masteryByLevel(masteredRef.current).map((lv) => {
+                  const k = lv.total ? lv.done / lv.total : 0;
+                  return (
+                    <div key={lv.level} className="text-center" title={`Level ${lv.level}: ${lv.done}/${lv.total}`}>
+                      <div className="h-7 w-full overflow-hidden rounded-md bg-ink-900">
+                        <div className="w-full bg-success/70" style={{ height: `${Math.round(k * 100)}%`, marginTop: `${Math.round((1 - k) * 100)}%` }} />
+                      </div>
+                      <span className="text-[9px] text-mist-500">{lv.level}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {masteredCount > 0 && (
+                <button type="button" onClick={() => void resetMastered()} className="mt-1.5 text-[10px] text-mist-500 underline-offset-2 hover:text-danger hover:underline">
+                  Эзэмшсэнийг цэвэрлэж бүх өгүүлбэрийг дахин харуулах
+                </button>
+              )}
+            </div>
+
+            <LeaderboardPanel scope="SENTENCE_BUILDER" limit={5} compact refreshKey={lbRefresh} className="mt-3" />
           </Overlay>
         )}
 
@@ -599,16 +711,24 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
               <h2 className="sb-glitch font-display text-3xl font-bold tracking-[0.15em] text-danger sm:text-4xl">GAME OVER</h2>
               <Skull className="h-7 w-7 text-danger" />
             </div>
-            <p className="mt-2 text-center text-sm text-mist-300">Робот {idx + 1}-р тавцангаас унав. Цаг дуусахаас өмнө өгүүлбэрээ бүтээгээрэй!</p>
+            <p className="mt-2 text-center text-sm text-mist-300">
+              Робот level {idx + 1}-ийн тавцангаас унав. Цаг дуусахаас өмнө өгүүлбэрээ бүтээгээрэй!
+            </p>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <Stat label="Оноо" value={String(score)} tone="text-mist-50" />
-              <Stat label="Тавцан" value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
+              <Stat label="Level" value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
               <Stat label="Combo" value={`${bestStreak}x`} tone="text-verb" />
             </div>
             {isNewBest && (
               <p className="mt-3 inline-flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-modifier">
                 <Trophy className="h-3.5 w-3.5" /> Шинэ рекорд!
+              </p>
+            )}
+            {serverResult && (
+              <p className="mt-2 text-center text-xs text-mist-300">
+                Leaderboard: <span className="font-mono font-semibold text-brand">#{serverResult.rank}</span> · шилдэг {serverResult.best} оноо ·{' '}
+                {serverResult.plays} тоглолт
               </p>
             )}
 
@@ -633,6 +753,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
                 Эхлэл рүү
               </GameButton>
             </div>
+            <LeaderboardPanel scope="SENTENCE_BUILDER" limit={5} compact refreshKey={lbRefresh} className="mt-4" />
           </Overlay>
         )}
 
@@ -647,12 +768,18 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <Stat label="Оноо" value={String(score)} tone="text-mist-50" />
-              <Stat label="Тавцан" value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
+              <Stat label="Level" value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
               <Stat label="Combo" value={`${bestStreak}x`} tone="text-verb" />
             </div>
             {isNewBest && (
               <p className="mt-3 inline-flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-modifier">
                 <Trophy className="h-3.5 w-3.5" /> Шинэ рекорд!
+              </p>
+            )}
+            {serverResult && (
+              <p className="mt-2 text-center text-xs text-mist-300">
+                Leaderboard: <span className="font-mono font-semibold text-brand">#{serverResult.rank}</span> · шилдэг {serverResult.best} оноо ·{' '}
+                {serverResult.plays} тоглолт
               </p>
             )}
 
@@ -672,6 +799,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
                       <td className="px-2 py-1.5 font-mono text-mist-100">
                         {exampleSentence(r.puzzle)}
                         {r.usedTip && <span className="ml-1 text-[10px] text-warning">(tip)</span>}
+                        {r.clean && <span className="ml-1 text-[10px] text-success">✓ эзэмшсэн</span>}
                       </td>
                       <td className="px-2 py-1.5 text-right font-semibold text-success">+{r.points}</td>
                     </tr>
@@ -688,6 +816,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
                 Эхлэл рүү
               </GameButton>
             </div>
+            <LeaderboardPanel scope="SENTENCE_BUILDER" limit={5} compact refreshKey={lbRefresh} className="mt-4" />
           </Overlay>
         )}
       </div>
@@ -701,10 +830,13 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <p className="flex items-center gap-2 text-xs text-mist-400">
               <span className="shrink-0 rounded-md bg-brand/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
-                {manual ? 'Гараар бичих' : 'Өгүүлбэр'}
+                Level {idx + 1}
+              </span>
+              <span className="hidden text-[11px] text-mist-300 sm:inline" title={levelInfo(idx + 1).grammar}>
+                {levelInfo(idx + 1).title}
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] text-mist-500">
-                <Timer className="h-3 w-3" /> {wordCount(puzzle)} үг · {roundSeconds(puzzle)}с
+                <Timer className="h-3 w-3" /> {wordCount(puzzle)} үг · {roundSeconds(puzzle)}с{manual ? ' · гараар' : ''}
               </span>
             </p>
             <div className="ml-auto flex items-center gap-2">
@@ -830,8 +962,9 @@ function Overlay({ children, tone = 'brand', wide = false }: { children: React.R
         ? 'shadow-[0_0_0_4px_rgba(61,220,151,0.12),0_24px_60px_rgba(0,0,0,0.6)]'
         : 'shadow-[0_0_0_4px_rgba(79,140,255,0.12),0_24px_60px_rgba(0,0,0,0.6)]';
   return (
-    <div className="ce-scroll absolute inset-0 flex items-center justify-center overflow-y-auto bg-ink-950/45 p-3 backdrop-blur-[2px] sm:p-6">
-      <div className={`sb-rise w-full ${wide ? 'max-w-xl' : 'max-w-md'} rounded-2xl border-2 ${border} bg-ink-900/95 p-5 ${glow} sm:p-7`}>{children}</div>
+    // m-auto: контент өндөр болоход дээд хэсэг нь тасрахгүй (flex items-center-ийн оронд margin-аар голлуулна)
+    <div className="ce-scroll absolute inset-0 flex overflow-y-auto bg-ink-950/45 p-3 backdrop-blur-[2px] sm:p-6">
+      <div className={`sb-rise m-auto w-full ${wide ? 'max-w-xl' : 'max-w-md'} rounded-2xl border-2 ${border} bg-ink-900/95 p-5 ${glow} sm:p-7`}>{children}</div>
     </div>
   );
 }

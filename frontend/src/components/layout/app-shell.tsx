@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Car, ChevronDown, Gamepad2, Library, LogOut, Menu, Palette, Puzzle, Settings, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Car, ChevronDown, Gamepad2, Library, LogOut, Menu, Palette, Puzzle, Settings, Trophy, UserRound, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { logout } from "@/lib/services";
 import { clearOnboardingDraft } from "@/lib/onboarding-draft";
@@ -40,7 +40,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isTypeRush = pathname.startsWith("/type-rush");
   const isDrawGuess = pathname.startsWith("/draw-guess");
   const isSentenceBuilder = pathname.startsWith("/sentence-builder");
-  const isGames = isTypeRush || isDrawGuess || isSentenceBuilder;
+  const isLeaderboard = pathname.startsWith("/leaderboard");
+  const isGames = isTypeRush || isDrawGuess || isSentenceBuilder || isLeaderboard;
   // "Тоглоомнууд" дэд цэс — тоглоомын хуудсан дээр байвал автоматаар нээлттэй
   const [gamesOpen, setGamesOpen] = useState(isGames);
   useEffect(() => {
@@ -123,6 +124,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Puzzle className="h-4 w-4" />
                 Өгүүлбэр бүтээх
+              </Link>
+              <Link
+                href="/leaderboard"
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                  isLeaderboard ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <Trophy className="h-4 w-4" />
+                Leaderboard
               </Link>
             </div>
           )}
@@ -325,6 +335,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Puzzle className="h-4 w-4" />
                     Өгүүлбэр бүтээх
+                  </Link>
+                  <Link
+                    href="/leaderboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                      isLeaderboard ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                    }`}
+                  >
+                    <Trophy className="h-4 w-4" />
+                    Leaderboard
                   </Link>
                 </div>
               )}

@@ -134,6 +134,9 @@ model User {
   storyProgress      UserStoryProgress[]
   grammarProgress    GrammarRuleProgress[]
   grammarQuizAttempts GrammarQuizAttempt[]
+  gameScores         GameScore[]
+  gameBests          GameBest[]
+  sentenceMastery    SentenceMastery[]
 
   @@map("users")
 }
@@ -835,4 +838,62 @@ model GrammarQuizAttempt {
 
   @@index([userId, level, ruleId])
   @@map("grammar_quiz_attempts")
+}
+
+// ─── Тоглоомууд: оноо, leaderboard, өгүүлбэрийн эзэмшил ───
+
+/// Leaderboard-той тоглоомын төрөл
+enum GameKind {
+  SENTENCE_BUILDER
+  TYPE_RUSH
+  DRAW_GUESS
+}
+
+/// Нэг тоглолтын үр дүн (бүртгэлийн лог)
+model GameScore {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      GameKind
+  score     Int
+  /// Тоглоомоос хамаарсан нэмэлт мэдээлэл (level, wpm, accuracy, room code г.м.)
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, game])
+  @@index([game, score])
+  @@map("game_scores")
+}
+
+/// Хэрэглэгч бүрийн тоглоом тус бүрийн шилдэг оноо — leaderboard эндээс эрэмбэлнэ
+model GameBest {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       GameKind
+  bestScore  Int      @default(0)
+  totalScore Int      @default(0)
+  plays      Int      @default(0)
+  bestAt     DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, game])
+  @@index([game, bestScore])
+  @@map("game_bests")
+}
+
+/// "Өгүүлбэр бүтээх": асуудалгүй (tip-гүй, алдаагүй) зөв хариулсан өгүүлбэр — дараагийн тоглолтод дахин харуулахгүй
+model SentenceMastery {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// normalizeSentence(answer) — жижиг үсэг, цэг таслалгүй
+  sentenceKey String
+  level       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, sentenceKey])
+  @@index([userId])
+  @@map("sentence_mastery")
 }

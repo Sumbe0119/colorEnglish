@@ -1,9 +1,12 @@
 // frontend/src/components/type-rush/results-panel.tsx
+// Уралдааны үр дүн — давхарга (Overlay) дотор харагдана: хугацаа, байр, WPM / нарийвчлал / тэмдэгт,
+// бүх уралдагчийн жагсаалт, товчнууд.
 'use client';
 
 import type { ReactNode } from 'react';
-import { TimerOff, Trophy, Zap } from 'lucide-react';
+import { Flag, TimerOff, Trophy, Zap } from 'lucide-react';
 import { RACE_CARS } from '@/lib/type-rush';
+import { Stat } from './game-ui';
 
 export type StandingRow = {
   lane: number;
@@ -32,6 +35,10 @@ export function sortStandings(rows: StandingRow[]): StandingRow[] {
   });
 }
 
+function rankTone(rank: number) {
+  return rank === 1 ? 'text-modifier' : rank === 2 ? 'text-mist-100' : rank === 3 ? 'text-verb' : 'text-mist-300';
+}
+
 export function ResultsPanel({
   finishMs,
   rank,
@@ -44,6 +51,7 @@ export function ResultsPanel({
   footnote,
   timedOut,
   totalChars,
+  playerName,
 }: {
   finishMs: number;
   rank: number;
@@ -58,110 +66,84 @@ export function ResultsPanel({
   timedOut?: boolean;
   /** Өгүүлбэрийн бүтэн урт — timedOut үед хэр явсныг харуулахад. */
   totalChars?: number;
+  playerName?: string;
 }) {
   const rows = sortStandings(standings);
   const donePct = timedOut && totalChars ? Math.round((chars / totalChars) * 100) : 100;
   return (
-    <div className="rounded-2xl border border-ink-600/80 bg-ink-900 p-4 shadow-card sm:p-6">
-      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-mist-500">
-            {timedOut ? 'Хугацаа дууслаа' : 'Зарцуулсан хугацаа'}
-          </p>
-          <p className={`mt-1 font-display text-4xl font-bold sm:text-5xl ${timedOut ? 'text-danger' : 'text-mist-50'}`}>
-            {formatSeconds(finishMs)}
-            <span className="ml-2 text-lg font-medium text-mist-400 sm:text-xl">сек</span>
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {timedOut ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-3 py-1 text-sm font-semibold text-danger">
-                <TimerOff className="h-4 w-4" />
-                Өгүүлбэрийн {donePct}% бичсэн
-              </span>
-            ) : (
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${
-                  rank === 1
-                    ? 'bg-modifier/20 text-modifier'
-                    : rank === 2
-                      ? 'bg-mist-200/20 text-mist-100'
-                      : rank === 3
-                        ? 'bg-verb/20 text-verb'
-                        : 'bg-ink-700 text-mist-300'
-                }`}
-              >
-                <Trophy className="h-4 w-4" />
-                {rank}-р байр
-              </span>
-            )}
-            {isNewBest && !timedOut && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/20 px-3 py-1 text-sm font-semibold text-success">
-                <Zap className="h-4 w-4" /> Шинэ рекорд!
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
-          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-3 sm:px-3">
-            <p className="font-mono text-xl font-semibold text-mist-50 sm:text-2xl">{wpm}</p>
-            <p className="text-[11px] uppercase tracking-wider text-mist-500">WPM</p>
-          </div>
-          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-3 sm:px-3">
-            <p className="font-mono text-xl font-semibold text-mist-50 sm:text-2xl">{accuracy}%</p>
-            <p className="text-[11px] uppercase tracking-wider text-mist-500">Нарийвчлал</p>
-          </div>
-          <div className="rounded-xl border border-ink-600/80 bg-ink-800/60 px-2 py-3 sm:px-3">
-            <p className="font-mono text-xl font-semibold text-mist-50 sm:text-2xl">
-              {timedOut && totalChars ? `${chars}/${totalChars}` : chars}
-            </p>
-            <p className="text-[11px] uppercase tracking-wider text-mist-500">Тэмдэгт</p>
-          </div>
-        </div>
+    <div>
+      <div className="flex items-center justify-center gap-3">
+        {timedOut ? <TimerOff className="h-7 w-7 text-danger" /> : <Trophy className={`h-7 w-7 ${rankTone(rank)}`} />}
+        <h2 className={`font-display text-2xl font-bold tracking-[0.12em] sm:text-3xl ${timedOut ? 'text-danger' : rankTone(rank)}`}>
+          {timedOut ? 'ЦАГ ДУУСЛАА' : `${rank}-Р БАЙР`}
+        </h2>
       </div>
+      <p className="mt-2 text-center text-sm text-mist-300">
+        {timedOut
+          ? `Өгүүлбэрийн ${donePct}%-ийг бичсэн. Дараагийн удаа цагаа нэмэх эсвэл хурдаа ахиулаарай.`
+          : rank === 1
+            ? `Баяр хүргэе${playerName ? `, ${playerName}` : ''}! Та бүгдээс түрүүлж бариа хүрлээ.`
+            : `${formatSeconds(finishMs)} секундэд бариа хүрлээ.`}
+      </p>
 
-      <div className="mt-5 overflow-x-auto rounded-xl border border-ink-600/80">
-        <table className="w-full min-w-[420px] text-sm">
-          <thead className="bg-ink-800/80 text-left text-[11px] uppercase tracking-wider text-mist-500">
+      <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+        <Stat label={timedOut ? 'Хугацаа' : 'Секунд'} value={formatSeconds(finishMs)} tone={timedOut ? 'text-danger' : 'text-mist-50'} />
+        <Stat label="WPM" value={String(wpm)} tone="text-brand" />
+        <Stat label="Нарийвчлал" value={`${accuracy}%`} tone={accuracy >= 95 ? 'text-success' : accuracy >= 85 ? 'text-modifier' : 'text-danger'} />
+        <Stat label="Тэмдэгт" value={timedOut && totalChars ? `${chars}/${totalChars}` : String(chars)} />
+      </div>
+      {isNewBest && !timedOut && (
+        <p className="tr-pop mt-3 inline-flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-modifier">
+          <Zap className="h-3.5 w-3.5" /> Шинэ рекорд!
+        </p>
+      )}
+
+      <div className="ce-scroll mt-4 max-h-44 overflow-y-auto rounded-xl border border-ink-600/80">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-ink-800 text-left text-[10px] uppercase tracking-wider text-mist-500">
             <tr>
-              <th className="px-3 py-2">#</th>
-              <th className="px-3 py-2">Уралдагч</th>
-              <th className="px-3 py-2 text-right">Хугацаа</th>
-              <th className="px-3 py-2 text-right">WPM</th>
+              <th className="px-2 py-1.5">#</th>
+              <th className="px-2 py-1.5">Уралдагч</th>
+              <th className="px-2 py-1.5 text-right">Сек</th>
+              <th className="px-2 py-1.5 text-right">WPM</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
               <tr key={`${row.lane}-${row.name}`} className={`border-t border-ink-600/60 ${row.isPlayer ? 'bg-brand/10' : ''}`}>
-                <td className="px-3 py-2 font-mono text-mist-300">{row.time == null ? '—' : i + 1}</td>
-                <td className="px-3 py-2">
-                  <span className="inline-flex flex-wrap items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: RACE_CARS[row.lane]?.color ?? '#999' }} />
+                <td className={`px-2 py-1.5 font-mono ${row.time == null ? 'text-mist-500' : rankTone(i + 1)}`}>{row.time == null ? '—' : i + 1}</td>
+                <td className="px-2 py-1.5">
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: RACE_CARS[row.lane]?.color ?? '#999' }} />
                     <span className={row.isPlayer ? 'font-semibold text-mist-50' : 'text-mist-200'}>{row.name}</span>
                     {row.isPlayer && <span className="rounded bg-brand px-1.5 py-0.5 text-[10px] text-white">ТА</span>}
-                    {!row.isPlayer && row.tag && (
-                      <span className="rounded bg-ink-700 px-1.5 py-0.5 text-[10px] text-mist-300">{row.tag}</span>
-                    )}
+                    {!row.isPlayer && row.tag && <span className="rounded bg-ink-700 px-1.5 py-0.5 text-[10px] text-mist-300">{row.tag}</span>}
                     {row.note && <span className="text-[11px] text-mist-500">{row.note}</span>}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-mist-100">
-                  {row.time == null
-                    ? row.failed
-                      ? <span className="text-mist-500">дуусгаагүй</span>
-                      : 'явж байна…'
-                    : `${formatSeconds(row.time)} сек`}
+                <td className="px-2 py-1.5 text-right font-mono text-mist-100">
+                  {row.time == null ? (
+                    row.failed ? (
+                      <span className="text-mist-500">дуусгаагүй</span>
+                    ) : (
+                      <span className="tr-blink inline-flex items-center gap-1 text-mist-400">
+                        <Flag className="h-3 w-3" /> явж байна
+                      </span>
+                    )
+                  ) : (
+                    formatSeconds(row.time)
+                  )}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-mist-300">{row.wpm ?? '—'}</td>
+                <td className="px-2 py-1.5 text-right font-mono text-mist-300">{row.wpm ?? '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {footnote && <div className="mt-3 text-xs text-mist-400">{footnote}</div>}
+      {footnote && <div className="mt-3 text-center text-xs text-mist-400">{footnote}</div>}
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">{actions}</div>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">{actions}</div>
     </div>
   );
 }

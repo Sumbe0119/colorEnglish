@@ -85,6 +85,8 @@ export class TypeRushService {
   private byUser = new Map<string, string>();
   /** Өрөөний төлөв өөрчлөгдөхөд gateway-д мэдэгдэх callback (timer-ээр өөрчлөгдөх үед). */
   onRoomChanged: ((room: RoomState) => void) | null = null;
+  /** Тоглогч (хүн) уралдаанаа дуусгахад — оноо бүртгэх (gateway → GamesService) */
+  onPlayerFinished: ((info: { userId: string; code: string; level: string; wpm: number; ms: number; players: number }) => void) | null = null;
 
   // ---------- Өрөө үүсгэх / нэгдэх / гарах ----------
 
@@ -271,6 +273,7 @@ export class TypeRushService {
     player.finishMs = Math.max(ms, minMs);
     player.progress = 1;
     player.wpm = computeWpm(room.text.length, player.finishMs);
+    this.onPlayerFinished?.({ userId, code: room.code, level: room.level, wpm: player.wpm, ms: player.finishMs, players: room.players.size });
     this.maybeFinish(room);
     return this.toState(room);
   }

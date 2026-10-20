@@ -14,7 +14,8 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Role } from '@prisma/client';
+import { GameKind, Role } from '@prisma/client';
+import { GamesService } from '../games/games.service';
 import { Namespace, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
@@ -48,10 +49,14 @@ export class TypeRushGateway
     private readonly sessions: SessionsService,
     private readonly prisma: PrismaService,
     private readonly rooms: TypeRushService,
+    private readonly games: GamesService,
   ) {}
 
   onModuleInit() {
     this.rooms.onRoomChanged = (room) => this.emitRoom(room);
+    // Онлайн уралдаан дуусгасан тоглогчийн WPM-ийг leaderboard-д бүртгэнэ
+    this.rooms.onPlayerFinished = (i) =>
+      this.games.recordQuietly(i.userId, GameKind.TYPE_RUSH, i.wpm, { mode: 'online', level: i.level, ms: i.ms, code: i.code, players: i.players });
     this.sweepTimer = setInterval(() => {
       const removed = this.rooms.sweep();
       if (removed.length) this.emitOpenRooms();
