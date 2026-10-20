@@ -117,7 +117,6 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
   const [idx, setIdx] = useState(0);
   const [words, setWords] = useState<string[]>(PREVIEW_WORDS);
   const [roundState, setRoundState] = useState<RoundState>('typing');
-  const [input, setInput] = useState('');
   const [usedTip, setUsedTip] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [wrongMsg, setWrongMsg] = useState<string | null>(null);
@@ -163,7 +162,9 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
     setWords(shuffledWords(list[i]));
     setRoundState('typing');
     roundStateRef.current = 'typing';
-    setInput('');
+    // Оролт uncontrolled: DOM утгыг шууд цэвэрлэнэ (controlled байх үед 50мс таймерын
+    // re-render Android IME-ийн бичилтийг тасалж, «a», «the» мэт богино үг алга болдог байсан).
+    if (inputRef.current) inputRef.current.value = '';
     setUsedTip(false);
     usedTipRef.current = false;
     setWrongMsg(null);
@@ -264,7 +265,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
   const submit = useCallback(() => {
     if (!puzzle || roundStateRef.current !== 'typing') return;
-    const value = input.trim();
+    const value = inputRef.current?.value.trim() ?? '';
     if (!value) {
       inputRef.current?.focus();
       return;
@@ -278,7 +279,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       sfx.wrong();
       inputRef.current?.focus();
     }
-  }, [input, puzzle, settleRound]);
+  }, [puzzle, settleRound]);
 
   const showTip = useCallback(() => {
     if (roundStateRef.current !== 'typing') return;
@@ -542,9 +543,8 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
             <input
               ref={inputRef}
               type="text"
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
+              defaultValue=""
+              onChange={() => {
                 if (wrongMsg) setWrongMsg(null);
               }}
               onKeyDown={onKeyDown}
