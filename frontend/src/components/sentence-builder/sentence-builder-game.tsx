@@ -43,8 +43,6 @@ import {
   saveBestIfBetter,
   saveMasteredLocal,
   scoreFor,
-  SECONDS_PER_EXTRA_WORD,
-  SECONDS_PER_WORD,
   SENTENCE_PUZZLES,
   shuffledWords,
   wordCount,
@@ -633,29 +631,15 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Color English · Game</p>
             <h1 className="mt-2 text-center font-display text-3xl font-bold tracking-wide text-mist-50 sm:text-4xl">ӨГҮҮЛБЭР БҮТЭЭХ</h1>
             <p className="mt-3 text-center text-sm text-mist-300">
-              Бэлэн үү, <span className="font-semibold text-mist-50">{playerName}</span>? Робот баатраа {ROUNDS_PER_GAME} тавцан дамжуулж туг
-              руу хүргэ.
+              Бэлэн үү, <span className="font-semibold text-mist-50">{playerName}</span>? Роботоо {ROUNDS_PER_GAME} тавцан давуул.
             </p>
 
-            <div className="mt-5 grid gap-2 text-xs text-mist-300 sm:grid-cols-2">
-              <Rule icon={<MousePointerClick className="h-3.5 w-3.5 text-subject" />}>
-                Өгүүлбэрийн <b className="text-mist-50">бүх үг</b> (a, the, to орсон) холигдож тэнгэрт хөвнө. Блок дээр дарж доорх хоосон
-                нүдэнд зөв дарааллаар оруул. Хүсвэл «Гараар бичих» товчоор бичиж болно.
-              </Rule>
-              <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>
-                Тавцан бүр нэг level: <b className="text-mist-50">1–{LEVEL_COUNT}</b>. Level 1 — 5 үгтэй энгийн өгүүлбэр, level {LEVEL_COUNT} —
-                12 хүртэл үгтэй нийлмэл өгүүлбэр. Үг бүрт +{SECONDS_PER_WORD}с, нэмэлт үг бүрт +{SECONDS_PER_EXTRA_WORD}с.
-              </Rule>
-              <Rule icon={<Check className="h-3.5 w-3.5 text-success" />}>
-                Tip-гүй, алдаагүй зөв бүтээсэн өгүүлбэр <b className="text-mist-50">эзэмшсэнд</b> тооцогдож дараагийн тоглолтод дахин
-                ирэхгүй — шинэ өгүүлбэр ирнэ.
-              </Rule>
-              <Rule icon={<Skull className="h-3.5 w-3.5 text-danger" />}>
-                Цаг дуусвал тавцан хагарч робот унана — <b className="text-danger">GAME OVER</b>. Амь нэг л бий!
-              </Rule>
-              <Rule icon={<Lightbulb className="h-3.5 w-3.5 text-warning" />}>
-                Гацвал Tip дарж жишээг хар (тэр раунд {POINTS_WITH_TIP} оноо). Хурдан бол урамшуулал нэмэгдэнэ.
-              </Rule>
+            {/* Дүрэм — богино, нэг мөрт */}
+            <div className="mt-4 grid gap-1.5 text-xs text-mist-300 sm:grid-cols-2">
+              <Rule icon={<MousePointerClick className="h-3.5 w-3.5 text-subject" />}>Үгсийг зөв дарааллаар дарж өгүүлбэр бүтээ.</Rule>
+              <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>Тавцан бүр нэг level (1–{LEVEL_COUNT}) — улам хүндэрнэ.</Rule>
+              <Rule icon={<Skull className="h-3.5 w-3.5 text-danger" />}>Цаг дуусвал робот унана. Tip = {POINTS_WITH_TIP} оноо.</Rule>
+              <Rule icon={<Check className="h-3.5 w-3.5 text-success" />}>Алдаагүй бүтээсэн өгүүлбэр дахин ирэхгүй.</Rule>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">

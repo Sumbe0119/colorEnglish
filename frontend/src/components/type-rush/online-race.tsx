@@ -521,9 +521,7 @@ export function OnlineRace({
             </div>
             <p className="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Color English · Game</p>
             <h1 className="mt-1 text-center font-display text-2xl font-bold tracking-wide text-mist-50 sm:text-3xl">ОНЛАЙН УРАЛДААН</h1>
-            <p className="mt-2 text-center text-sm text-mist-300">
-              Найзуудтайгаа нэг өрөөнд орж 5 хүртэл хүн зэрэг уралдана. Хоосон замд бот орно.
-            </p>
+            <p className="mt-2 text-center text-sm text-mist-300">5 хүртэл хүн нэг өрөөнд уралдана.</p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               {connBadge}
               {connError && <span className="text-xs text-danger">{connError}</span>}
@@ -555,7 +553,7 @@ export function OnlineRace({
 
               <div className="rounded-xl border border-ink-600/70 bg-ink-800/50 p-3">
                 <SectionLabel>Кодоор нэгдэх</SectionLabel>
-                <p className="mt-1 text-[11px] text-mist-500">Найзынхаа илгээсэн 5 оронтой код.</p>
+                <p className="mt-1 text-[11px] text-mist-500">5 оронтой код оруул.</p>
                 <form
                   className="mt-2 flex gap-2"
                   onSubmit={(e) => {
@@ -594,7 +592,7 @@ export function OnlineRace({
                 </button>
               </div>
               {openRooms.length === 0 ? (
-                <p className="mt-2 text-xs text-mist-500">Одоогоор хүлээж буй өрөө алга. Шинээр үүсгээд найзаа урь.</p>
+                <p className="mt-2 text-xs text-mist-500">Нээлттэй өрөө алга.</p>
               ) : (
                 <ul className="ce-scroll mt-2 max-h-36 divide-y divide-ink-600/60 overflow-y-auto">
                   {openRooms.map((r) => (
@@ -650,7 +648,7 @@ export function OnlineRace({
             </div>
 
             <h2 className="mt-4 font-display text-lg font-semibold text-mist-50">Машинаа сонго</h2>
-            <p className="mt-0.5 text-xs text-mist-400">Тоглогч бүр өөр машинтай. Сонгогдоогүй замд бот уралдана.</p>
+            <p className="mt-0.5 text-xs text-mist-400">Хоосон замд бот орно.</p>
             <div className="mt-3 grid grid-cols-5 gap-1.5 sm:gap-2">
               {RACE_CARS.map((car, lane) => {
                 const owner = room.players.find((p) => p.lane === lane);

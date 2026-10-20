@@ -336,7 +336,7 @@ export function DrawGuessStage(props: DrawGuessStageProps) {
                 <p className="text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Color English · Multiplayer</p>
                 <h1 className="mt-2 text-center font-display text-3xl font-bold tracking-wide text-mist-50 sm:text-4xl">ЗУРАГ ТААХ</h1>
                 <p className="mt-2 text-center text-sm text-mist-300">
-                  Сайн уу, <span className="font-semibold text-mist-50">{playerName}</span>! Найзуудтайгаа нэг студид цуглаад ээлжлэн зурж, таа.
+                  Сайн уу, <span className="font-semibold text-mist-50">{playerName}</span>! Найзуудтайгаа ээлжлэн зурж, таа.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                   {connBadge}
@@ -358,7 +358,7 @@ export function DrawGuessStage(props: DrawGuessStageProps) {
                     <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-mist-50">
                       <Plus className="h-4 w-4 text-brand" /> Шинэ өрөө үүсгэх
                     </p>
-                    <p className="mt-1 flex-1 text-xs text-mist-400">Код гарч ирнэ — найзууддаа илгээгээд 2–8 хүн тоглоно. Хүн бүр 3 удаа зурна.</p>
+                    <p className="mt-1 flex-1 text-xs text-mist-400">2–8 хүн, кодоо найзууддаа илгээ.</p>
                     <GameButton onClick={withAudio(props.onCreateRoom)} disabled={busy || conn !== 'online'} className="mt-3 w-full">
                       <Palette className="h-4 w-4" /> Өрөө үүсгэх
                     </GameButton>
@@ -374,7 +374,7 @@ export function DrawGuessStage(props: DrawGuessStageProps) {
                     <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-mist-50">
                       <Users className="h-4 w-4 text-success" /> Кодоор нэгдэх
                     </p>
-                    <p className="mt-1 text-xs text-mist-400">Найзынхаа илгээсэн 5 оронтой кодыг оруул.</p>
+                    <p className="mt-1 text-xs text-mist-400">5 оронтой код оруул.</p>
                     <div className="mt-3 flex gap-2">
                       <input
                         value={joinCode}
@@ -400,7 +400,7 @@ export function DrawGuessStage(props: DrawGuessStageProps) {
                     </button>
                   </div>
                   {openRooms.length === 0 ? (
-                    <p className="mt-2 text-xs text-mist-500">Одоогоор хүлээж буй өрөө алга. Шинээр үүсгээд найзаа урь.</p>
+                    <p className="mt-2 text-xs text-mist-500">Нээлттэй өрөө алга.</p>
                   ) : (
                     <ul className="ce-scroll mt-2 max-h-32 divide-y divide-ink-600/60 overflow-y-auto">
                       {openRooms.map((r) => (
@@ -424,17 +424,12 @@ export function DrawGuessStage(props: DrawGuessStageProps) {
                   )}
                 </div>
 
-                <div className="mt-3 grid gap-2 text-xs text-mist-300 sm:grid-cols-2">
-                  <Rule icon={<Pencil className="h-3.5 w-3.5 text-brand" />}>
-                    Ээлжийн тоглогч <b className="text-mist-50">3 үгнээс</b> нэгийг сонгож {TURN_SECONDS} секундэд зурна, бусад нь англиар таана.
-                  </Rule>
-                  <Rule icon={<Lightbulb className="h-3.5 w-3.5 text-modifier" />}>
-                    {HINT_EVERY_SECONDS} секунд тутамд үгний нэг үсэг тип болж нээгдэнэ. Үсгийн тоо эхнээсээ харагдана.
-                  </Rule>
-                  <Rule icon={<Trophy className="h-3.5 w-3.5 text-success" />}>
-                    Түрүүлж таасан хүн 100 оноо, дараагийнх 80, 60… Зурсан хүн таасан хүн бүрээс +10.
-                  </Rule>
-                  <Rule icon={<Crown className="h-3.5 w-3.5 text-modifier" />}>Бүх тоглогч 3 удаа зурсны дараа хамгийн их оноотой нь подиумд гарна.</Rule>
+                {/* Дүрэм — богино */}
+                <div className="mt-3 grid gap-1.5 text-xs text-mist-300 sm:grid-cols-2">
+                  <Rule icon={<Pencil className="h-3.5 w-3.5 text-brand" />}>Нэг нь {TURN_SECONDS} сек зурна, бусад нь англиар таана.</Rule>
+                  <Rule icon={<Lightbulb className="h-3.5 w-3.5 text-modifier" />}>{HINT_EVERY_SECONDS} сек тутамд нэг үсэг нээгдэнэ.</Rule>
+                  <Rule icon={<Trophy className="h-3.5 w-3.5 text-success" />}>Түрүүлж таасан нь их оноо, зурагч +10.</Rule>
+                  <Rule icon={<Crown className="h-3.5 w-3.5 text-modifier" />}>Хүн бүр 3 удаа зурна — хамгийн их оноотой нь ялна.</Rule>
                 </div>
                 {/* Тоглоом бүрийн эцсийн оноог сервер leaderboard-д бүртгэнэ */}
                 <LeaderboardPanel scope="DRAW_GUESS" limit={5} compact className="mt-4" />

@@ -457,8 +457,7 @@ export function SoloRace({
             <p className="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Color English · Game</p>
             <h1 className="mt-1 text-center font-display text-3xl font-bold tracking-wide text-mist-50 sm:text-4xl">БИЧИХ УРАЛДААН</h1>
             <p className="mt-2 text-center text-sm text-mist-300">
-              Бэлэн үү, <span className="font-semibold text-mist-50">{playerName}</span>? Англи өгүүлбэрийг хурдан, зөв бичих тусам машин чинь
-              урагшилна. 4 боттой уралдана.
+              Бэлэн үү, <span className="font-semibold text-mist-50">{playerName}</span>? Хурдан, зөв бич — машин урагшилна.
             </p>
 
             <div className="mt-5">
@@ -558,30 +557,25 @@ export function SoloRace({
                     }`}
                   />
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                    <span className={customError ? 'text-danger' : 'text-mist-500'}>
-                      {customError ?? `${CUSTOM_TEXT_MIN}–${CUSTOM_TEXT_MAX} тэмдэгт. Мөр дамжилт, давхар зай автоматаар цэвэрлэгдэнэ.`}
-                    </span>
+                    <span className={customError ? 'text-danger' : 'text-mist-500'}>{customError ?? `${CUSTOM_TEXT_MIN}–${CUSTOM_TEXT_MAX} тэмдэгт.`}</span>
                     <span className={`font-mono ${customPreview.length > CUSTOM_TEXT_MAX ? 'text-danger' : 'text-mist-500'}`}>
                       {customPreview.length}/{CUSTOM_TEXT_MAX}
                     </span>
                   </div>
                   {hasLimit && requiredWpm > 60 && (
-                    <p className="mt-1 text-[11px] text-modifier">
-                      Энэ өгүүлбэрийг {limit} секундэд бичихэд ~{requiredWpm} WPM шаардана. Цагаа нэмэх эсвэл өгүүлбэрээ багасгах нь зөв.
-                    </p>
+                    <p className="mt-1 text-[11px] text-modifier">{limit} секундэд ~{requiredWpm} WPM шаардана — цагаа нэм.</p>
                   )}
                 </div>
               ) : (
-                <p className="mt-1.5 text-[11px] text-mist-500">
-                  {levelCfg.code} түвшний дүрмийн сангаас санамсаргүй өгүүлбэр гарна{hasLimit ? ' (цагт тохирсон урттай).' : '.'}
-                </p>
+                <p className="mt-1.5 text-[11px] text-mist-500">{levelCfg.code} түвшний санамсаргүй өгүүлбэр.</p>
               )}
             </div>
 
-            <div className="mt-4 grid gap-2 text-xs text-mist-300 sm:grid-cols-3">
-              <Rule icon={<Keyboard className="h-3.5 w-3.5 text-brand" />}>Өгүүлбэрийг яг хэвээр нь бич — зөв тэмдэгт бүрт машин урагшилна.</Rule>
-              <Rule icon={<Zap className="h-3.5 w-3.5 text-modifier" />}>Үг бүр дуусахад утаа гарна, хурдан бичвэл нитро асна.</Rule>
-              <Rule icon={<Flag className="h-3.5 w-3.5 text-success" />}>Бариа дээр хүрэхэд секунд, WPM, байр харагдана.</Rule>
+            {/* Дүрэм — богино */}
+            <div className="mt-4 grid gap-1.5 text-xs text-mist-300 sm:grid-cols-3">
+              <Rule icon={<Keyboard className="h-3.5 w-3.5 text-brand" />}>Өгүүлбэрийг яг хэвээр нь бич.</Rule>
+              <Rule icon={<Zap className="h-3.5 w-3.5 text-modifier" />}>Хурдан бичвэл нитро асна.</Rule>
+              <Rule icon={<Flag className="h-3.5 w-3.5 text-success" />}>Бариа: секунд, WPM, байр.</Rule>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
