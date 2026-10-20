@@ -1,8 +1,10 @@
 // frontend/src/components/sentence-builder/sentence-builder-game.tsx
 // "Өгүүлбэр бүтээх" — бүтэн хуудас 2D тоглоом. Canvas дүрслэл (GameScene) дэлгэцийг дүүргэж,
 // доор нь тоглоомын консол (утга, оролт, товч), дээр нь эхлэх / game over / ялалтын давхарга.
-// Өгүүлбэрийн бүх үг холигдож тэнгэрт хөвнө (a / the / to орсон); тоглогч зөв дарааллаар бичнэ.
-// Раунд бүр 5 → 8 үг болж хүндэрнэ, цаг нь үгийн тоогоор уртасна.
+// Өгүүлбэрийн бүх үг холигдож тэнгэрт хөвнө (a / the / to орсон); монгол утга нь блокуудын дээр бичигдэнэ.
+// Тоглогч блок дээр дарж доод хэсгийн хоосон нүднүүдэд зөв дарааллаар оруулна (гар шаардлагагүй);
+// хүсвэл «Гараар бичих» товчоор текст оролт нээж бичиж болно.
+// Раунд бүр 5 → 8 үг болж хүндэрнэ, цаг нь үгийн тоогоор уртасна (үг бүрт +3с).
 // Цаг дуусвал тавцан хагарч робот унана → GAME OVER. 10 тавцан давбал туг → ЯЛАЛТ.
 'use client';
 
@@ -10,6 +12,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Check,
   Flame,
+  Keyboard,
+  LayoutGrid,
   Lightbulb,
   MousePointerClick,
   Play,
@@ -36,6 +40,7 @@ import {
   saveBestIfBetter,
   scoreFor,
   SECONDS_PER_EXTRA_WORD,
+  SECONDS_PER_WORD,
   shuffledWords,
   wordCount,
   type BestScore,
@@ -185,8 +190,16 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
   const [best, setBest] = useState<BestScore | null>(null);
   const [isNewBest, setIsNewBest] = useState(false);
   const [overlayReady, setOverlayReady] = useState(true);
+  /** Доод хэсгийн нүднүүдэд оруулсан үгс (дарааллаараа) — блок горимын хариулт */
+  const [chosen, setChosen] = useState<string[]>([]);
+  /** true бол текст оролт нээгдэж, тоглогч гараар бичнэ */
+  const [manual, setManual] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const chosenRef = useRef<string[]>([]);
+  const manualRef = useRef(false);
+  const autoCheckRef = useRef<number | null>(null);
+  manualRef.current = manual;
   const startAtRef = useRef(0);
   const roundMsRef = useRef(30000);
   const roundStateRef = useRef<RoundState>('typing');
@@ -214,29 +227,49 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       autoNextRef.current = null;
     }
   };
+  const clearAutoCheck = () => {
+    if (autoCheckRef.current != null) {
+      window.clearTimeout(autoCheckRef.current);
+      autoCheckRef.current = null;
+    }
+  };
 
-  const beginRound = useCallback((list: SentencePuzzle[], i: number) => {
-    clearAutoNext();
-    const pz = list[i];
-    const ms = roundSeconds(pz) * 1000;
-    setIdx(i);
-    setWords(shuffledWords(pz));
-    setRoundState('typing');
-    roundStateRef.current = 'typing';
-    // Оролт uncontrolled: DOM утгыг шууд цэвэрлэнэ (controlled байх үед 50мс таймерын
-    // re-render Android IME-ийн бичилтийг тасалж, «a», «the» мэт богино үг алга болдог байсан).
-    if (inputRef.current) inputRef.current.value = '';
-    setUsedTip(false);
-    usedTipRef.current = false;
-    setWrongMsg(null);
-    setLastPoints(0);
-    setRoundMs(ms);
-    roundMsRef.current = ms;
-    setRemainMs(ms);
-    lastTickSecRef.current = Math.ceil(ms / 1000);
-    startAtRef.current = performance.now();
-    window.setTimeout(() => inputRef.current?.focus(), 30);
+  /** Нүднүүдийн үгсийг state + ref хоёуланд нь бичнэ (ref-ийг таймер/canvas шууд уншина). */
+  const setChosenBoth = useCallback((next: string[]) => {
+    chosenRef.current = next;
+    setChosen(next);
   }, []);
+
+  /** Одоогийн хариулт: гараар бичих горимд оролтын утга, бусад үед нүднүүдэд оруулсан үгс. */
+  const currentAnswer = useCallback(() => (manualRef.current ? (inputRef.current?.value ?? '') : chosenRef.current.join(' ')), []);
+
+  const beginRound = useCallback(
+    (list: SentencePuzzle[], i: number) => {
+      clearAutoNext();
+      clearAutoCheck();
+      const pz = list[i];
+      const ms = roundSeconds(pz) * 1000;
+      setIdx(i);
+      setWords(shuffledWords(pz));
+      setRoundState('typing');
+      roundStateRef.current = 'typing';
+      setChosenBoth([]);
+      // Оролт uncontrolled: DOM утгыг шууд цэвэрлэнэ (controlled байх үед 50мс таймерын
+      // re-render Android IME-ийн бичилтийг тасалж, «a», «the» мэт богино үг алга болдог байсан).
+      if (inputRef.current) inputRef.current.value = '';
+      setUsedTip(false);
+      usedTipRef.current = false;
+      setWrongMsg(null);
+      setLastPoints(0);
+      setRoundMs(ms);
+      roundMsRef.current = ms;
+      setRemainMs(ms);
+      lastTickSecRef.current = Math.ceil(ms / 1000);
+      startAtRef.current = performance.now();
+      if (manualRef.current) window.setTimeout(() => inputRef.current?.focus(), 30);
+    },
+    [setChosenBoth],
+  );
 
   const startGame = useCallback(() => {
     unlockAudio();
@@ -310,14 +343,15 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
   /** Цаг дууссан → робот унана, тоглоом дуусна. */
   const fail = useCallback(() => {
     if (!puzzle) return;
-    const finalLog: RoundLog[] = [...log, { puzzle, state: 'fall', points: 0, usedTip: usedTipRef.current, answer: inputRef.current?.value ?? '' }];
+    clearAutoCheck();
+    const finalLog: RoundLog[] = [...log, { puzzle, state: 'fall', points: 0, usedTip: usedTipRef.current, answer: currentAnswer() }];
     setLog(finalLog);
     streakRef.current = 0;
     setStreak(0);
     setRemainMs(0);
     sfx.timeout();
     finishGame(finalLog, score, false);
-  }, [finishGame, log, puzzle, score]);
+  }, [currentAnswer, finishGame, log, puzzle, score]);
 
   // Таймер: 50мс тутамд үлдсэн хугацааг шинэчилнэ; сүүлийн 5 секундэд тик дуугарна; 0 болоход унана.
   useEffect(() => {
@@ -347,9 +381,10 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
   const submit = useCallback(() => {
     if (!puzzle || roundStateRef.current !== 'typing') return;
-    const value = inputRef.current?.value.trim() ?? '';
+    clearAutoCheck();
+    const value = currentAnswer().trim();
     if (!value) {
-      inputRef.current?.focus();
+      if (manualRef.current) inputRef.current?.focus();
       return;
     }
     if (isCorrectAnswer(puzzle, value)) {
@@ -359,43 +394,116 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
       setShaking(true);
       setWrongMsg(answerHint(puzzle, value));
       sfx.wrong();
-      inputRef.current?.focus();
+      if (manualRef.current) inputRef.current?.focus();
     }
-  }, [puzzle, settleCorrect]);
+  }, [currentAnswer, puzzle, settleCorrect]);
 
   const showTip = useCallback(() => {
     if (roundStateRef.current !== 'typing') return;
     setUsedTip(true);
     usedTipRef.current = true;
     sfx.tip();
-    inputRef.current?.focus();
+    if (manualRef.current) inputRef.current?.focus();
   }, []);
 
-  /** Canvas дээрх үгийн блок дарахад: шинэ үг нэмэх, ашигласан үгийг буцаах. */
-  const onWordTap = useCallback((word: string, used: boolean, pointerType: string) => {
-    const el = inputRef.current;
-    if (!el) return;
-    const tokens = el.value.split(/\s+/).filter(Boolean);
-    if (used) {
-      const n = normalizeSentence(word);
-      for (let i = tokens.length - 1; i >= 0; i--) {
-        if (normalizeSentence(tokens[i]) === n) {
-          tokens.splice(i, 1);
-          break;
+  /**
+   * Canvas дээрх үгийн блок дарахад: шинэ үг нэмэх, ашигласан үгийг буцаах.
+   * Блок горимд доод хэсгийн нүднүүдэд ордог; бүх нүд дүүрвэл автоматаар шалгана.
+   * Гараар бичих горимд текст оролт руу бичигдэнэ.
+   */
+  const onWordTap = useCallback(
+    (word: string, used: boolean, pointerType: string) => {
+      if (roundStateRef.current !== 'typing') return;
+      if (!manualRef.current) {
+        const list = [...chosenRef.current];
+        if (used) {
+          const n = normalizeSentence(word);
+          for (let i = list.length - 1; i >= 0; i--) {
+            if (normalizeSentence(list[i]) === n) {
+              list.splice(i, 1);
+              break;
+            }
+          }
+        } else {
+          list.push(word);
+          sfx.tick();
+        }
+        setChosenBoth(list);
+        setWrongMsg(null);
+        clearAutoCheck();
+        if (!used && puzzle && list.length >= wordCount(puzzle)) {
+          // Сүүлийн нүд дүүрсэн — нүд зурагдсаны дараа шалгана (хэрэв тэр хооронд өөрчлөгдөөгүй бол)
+          autoCheckRef.current = window.setTimeout(() => {
+            autoCheckRef.current = null;
+            if (chosenRef.current === list) submit();
+          }, 180);
+        }
+        return;
+      }
+      const el = inputRef.current;
+      if (!el) return;
+      const tokens = el.value.split(/\s+/).filter(Boolean);
+      if (used) {
+        const n = normalizeSentence(word);
+        for (let i = tokens.length - 1; i >= 0; i--) {
+          if (normalizeSentence(tokens[i]) === n) {
+            tokens.splice(i, 1);
+            break;
+          }
+        }
+        el.value = tokens.join(' ');
+      } else {
+        tokens.push(word);
+        el.value = tokens.join(' ');
+        sfx.tick();
+      }
+      setWrongMsg(null);
+      // Гар утсан дээр гар (keyboard) гарч ирэхгүйн тулд зөвхөн хулганы үед фокуслоно
+      if (pointerType === 'mouse') el.focus();
+    },
+    [puzzle, setChosenBoth, submit],
+  );
+
+  /** Доод хэсгийн нүдэн дээр дарахад тэр үгийг хасна (блок дахин идэвхжинэ). */
+  const removeSlot = useCallback(
+    (i: number) => {
+      if (roundStateRef.current !== 'typing') return;
+      clearAutoCheck();
+      setChosenBoth(chosenRef.current.filter((_, k) => k !== i));
+      setWrongMsg(null);
+    },
+    [setChosenBoth],
+  );
+
+  /** «Гараар бичих» ↔ «Блокоор» горим солих; бичсэн/оруулсан үгсийг хооронд нь шилжүүлнэ. */
+  const toggleManual = useCallback(() => {
+    if (roundStateRef.current !== 'typing') return;
+    clearAutoCheck();
+    setWrongMsg(null);
+    if (manualRef.current) {
+      // Гараар бичсэн үгсээс блокт байгаа үгсийг нүднүүд рүү буцаана
+      const avail = [...words];
+      const list: string[] = [];
+      for (const tok of (inputRef.current?.value ?? '').split(/\s+/).filter(Boolean)) {
+        const n = normalizeSentence(tok);
+        const k = avail.findIndex((w) => normalizeSentence(w) === n);
+        if (k >= 0) {
+          list.push(avail[k]);
+          avail.splice(k, 1);
         }
       }
-      el.value = tokens.join(' ');
+      setChosenBoth(list);
+      manualRef.current = false;
+      setManual(false);
     } else {
-      tokens.push(word);
-      el.value = tokens.join(' ');
-      sfx.tick();
+      manualRef.current = true;
+      setManual(true);
+      // Оролт mount болсны дараа фокуслоно (defaultValue-д нүднүүдийн үгс орно)
+      window.setTimeout(() => inputRef.current?.focus(), 30);
     }
-    setWrongMsg(null);
-    // Гар утсан дээр гар (keyboard) гарч ирэхгүйн тулд зөвхөн хулганы үед фокуслоно
-    if (pointerType === 'mouse') el.focus();
-  }, []);
+  }, [setChosenBoth, words]);
 
-  const getTyped = useCallback(() => inputRef.current?.value ?? '', []);
+  const getTyped = currentAnswer;
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
@@ -406,6 +514,8 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
   const quit = () => {
     clearAutoNext();
+    clearAutoCheck();
+    setChosenBoth([]);
     setPhase('idle');
     setWords(PREVIEW_WORDS);
     setIdx(0);
@@ -430,6 +540,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
           fraction={playing ? fraction : phase === 'over' ? 0 : 1}
           remainSec={playing ? remainSec : phase === 'over' ? 0 : 30}
           words={phase === 'idle' ? PREVIEW_WORDS : words}
+          meaning={playing && puzzle ? puzzle.mn : undefined}
           streak={streak}
           score={score}
           lastPoints={lastPoints}
@@ -450,11 +561,12 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
             <div className="mt-5 grid gap-2 text-xs text-mist-300 sm:grid-cols-2">
               <Rule icon={<MousePointerClick className="h-3.5 w-3.5 text-subject" />}>
-                Өгүүлбэрийн <b className="text-mist-50">бүх үг</b> (a, the, to орсон) холигдож тэнгэрт хөвнө. Зөв дарааллаар бич, эсвэл блок
-                дээр дарж нэм.
+                Өгүүлбэрийн <b className="text-mist-50">бүх үг</b> (a, the, to орсон) холигдож тэнгэрт хөвнө. Блок дээр дарж доорх хоосон
+                нүдэнд зөв дарааллаар оруул. Хүсвэл «Гараар бичих» товчоор бичиж болно.
               </Rule>
               <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>
-                Тавцан ахих тусам хүндэрнэ: {MIN_WORDS} үгээс эхлээд {MAX_WORDS} үг хүртэл. Нэмэлт үг бүрт +{SECONDS_PER_EXTRA_WORD} секунд.
+                Тавцан ахих тусам хүндэрнэ: {MIN_WORDS} үгээс эхлээд {MAX_WORDS} үг хүртэл. Үг бүрт +{SECONDS_PER_WORD}с, нэмэлт үг бүрт +
+                {SECONDS_PER_EXTRA_WORD}с.
               </Rule>
               <Rule icon={<Skull className="h-3.5 w-3.5 text-danger" />}>
                 Цаг дуусвал тавцан хагарч робот унана — <b className="text-danger">GAME OVER</b>. Амь нэг л бий!
@@ -587,14 +699,30 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
           style={{ borderTopColor: resolved ? '#3DDC97' : urgent ? '#FF6B7A' : 'rgba(79,140,255,0.6)' }}
         >
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <p className="flex min-w-[220px] flex-1 items-center gap-2 text-sm text-mist-100">
-              <span className="shrink-0 rounded-md bg-brand/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">Утга</span>
-              <span>{puzzle.mn}</span>
-            </p>
-            <div className="ml-auto flex items-center gap-2">
+            <p className="flex items-center gap-2 text-xs text-mist-400">
+              <span className="shrink-0 rounded-md bg-brand/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
+                {manual ? 'Гараар бичих' : 'Өгүүлбэр'}
+              </span>
               <span className="inline-flex items-center gap-1 text-[11px] text-mist-500">
                 <Timer className="h-3 w-3" /> {wordCount(puzzle)} үг · {roundSeconds(puzzle)}с
               </span>
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleManual}
+                disabled={resolved}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors disabled:opacity-50 ${
+                  manual
+                    ? 'border-brand/60 bg-brand/15 text-brand hover:bg-brand/25'
+                    : 'border-ink-600/80 bg-ink-900/80 text-mist-400 hover:border-ink-500 hover:text-mist-50'
+                }`}
+                aria-pressed={manual}
+                title={manual ? 'Блок дарж оруулах горим руу буцах' : 'Гараар бичих'}
+              >
+                {manual ? <LayoutGrid className="h-4 w-4" /> : <Keyboard className="h-4 w-4" />}
+                <span className="hidden sm:inline">{manual ? 'Блокоор' : 'Гараар бичих'}</span>
+              </button>
               <MuteButton compact />
               <button
                 type="button"
@@ -608,46 +736,59 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
             </div>
           </div>
 
-          <div className="mt-2 flex items-stretch gap-2">
+          {/* Жижиг дэлгэцэд нүднүүд бүтэн мөр эзэлж, товчнууд доор нь орно; sm-ээс дээш нэг мөрөнд */}
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
             <div className={`min-w-0 flex-1 ${shaking ? 'sb-shake' : ''}`} onAnimationEnd={() => setShaking(false)}>
-              <input
-                ref={inputRef}
-                type="text"
-                defaultValue=""
-                onChange={() => {
-                  if (wrongMsg) setWrongMsg(null);
-                }}
-                onKeyDown={onKeyDown}
-                disabled={resolved}
-                autoComplete="off"
-                autoCapitalize="sentences"
-                spellCheck={false}
-                placeholder="Үгсийг зөв дарааллаар бич..."
-                className={`h-11 w-full rounded-xl border-2 bg-ink-950 px-3 font-mono text-base text-mist-50 outline-none transition-colors placeholder:text-mist-500 disabled:opacity-70 sm:h-12 sm:px-4 sm:text-lg ${
-                  roundState === 'correct'
-                    ? 'border-success'
-                    : wrongMsg
-                      ? 'border-danger'
-                      : urgent
-                        ? 'border-danger/70 focus:border-danger'
-                        : 'border-ink-600 focus:border-brand'
-                }`}
-              />
+              {manual ? (
+                <input
+                  ref={inputRef}
+                  type="text"
+                  defaultValue={chosen.join(' ')}
+                  onChange={() => {
+                    if (wrongMsg) setWrongMsg(null);
+                  }}
+                  onKeyDown={onKeyDown}
+                  disabled={resolved}
+                  autoComplete="off"
+                  autoCapitalize="sentences"
+                  spellCheck={false}
+                  placeholder="Үгсийг зөв дарааллаар бич..."
+                  className={`h-11 w-full rounded-xl border-2 bg-ink-950 px-3 font-mono text-base text-mist-50 outline-none transition-colors placeholder:text-mist-500 disabled:opacity-70 sm:h-12 sm:px-4 sm:text-lg ${
+                    roundState === 'correct'
+                      ? 'border-success'
+                      : wrongMsg
+                        ? 'border-danger'
+                        : urgent
+                          ? 'border-danger/70 focus:border-danger'
+                          : 'border-ink-600 focus:border-brand'
+                  }`}
+                />
+              ) : (
+                <SlotRow
+                  count={wordCount(puzzle)}
+                  chosen={chosen}
+                  onRemove={removeSlot}
+                  disabled={resolved}
+                  tone={roundState === 'correct' ? 'success' : wrongMsg ? 'danger' : urgent ? 'urgent' : 'normal'}
+                />
+              )}
             </div>
-            {resolved ? (
-              <GameButton onClick={goNext} className="shrink-0">
-                {idx + 1 >= puzzles.length ? 'Туг!' : 'Үсрэх'} <Play className="h-4 w-4" />
-              </GameButton>
-            ) : (
-              <>
-                <GameButton onClick={submit} className="shrink-0 px-4">
-                  <Check className="h-4 w-4" /> <span className="hidden sm:inline">Шалгах</span>
+            <div className="flex shrink-0 gap-2">
+              {resolved ? (
+                <GameButton onClick={goNext} className="flex-1 sm:flex-none">
+                  {idx + 1 >= puzzles.length ? 'Туг!' : 'Үсрэх'} <Play className="h-4 w-4" />
                 </GameButton>
-                <GameButton onClick={showTip} tone="warning" disabled={usedTip} className="shrink-0 px-3">
-                  <Lightbulb className="h-4 w-4" /> <span className="hidden sm:inline">Tip</span>
-                </GameButton>
-              </>
-            )}
+              ) : (
+                <>
+                  <GameButton onClick={submit} className="flex-1 px-4 sm:flex-none">
+                    <Check className="h-4 w-4" /> Шалгах
+                  </GameButton>
+                  <GameButton onClick={showTip} tone="warning" disabled={usedTip} className="px-3">
+                    <Lightbulb className="h-4 w-4" /> Tip
+                  </GameButton>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="mt-2 min-h-[20px] text-xs">
@@ -665,7 +806,11 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
               </p>
             )}
             {!wrongMsg && !usedTip && roundState === 'typing' && (
-              <p className="text-mist-500">Enter дарж шалгана · Блок дээр дарж үг нэмнэ, дахин дарвал хасна</p>
+              <p className="text-mist-500">
+                {manual
+                  ? 'Enter дарж шалгана · Блок дээр дарвал үг нэмэгдэнэ, дахин дарвал хасагдана'
+                  : 'Үгийн блок дээр дарж нүдэнд зөв дарааллаар оруул · Нүдэн дээр дарвал хасна · Дүүрвэл шууд шалгана'}
+              </p>
             )}
           </div>
           {/* Дэлгэц уншигчид зориулж үгсийг текстээр давтана */}
@@ -697,6 +842,71 @@ function Rule({ icon, children }: { icon: React.ReactNode; children: React.React
       <span className="mt-0.5 shrink-0">{icon}</span>
       <span>{children}</span>
     </p>
+  );
+}
+
+/**
+ * Өгүүлбэрийн хоосон нүднүүд (доод хэсэг). Тоглогчийн дарсан үгс дарааллаараа нүд дүүргэнэ;
+ * дүүрсэн нүдэн дээр дарвал тэр үг хасагдана. Дараагийн хоосон нүд анивчина.
+ */
+function SlotRow({
+  count,
+  chosen,
+  onRemove,
+  disabled,
+  tone,
+}: {
+  count: number;
+  chosen: string[];
+  onRemove: (i: number) => void;
+  disabled: boolean;
+  tone: 'normal' | 'urgent' | 'danger' | 'success';
+}) {
+  const border =
+    tone === 'success' ? 'border-success' : tone === 'danger' ? 'border-danger' : tone === 'urgent' ? 'border-danger/70' : 'border-ink-600';
+  return (
+    <div
+      role="list"
+      aria-label="Өгүүлбэрийн нүднүүд"
+      className={`flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-xl border-2 bg-ink-950 px-2 py-1.5 transition-colors sm:min-h-[48px] ${border}`}
+    >
+      {Array.from({ length: count }, (_, i) => {
+        const word = chosen[i];
+        if (word != null) {
+          return (
+            <button
+              key={`${i}-${word}`}
+              type="button"
+              role="listitem"
+              onClick={() => onRemove(i)}
+              disabled={disabled}
+              title="Хасах"
+              aria-label={`${word} — хасах`}
+              className={`sb-pop inline-flex h-8 items-center rounded-lg border px-2.5 font-mono text-sm transition-colors disabled:cursor-default ${
+                tone === 'success'
+                  ? 'border-success/70 bg-success/15 text-mist-50'
+                  : 'border-subject bg-subject-dim text-mist-50 hover:border-danger hover:bg-danger/15'
+              }`}
+            >
+              {word}
+            </button>
+          );
+        }
+        const next = i === chosen.length && !disabled;
+        return (
+          <span
+            key={i}
+            role="listitem"
+            aria-label={`${i + 1}-р нүд хоосон`}
+            className={`inline-flex h-8 min-w-[46px] items-center justify-center rounded-lg border border-dashed text-[10px] font-semibold ${
+              next ? 'sb-blink border-brand text-brand' : 'border-ink-500 text-mist-500'
+            }`}
+          >
+            {i + 1}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

@@ -14,9 +14,14 @@ export type SentencePuzzle = {
 };
 
 export const ROUNDS_PER_GAME = 10;
-/** 5 үгтэй өгүүлбэрийн хугацаа; нэмэлт үг бүрт SECONDS_PER_EXTRA_WORD нэмэгдэнэ (8 үг = 60с). */
-export const BASE_ROUND_SECONDS = 30;
+/**
+ * Суурь хугацаа. Үүн дээр үг бүрт SECONDS_PER_WORD, 5-аас илүү үг бүрт SECONDS_PER_EXTRA_WORD нэмэгдэнэ
+ * (5 үг = 55с, 8 үг = 94с).
+ */
+export const BASE_ROUND_SECONDS = 40;
 export const SECONDS_PER_EXTRA_WORD = 10;
+/** Өгүүлбэрийн үг тус бүрт нэмэгдэх секунд. */
+export const SECONDS_PER_WORD = 3;
 export const MIN_WORDS = 5;
 export const MAX_WORDS = 8;
 /** Tip ашигласан раундын тогтмол оноо. */
@@ -73,17 +78,17 @@ export const SENTENCE_POOL: Pool = {
     { answer: 'I want a cup of tea', mn: 'Би нэг аяга цай уумаар байна.' },
     { answer: 'It is very hot in summer', mn: 'Зун маш халуун байдаг.', alt: ['In summer it is very hot'] },
     { answer: 'They are students at this school', mn: 'Тэд энэ сургуульд сурдаг оюутнууд.' },
-    { answer: 'She speaks English and Mongolian well', mn: 'Тэр англи, монголоор сайн ярьдаг.' },
+    { answer: 'She speaks English and Mongolian well', mn: 'Тэр Англи, Монголоор сайн ярьдаг.' },
     { answer: 'I listen to music every evening', mn: 'Би орой бүр хөгжим сонсдог.', alt: ['Every evening I listen to music'] },
     { answer: 'He goes to bed at ten', mn: 'Тэр арван цагт унтдаг.', alt: ['At ten he goes to bed'] },
     { answer: 'We watch a movie every Friday', mn: 'Бид баасан гараг бүр кино үздэг.', alt: ['Every Friday we watch a movie'] },
     { answer: "I wake up at seven o'clock", mn: 'Би долоон цагт босдог.', alt: ["At seven o'clock I wake up"] },
     { answer: 'She has a small red car', mn: 'Тэр жижиг улаан машинтай.' },
     { answer: 'They went to the park yesterday', mn: 'Тэд өчигдөр цэцэрлэгт хүрээлэн рүү явсан.', alt: ['Yesterday they went to the park'] },
-    { answer: 'I call my father every Sunday', mn: 'Би ням гараг бүр аавдаа залгадаг.', alt: ['Every Sunday I call my father'] },
+    { answer: 'I call my father every Sunday', mn: 'Би ням гараг бүр аавруугаа залгадаг.', alt: ['Every Sunday I call my father'] },
     { answer: 'My mother is cooking dinner now', mn: 'Ээж маань одоо оройн хоол хийж байна.', alt: ['Now my mother is cooking dinner'] },
     { answer: 'We are happy to see you', mn: 'Бид тантай уулзахдаа баяртай байна.' },
-    { answer: 'I open the window every morning', mn: 'Би өглөө бүр цонх онгойлгодог.', alt: ['Every morning I open the window'] },
+    { answer: 'I open the window every morning', mn: 'Би өглөө бүр цонхоо онгойлгодог.', alt: ['Every morning I open the window'] },
     { answer: 'She is reading a new book', mn: 'Тэр шинэ ном уншиж байна.' },
     { answer: "The bus comes at eight o'clock", mn: 'Автобус найман цагт ирдэг.', alt: ["At eight o'clock the bus comes"] },
     { answer: 'It is snowing in the mountains', mn: 'Ууланд цас орж байна.', alt: ['In the mountains it is snowing'] },
@@ -169,9 +174,10 @@ export function wordCountForRound(round: number, total = ROUNDS_PER_GAME): numbe
   return Math.max(MIN_WORDS, Math.min(MAX_WORDS, n));
 }
 
-/** Тухайн өгүүлбэрт өгөх секунд: 5 үг = 30с, нэмэлт үг бүрт +10с (8 үг = 60с). */
+/** Тухайн өгүүлбэрт өгөх секунд: суурь 40с + үг бүрт 3с + нэмэлт үг бүрт 10с (5 үг = 55с, 8 үг = 94с). */
 export function roundSeconds(puzzle: SentencePuzzle): number {
-  return BASE_ROUND_SECONDS + (wordCount(puzzle) - MIN_WORDS) * SECONDS_PER_EXTRA_WORD;
+  const n = wordCount(puzzle);
+  return BASE_ROUND_SECONDS + n * SECONDS_PER_WORD + (n - MIN_WORDS) * SECONDS_PER_EXTRA_WORD;
 }
 
 /** Том/жижиг үсэг, цэг таслал, давхар зайг үл тооцон харьцуулахад бэлтгэнэ. */

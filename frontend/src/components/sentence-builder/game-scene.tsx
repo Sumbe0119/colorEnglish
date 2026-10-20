@@ -24,6 +24,8 @@ export type GameSceneProps = {
   fraction: number;
   remainSec: number;
   words: string[];
+  /** Зорилтот өгүүлбэрийн монгол утга — үгийн блокуудын дээр бичигдэнэ */
+  meaning?: string;
   streak: number;
   score: number;
   /** Сүүлийн зөв хариултын оноо — popup-д */
@@ -46,6 +48,9 @@ const JUMP_MS = 620;
 const CRACK_MS = 450;
 const WORD_ROW_H = 40;
 const WORD_H = 32;
+/** Утгын текстийн дээд ирмэг (HUD хайрцгуудын доор) */
+const MEANING_TOP = 72;
+/** Утга байхгүй үед үгийн блокуудын дээд ирмэг */
 const WORDS_TOP = 86;
 
 const C = {
@@ -261,6 +266,29 @@ function drawPlatformPiece(ctx: CanvasRenderingContext2D, cx: number, cy: number
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
+}
+
+/** Текстийг maxW өргөнд багтаан мөрүүдэд хуваана; maxLines-ээс хэтэрвэл «…»-ээр тасална. */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
+  const lines: string[] = [];
+  let cur = '';
+  for (const wd of text.split(/\s+/).filter(Boolean)) {
+    const test = cur ? `${cur} ${wd}` : wd;
+    if (!cur || ctx.measureText(test).width <= maxW) {
+      cur = test;
+    } else {
+      lines.push(cur);
+      cur = wd;
+    }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) {
+    lines.length = maxLines;
+    let last = lines[maxLines - 1];
+    while (last && ctx.measureText(`${last}…`).width > maxW) last = last.replace(/\s*\S+$/, '');
+    lines[maxLines - 1] = `${last}…`;
+  }
+  return lines;
 }
 
 /** Бичсэн үгсийг блокуудтай олон-тооны (multiset) байдлаар тааруулж "ашигласан" тэмдэглэнэ */
@@ -729,7 +757,39 @@ export function GameScene(props: GameSceneProps) {
         ctx.fill();
       }
 
-      // ── Үгийн блокууд (одоогийн раунд) — дэлгэцийн дээд хэсэгт олон мөрөөр ──
+      // ── Өгүүлбэрийн монгол утга — HUD-ийн доор, үгийн блокуудын дээр ──
+      // Намхан дэлгэцэд (гар утас) утга, блокуудыг шахаж зурна — баатрын толгойтой давхцахгүйн тулд
+      const compact = h < 380;
+      const rowH = compact ? 34 : WORD_ROW_H;
+      let wordsTop = WORDS_TOP;
+      if (p.playing && p.meaning && p.status !== 'win' && !fall) {
+        const narrow = w < 480;
+        const fs = compact ? 12 : narrow ? 13 : 15;
+        const lh = compact ? 16 : narrow ? 18 : 21;
+        const meaningFont = `600 ${fs}px ${fontRef.current}`;
+        ctx.font = meaningFont;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const lines = wrapText(ctx, p.meaning, Math.min(w - 28, 620), compact ? 2 : 3);
+        const labelH = compact ? 11 : 14;
+        const textY = MEANING_TOP + labelH;
+        // ар дэвсгэр: одноос ялгарах зөөлөн хүрээ
+        const bw = Math.max(...lines.map((ln) => ctx.measureText(ln).width), narrow ? 80 : 120) + 28;
+        const bh = labelH + lines.length * lh + 8;
+        ctx.fillStyle = 'rgba(7,10,18,0.55)';
+        rr(ctx, w / 2 - bw / 2, MEANING_TOP - 6, bw, bh, 12);
+        ctx.fill();
+        ctx.font = `700 9px ${fontRef.current}`;
+        ctx.fillStyle = C.brand;
+        ctx.fillText('УТГА', w / 2, MEANING_TOP);
+        ctx.font = meaningFont;
+        ctx.fillStyle = C.mist50;
+        lines.forEach((ln, i) => ctx.fillText(ln, w / 2, textY + i * lh));
+        ctx.textBaseline = 'middle';
+        wordsTop = MEANING_TOP + bh + (compact ? 6 : 10);
+      }
+
+      // ── Үгийн блокууд (одоогийн раунд) — утгын доор олон мөрөөр ──
       blocksRef.current = [];
       if ((p.playing || p.words.length) && p.status !== 'win' && !fall) {
         const fb = feedbackRef.current;
@@ -739,6 +799,8 @@ export function GameScene(props: GameSceneProps) {
         if (!gone || jumpRef.current) {
           const narrow = w < 480;
           ctx.font = `700 ${narrow ? 13 : 15}px ${fontRef.current}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
           const pad = narrow ? 12 : 16;
           const gap = 8;
           const maxRowW = Math.min(w - 28, 640);
@@ -762,7 +824,7 @@ export function GameScene(props: GameSceneProps) {
           rows.forEach((row, r) => {
             const totalW = row.reduce((a, i) => a + widths[i], 0) + gap * (row.length - 1);
             let bx = w / 2 - totalW / 2;
-            const rowY = WORDS_TOP + r * WORD_ROW_H;
+            const rowY = wordsTop + r * rowH;
             for (const i of row) {
               const wd = p.words[i];
               const bob = Math.sin(t / 520 + i * 1.3) * 4;
@@ -995,33 +1057,25 @@ export function GameScene(props: GameSceneProps) {
         ctx.textAlign = 'right';
         const roundLabel = `${Math.min(p.idx + 1, p.total)} / ${p.total}`;
         const scoreLabel = `★ ${p.score}`;
-        const lw = Math.max(ctx.measureText(roundLabel).width, ctx.measureText(scoreLabel).width) + 22;
+        // Combo — раундын мөрөнд, зүүн талд нь (утгын текстийг дарахгүйн тулд тусдаа badge биш)
+        const streakLabel = p.streak >= 2 && !ended ? `🔥${p.streak}x` : '';
+        const roundW = ctx.measureText(roundLabel).width;
+        const line1W = roundW + (streakLabel ? ctx.measureText(streakLabel).width + 8 : 0);
+        const lw = Math.max(line1W, ctx.measureText(scoreLabel).width) + 22;
         ctx.fillStyle = 'rgba(7,10,18,0.72)';
         rr(ctx, w - 12 - lw, 12, lw, 50, 12);
         ctx.fill();
-        ctx.strokeStyle = C.ink600;
+        ctx.strokeStyle = streakLabel ? C.verb : C.ink600;
         ctx.lineWidth = 1.5;
         ctx.stroke();
         ctx.fillStyle = C.mist50;
         ctx.fillText(roundLabel, w - 23, 26);
+        if (streakLabel) {
+          ctx.fillStyle = C.verb;
+          ctx.fillText(streakLabel, w - 23 - roundW - 8, 26);
+        }
         ctx.fillStyle = C.modifier;
         ctx.fillText(scoreLabel, w - 23, 47);
-        if (p.streak >= 2 && !ended) {
-          const s = `🔥 ${p.streak}x`;
-          const sw = ctx.measureText(s).width + 22;
-          ctx.fillStyle = 'rgba(255,154,107,0.18)';
-          rr(ctx, w - 12 - sw, 68, sw, 26, 9);
-          ctx.fill();
-          ctx.fillStyle = C.verb;
-          ctx.fillText(s, w - 23, 81.5);
-        }
-        // Санамж: блок дээр дарж болно
-        if (typing && !blocksRef.current.some((b) => b.used)) {
-          ctx.font = `500 10px ${fontRef.current}`;
-          ctx.textAlign = 'center';
-          ctx.fillStyle = 'rgba(168,182,204,0.7)';
-          ctx.fillText('Үгийн блок дээр дарж нэмж болно', w / 2, WORDS_TOP - 14);
-        }
       }
 
       raf = requestAnimationFrame(draw);
