@@ -19,6 +19,7 @@ import { GrammarModule } from './grammar/grammar.module';
 import { TypeRushModule } from './type-rush/type-rush.module';
 import { DrawGuessModule } from './draw-guess/draw-guess.module';
 import { GamesModule } from './games/games.module';
+import { PlacementTestModule } from './placement-test/placement-test.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -49,6 +50,7 @@ import { AppController } from './app.controller';
     GamesModule,
     TypeRushModule,
     DrawGuessModule,
+    PlacementTestModule,
   ],
   controllers: [AppController],
 })

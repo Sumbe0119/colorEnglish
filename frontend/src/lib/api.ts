@@ -117,6 +117,7 @@ api.interceptors.response.use(
             !path.startsWith('/onboarding') &&
             !path.startsWith('/register') &&
             !path.startsWith('/verify-email') &&
+            !path.startsWith('/placement-test') &&
             path !== '/'
           ) {
             window.location.href = '/login';

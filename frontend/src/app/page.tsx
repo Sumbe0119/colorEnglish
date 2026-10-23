@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarked, Layers } from "lucide-react";
+import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarked, Layers, ClipboardCheck } from "lucide-react";
 import { PublicPricingGrid } from "@/components/billing/public-pricing-grid";
 import { LazyEnglishSection } from "@/components/home/lazy-english-section";
 import { DailyPriceHighlight } from "@/components/home/daily-price-highlight";
 import { LearningStyleSection } from "@/components/home/learning-style-section";
 import { LearningStyleStickyBar } from "@/components/home/learning-style-sticky-bar";
+import { PlacementTestSection } from "@/components/home/placement-test-section";
 import { FaqSection, type FaqItem } from "@/components/home/faq-section";
 
 export const metadata: Metadata = {
@@ -16,6 +17,10 @@ const FAQ: FaqItem[] = [
   {
     q: "Хэлний түвшин хамаатай юу?",
     a: "А1-B2 түвшний хооронд суралцагчдад зориулагдсан. Өмнө нь Англи хэл сураагүй ч асуудалгүй. C1 болон түүнээс дээш түвшний мундагуудад маани бол арай л тохиромжгүй.",
+  },
+  {
+    q: "Өөрийн түвшингээ хэрхэн мэдэх вэ?",
+    a: "Бүртгүүлэлгүй, нэвтрэлгүй 40 асуулттай түвшин тогтоох тест өгч болно. Дүрэм, үгийн сан, унших даалгавар A1-ээс C1 хүртэл шатлан хэцүүсдэг, 15 орчим минут зарцуулна. Тестээ дуусгасны дараа үр дүнг (түвшин, чадвар тус бүрийн задаргаа, асуулт бүрийн тайлбар, суралцах зөвлөмж) 5,000₮-өөр QPay-ээр төлж нээнэ.",
   },
   {
     q: "Өдөрт хэдэн минут зарцуулах вэ?",
@@ -51,14 +56,21 @@ export default function HomePage() {
           <nav className="hidden items-center gap-8 md:flex">
             {[
               ["#method", "Арга барил"],
+              ["/placement-test", "Түвшин тогтоох"],
               ["#pricing", "Үнэ"],
               ["#learning-style", "Суралцах аргаа тодорхойлох"],
               ["#faq", "FAQ"],
-            ].map(([href, label]) => (
-              <a key={href} href={href} className="text-sm text-mist-300 hover:text-mist-50 transition-colors">
-                {label}
-              </a>
-            ))}
+            ].map(([href, label]) =>
+              href.startsWith("#") ? (
+                <a key={href} href={href} className="text-sm text-mist-300 hover:text-mist-50 transition-colors">
+                  {label}
+                </a>
+              ) : (
+                <Link key={href} href={href} className="text-sm text-mist-300 hover:text-mist-50 transition-colors">
+                  {label}
+                </Link>
+              ),
+            )}
           </nav>
           <div className="flex items-center gap-6">
             <Link href="/login" className="text-sm text-mist-300 hover:text-mist-50 transition-colors">
@@ -88,6 +100,15 @@ export default function HomePage() {
             Сонирхолтой <span className="text-verb">өгүүллэгүүд</span> уншиж, <em>өгүүлбэрийн бүтцийг</em> ойлгоно
           </h1>
           <p className="mx-auto mb-10 max-w-xl text-base text-mist-300">Хэн ч Англи хэлийг ТӨГС ЭЗЭМШИЖ ЧАДНА</p>
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/placement-test"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-ink-950 transition-colors hover:bg-brand-hover"
+            >
+              <ClipboardCheck className="h-4 w-4" /> Түвшингээ 15 минутад тогтоох
+            </Link>
+            <p className="text-xs text-mist-500">Нэвтрэх шаардлагагүй · 40 асуулт · үр дүн 5,000₮</p>
+          </div>
           <div className="mx-auto mt-16 max-w-lg rounded-2xl border border-ink-700 bg-ink-800/60 p-6 text-left backdrop-blur">
             <p className="mb-2 text-xs uppercase tracking-widest text-mist-500">Жишээ өгүүлбэр</p>
             <p className="font-display text-xl leading-relaxed">
@@ -142,6 +163,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Түвшин тогтоох тест — нэвтрэхгүй өгч, үр дүнг QPay-ээр нээнэ */}
+      <PlacementTestSection />
 
       {/* Суралцах арга барил тодорхойлох + графиктай жишээ */}
       <LearningStyleSection />

@@ -1,4 +1,4 @@
-import { BookOpen, CreditCard, Percent, Plus, Receipt, Users } from 'lucide-react';
+import { BookOpen, ClipboardCheck, CreditCard, Percent, Plus, Receipt, Users } from 'lucide-react';
 
 export const ADMIN_BROWSE_NAV = {
   href: '/admin',
@@ -42,6 +42,13 @@ export const ADMIN_MANAGE_NAV = [
     shortLabel: 'Гүйлгээ',
     icon: Receipt,
     isActive: (pathname: string) => pathname.startsWith('/admin/payments'),
+  },
+  {
+    href: '/admin/placement-tests',
+    label: 'Түвшин тогтоох тест',
+    shortLabel: 'Тест',
+    icon: ClipboardCheck,
+    isActive: (pathname: string) => pathname.startsWith('/admin/placement-tests'),
   },
   {
     href: '/admin/users',

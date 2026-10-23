@@ -45,6 +45,16 @@ npm run dev:frontend   # http://localhost:3001
 npm run dev:backend    # http://localhost:8080
 ```
 
+## Түвшин тогтоох тест (нэвтрэхгүй, үр дүн төлбөртэй)
+
+- Хуудас: `/placement-test` — 40 асуулт (A1–C1 × 8, дүрэм/үгийн сан/унших), бүртгэлгүй өгнө.
+- Хариултыг сервер дүгнэж `placement_tests`-д хадгална; зочны эзэмшлийг `localStorage` дахь нууц түлхүүр
+  (`X-Placement-Token` header, DB-д sha256 хэлбэрээр) нотолно.
+- Үр дүн (түвшин, задаргаа, асуулт бүрийн тайлбар) зөвхөн QPay төлбөр `PAID` болсны дараа нээгдэнэ.
+  Үнэ: `PLACEMENT_TEST_PRICE_MNT` env (анхдагч 5000). Гүйлгээний утга: `COLORENGLISH TEST <утас>`.
+- Admin → "Түвшин тогтоох тест" (`/admin/placement-tests`): оролдлогууд, QPay дахин шалгах, банкны хуулгаар гараар баталгаажуулах.
+- Асуултын сан: `backend/src/placement-test/placement-test.bank.ts` (зөв хариулт сервер талд л байна; өөрчилбөл `PLACEMENT_BANK_VERSION` нэмэгдүүлнэ).
+
 ## Stack
 
 - **Frontend:** Next.js 14 (App Router), TypeScript, TailwindCSS, Framer Motion

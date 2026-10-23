@@ -7,6 +7,7 @@ import { QpayService } from './qpay.service';
 @Module({
   controllers: [SubscriptionsController],
   providers: [SubscriptionsService, QpayService],
-  exports: [SubscriptionsService],
+  // QpayService-ийг түвшин тогтоох тестийн төлбөрт (PlacementTestModule) дахин ашиглана
+  exports: [SubscriptionsService, QpayService],
 })
 export class SubscriptionsModule {}

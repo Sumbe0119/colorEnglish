@@ -137,6 +137,7 @@ model User {
   gameScores         GameScore[]
   gameBests          GameBest[]
   sentenceMastery    SentenceMastery[]
+  placementTests     PlacementTest[]
 
   @@map("users")
 }
@@ -896,4 +897,60 @@ model SentenceMastery {
   @@unique([userId, sentenceKey])
   @@index([userId])
   @@map("sentence_mastery")
+}
+
+// ──────────────────────────────────────────────
+// PLACEMENT TEST (Түвшин тогтоох тест — нэвтрэхгүй өгч, үр дүнг төлбөртэй нээнэ)
+// ──────────────────────────────────────────────
+
+/// Нэг оролдлого = нэг удаа илгээсэн хариулт + түүний QPay төлбөр.
+/// Зочин tokenHash-аар (localStorage дахь нууц түлхүүрийн sha256) эзэмшлээ нотолно.
+model PlacementTest {
+  id              String        @id @default(cuid())
+  /// sha256(accessToken) — түлхүүр өөрөө зөвхөн зочны төхөөрөмж дээр хадгалагдана
+  tokenHash       String        @unique
+  /// Нэвтэрсэн байсан бол холбоно (заавал биш)
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Асуултын сангийн хувилбар
+  bankVersion     Int           @default(1)
+  /// questionId → сонгосон хариултын индекс
+  answers         Json
+  totalQuestions  Int
+  correctCount    Int
+  scorePercent    Int
+  /// Тогтоосон түвшин (LevelCode)
+  level           LevelCode
+  /// PRE_A1 | A1 | A2 | B1 | B1_PLUS | B2 | B2_PLUS | C1 — шошго/зөвлөмжийн түлхүүр
+  levelKey        String
+  /// Түвшин тус бүрийн болон чадварын задаргаа
+  breakdown       Json
+  durationSec     Int?
+
+  // ── Төлбөр (QPay) — үр дүн paymentStatus = PAID үед л нээгдэнэ
+  amountMnt       Int
+  paymentStatus   PaymentStatus @default(PENDING)
+  senderInvoiceNo String?       @unique
+  qpayInvoiceId   String?
+  qpayPaymentId   String?
+  qrImage         String?       @db.Text
+  qrText          String?       @db.Text
+  shortUrl        String?
+  urlsJson        Json?
+  /// Төлөгчийн утас — гүйлгээний утга "COLORENGLISH TEST <утас>"
+  payerPhone      String?
+  paidAt          DateTime?
+  /// QPAY_CALLBACK | USER_CHECK | SWEEP | ADMIN_RECHECK | ADMIN_MANUAL
+  activationSource String?
+  qpayCheckedAt   DateTime?
+  adminNote       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentStatus, createdAt])
+  @@index([qpayInvoiceId])
+  @@index([payerPhone])
+  @@index([userId])
+  @@map("placement_tests")
 }
