@@ -20,6 +20,7 @@ import { TypeRushModule } from './type-rush/type-rush.module';
 import { DrawGuessModule } from './draw-guess/draw-guess.module';
 import { GamesModule } from './games/games.module';
 import { PlacementTestModule } from './placement-test/placement-test.module';
+import { TeacherApplicationsModule } from './teacher-applications/teacher-applications.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -51,6 +52,7 @@ import { AppController } from './app.controller';
     TypeRushModule,
     DrawGuessModule,
     PlacementTestModule,
+    TeacherApplicationsModule,
   ],
   controllers: [AppController],
 })

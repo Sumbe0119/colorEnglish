@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { ArrowRight, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 
-/** Нэвтрэхгүй хуудасны толгой — нүүр хуудастай ижил хэв маяг */
-export function PlacementHeader() {
+/** Нэвтрэхгүй хуудасны толгой — нүүр хуудастай ижил хэв маяг (түвшин тогтоох тест, багшийн CV г.м.) */
+export function PlacementHeader({ label = 'Түвшин тогтоох тест' }: { label?: string }) {
   const user = useAuthStore((s) => s.user);
 
   return (
@@ -17,7 +17,7 @@ export function PlacementHeader() {
           <Image src="/logo/logo.png" alt="Color English" fill className="object-contain object-left" priority />
         </Link>
         <nav className="flex items-center gap-3 sm:gap-5">
-          <span className="hidden text-xs uppercase tracking-widest text-mist-500 md:inline">Түвшин тогтоох тест</span>
+          <span className="hidden text-xs uppercase tracking-widest text-mist-500 md:inline">{label}</span>
           {user ? (
             <Link
               href="/reading"

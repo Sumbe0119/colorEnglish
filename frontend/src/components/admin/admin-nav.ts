@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardCheck, CreditCard, Percent, Plus, Receipt, Users } from 'lucide-react';
+import { BookOpen, ClipboardCheck, CreditCard, GraduationCap, Percent, Plus, Receipt, Users } from 'lucide-react';
 
 export const ADMIN_BROWSE_NAV = {
   href: '/admin',
@@ -56,5 +56,16 @@ export const ADMIN_MANAGE_NAV = [
     shortLabel: 'Хэрэглэгч',
     icon: Users,
     isActive: (pathname: string) => pathname.startsWith('/admin/users'),
+  },
+] as const;
+
+/** Зөвхөн ADMIN рольд харагдах — гаднаас ирсэн хүсэлтүүд (багшийн CV г.м.) */
+export const ADMIN_INBOX_NAV = [
+  {
+    href: '/admin/teacher-applications',
+    label: 'Багшийн CV',
+    shortLabel: 'CV',
+    icon: GraduationCap,
+    isActive: (pathname: string) => pathname.startsWith('/admin/teacher-applications'),
   },
 ] as const;

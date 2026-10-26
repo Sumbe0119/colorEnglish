@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarked, Layers, ClipboardCheck } from "lucide-react";
+import { ArrowRight, BookOpen, Mic, PenLine, Shuffle, Bot, Headphones, BookMarked, Layers, ClipboardCheck, GraduationCap } from "lucide-react";
 import { PublicPricingGrid } from "@/components/billing/public-pricing-grid";
 import { LazyEnglishSection } from "@/components/home/lazy-english-section";
 import { DailyPriceHighlight } from "@/components/home/daily-price-highlight";
@@ -194,7 +194,25 @@ export default function HomePage() {
           Яг одоо эхэл <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
-      <footer className="border-t border-ink-700 px-6 pb-28 pt-8 text-center text-xs text-mist-500 sm:pb-24">© 2026 ColorEnglish.🇲🇳</footer>
+      {/* Footer — багшаар CV илгээх (/teacher-cv, нэвтрэхгүй) + холбоосууд */}
+      <footer className="border-t border-ink-700 px-6 pb-28 pt-12 sm:pb-24">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-center md:justify-between">
+          <Link
+            href="/teacher-cv"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-2 text-sm font-medium text-brand transition-colors hover:bg-brand/10"
+          >
+            Багшаар CV илгээх <ArrowRight className="h-4 w-4" />
+          </Link>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-mist-400">
+            <Link href="#method" className="transition-colors hover:text-mist-50">Арга барил</Link>
+            <Link href="/placement-test" className="transition-colors hover:text-mist-50">Түвшин тогтоох</Link>
+            <Link href="#pricing" className="transition-colors hover:text-mist-50">Үнэ</Link>
+            <Link href="#faq" className="transition-colors hover:text-mist-50">Асуулт хариулт</Link>
+            <Link href="/teacher-cv" className="transition-colors hover:text-mist-50">Багшаар CV илгээх</Link>
+          </nav>
+        </div>
+        <p className="mt-10 text-center text-xs text-mist-500">© 2026 ColorEnglish.🇲🇳</p>
+      </footer>
       <LearningStyleStickyBar />
     </div>
   );

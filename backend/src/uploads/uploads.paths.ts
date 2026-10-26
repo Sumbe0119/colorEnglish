@@ -17,9 +17,11 @@ function resolveUploadsRoot() {
 
 export const UPLOADS_ROOT = resolveUploadsRoot();
 export const COVERS_DIR = join(UPLOADS_ROOT, 'covers');
+/** Багшаар ажиллах хүсэлтийн цээж зураг — /api/uploads/teacher-photos/ */
+export const TEACHER_PHOTOS_DIR = join(UPLOADS_ROOT, 'teacher-photos');
 
 export function ensureUploadDirs() {
-  for (const dir of [UPLOADS_ROOT, COVERS_DIR]) {
+  for (const dir of [UPLOADS_ROOT, COVERS_DIR, TEACHER_PHOTOS_DIR]) {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   }
 }

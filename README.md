@@ -55,6 +55,17 @@ npm run dev:backend    # http://localhost:8080
 - Admin → "Түвшин тогтоох тест" (`/admin/placement-tests`): оролдлогууд, QPay дахин шалгах, банкны хуулгаар гараар баталгаажуулах.
 - Асуултын сан: `backend/src/placement-test/placement-test.bank.ts` (зөв хариулт сервер талд л байна; өөрчилбөл `PLACEMENT_BANK_VERSION` нэмэгдүүлнэ).
 
+## Багшаар CV илгээх (footer)
+
+- Нүүр хуудасны footer → "Багшаар CV илгээх" → `/teacher-cv` (бүртгэл, нэвтрэлт шаардлагагүй).
+- Талбарууд: овог, нэр, утас, и-мэйл (заавал биш), холбоо барих хүний нэр (заавал биш) / дугаар, төрсөн огноо (16–80 нас),
+  цээж зураг, боловсрол, ажлын туршлага, хобби, ойрын 5 жилийн сонирхол, контент хийх сонирхолтой эсэх + яагаад, нэмэлт мэдээлэл.
+- Зураг эхлээд `POST /api/teacher-applications/photo` → `backend/uploads/teacher-photos/` (jpg/png/webp/gif, 5MB), дараа нь
+  `POST /api/teacher-applications` (JSON, `photoUrl`-тай). Throttle: зураг 10/мин, илгээлт 5/мин, нэг дугаараас хоногт 3.
+- Admin → "Багшийн CV" (`/admin/teacher-applications`, зөвхөн ADMIN): жагсаалт, хайлт (нэр/утас/и-мэйл), төлөвөөр шүүх,
+  дэлгэрэнгүй цонх — төлөв (Шинэ / Хянасан / Зөвшөөрсөн / Татгалзсан), админ тэмдэглэл, устгах (зураг хамт устна).
+- DB: `teacher_applications` — migration `20261026120000_teacher_applications` (idempotent, db push орчинд ч ажиллана).
+
 ## Stack
 
 - **Frontend:** Next.js 14 (App Router), TypeScript, TailwindCSS, Framer Motion

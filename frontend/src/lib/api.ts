@@ -118,6 +118,7 @@ api.interceptors.response.use(
             !path.startsWith('/register') &&
             !path.startsWith('/verify-email') &&
             !path.startsWith('/placement-test') &&
+            !path.startsWith('/teacher-cv') &&
             path !== '/'
           ) {
             window.location.href = '/login';

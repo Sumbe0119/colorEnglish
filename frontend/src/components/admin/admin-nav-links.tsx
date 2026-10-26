@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { ADMIN_BROWSE_NAV, ADMIN_CREATE_NAV, ADMIN_MANAGE_NAV } from '@/components/admin/admin-nav';
+import { ADMIN_BROWSE_NAV, ADMIN_CREATE_NAV, ADMIN_INBOX_NAV, ADMIN_MANAGE_NAV } from '@/components/admin/admin-nav';
 
 const linkClass = (active: boolean) =>
   `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
@@ -37,6 +37,14 @@ export function AdminNavLinks({ role, onNavigate }: { role: string; onNavigate?:
               {label}
             </Link>
           ))}
+
+          <div className="px-3 pb-1 pt-4 text-[10px] font-medium uppercase tracking-wider text-mist-500">Хүсэлт</div>
+          {ADMIN_INBOX_NAV.map(({ href, label, icon: Icon, isActive }) => (
+            <Link key={href} href={href} onClick={onNavigate} className={linkClass(isActive(pathname))}>
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
         </>
       )}
     </>
@@ -64,5 +72,7 @@ export function useAdminNavTitle() {
   const create = ADMIN_CREATE_NAV.find((item) => item.href === pathname);
   if (create) return create.label;
   const manage = ADMIN_MANAGE_NAV.find((item) => item.isActive(pathname));
-  return manage?.label ?? null;
+  if (manage) return manage.label;
+  const inbox = ADMIN_INBOX_NAV.find((item) => item.isActive(pathname));
+  return inbox?.label ?? null;
 }

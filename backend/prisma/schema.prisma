@@ -93,6 +93,14 @@ enum PaymentStatus {
   FAILED
 }
 
+/// Багшаар ажиллах хүсэлтийн (CV) хянах төлөв — админ өөрчилнө
+enum TeacherApplicationStatus {
+  NEW
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
 // ──────────────────────────────────────────────
 // USER & AUTH
 // ──────────────────────────────────────────────
@@ -953,4 +961,63 @@ model PlacementTest {
   @@index([payerPhone])
   @@index([userId])
   @@map("placement_tests")
+}
+
+// ──────────────────────────────────────────────
+// БАГШААР АЖИЛЛАХ ХҮСЭЛТ (CV) — footer-оос нэвтрэхгүй илгээнэ, админ хянана
+// ──────────────────────────────────────────────
+
+model TeacherApplication {
+  id           String  @id @default(cuid())
+  lastName     String
+  firstName    String
+  /// 8 оронтой утас
+  phone        String
+  email        String?
+  /// Холбоо барих (ойрын) хүний нэр, дугаар
+  contactName  String?
+  contactPhone String
+  birthDate    DateTime @db.Date
+  /// Цээж зураг — /api/uploads/teacher-photos/<uuid>.<ext>
+  photoUrl     String
+  /// Өөрийн тухай дэлгэрэнгүй танилцуулга (хуучин хүсэлтэд null)
+  aboutMe      String? @db.Text
+  /// Бусад гадаад хэлний мэдлэг — [{ language, level }]
+  otherLanguages Json  @default("[]")
+  /// Сошиал хаяг (заавал биш) — @нэр эсвэл линк
+  instagram    String?
+  facebook     String?
+  /// Хуучин (нэг талбартай) хувилбарын текст — шинэ хүсэлтэд null, зөвхөн харуулахад ашиглана
+  education    String? @db.Text
+  experience   String? @db.Text
+  /// [{ school, major, period }]
+  educations   Json    @default("[]")
+  /// [{ company, position, period, description }]
+  experiences  Json    @default("[]")
+  /// Авч байсан гавьяа, шагнал — [{ title, year }]
+  awards       Json    @default("[]")
+  /// Мэргэжлийн хэлний оноо (IELTS, TOEFL г.м.) байгаа эсэх
+  hasLanguageScore Boolean @default(false)
+  /// [{ test, score, year }]
+  languageScores Json  @default("[]")
+  hobbies      String  @db.Text
+  /// Ойрын 5 жилийн сонирхол, зорилго
+  fiveYearGoals String @db.Text
+  /// Контент (видео хичээл г.м.) хийх сонирхолтой эсэх + яагаад
+  contentInterest Boolean
+  contentReason   String @db.Text
+  /// Нэмэлт мэдээлэл (заавал биш)
+  note         String? @db.Text
+
+  status     TeacherApplicationStatus @default(NEW)
+  adminNote  String?                  @db.Text
+  /// NEW-ээс өөр төлөв рүү анх шилжсэн огноо
+  reviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
+  @@map("teacher_applications")
 }
