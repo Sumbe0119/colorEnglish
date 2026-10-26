@@ -319,11 +319,3 @@ export async function recheckAdminPlacement(id: string) {
   );
   return data;
 }
-
-export async function confirmAdminPlacement(id: string, note?: string) {
-  const { data } = await api.post<{ id: string; status: PlacementPaymentStatus; activated: boolean; alreadyPaid: boolean }>(
-    `/placement-test/admin/attempts/${id}/confirm`,
-    note?.trim() ? { note: note.trim() } : {},
-  );
-  return data;
-}

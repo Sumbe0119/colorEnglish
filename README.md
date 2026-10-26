@@ -51,8 +51,8 @@ npm run dev:backend    # http://localhost:8080
 - Хариултыг сервер дүгнэж `placement_tests`-д хадгална; зочны эзэмшлийг `localStorage` дахь нууц түлхүүр
   (`X-Placement-Token` header, DB-д sha256 хэлбэрээр) нотолно.
 - Үр дүн (түвшин, задаргаа, асуулт бүрийн тайлбар) зөвхөн QPay төлбөр `PAID` болсны дараа нээгдэнэ.
-  Үнэ: `PLACEMENT_TEST_PRICE_MNT` env (анхдагч 5000). Гүйлгээний утга: `COLORENGLISH TEST <утас>`.
-- Admin → "Түвшин тогтоох тест" (`/admin/placement-tests`): оролдлогууд, QPay дахин шалгах, банкны хуулгаар гараар баталгаажуулах.
+  Үнэ: `PLACEMENT_TEST_PRICE_MNT` env (анхдагч 3000). Төлбөр зөвхөн QPay-ээр — гараар баталгаажуулах боломжгүй.
+- Admin → "Түвшин тогтоох тест" (`/admin/placement-tests`): оролдлогууд, QPay-аас дахин шалгах.
 - Асуултын сан: `backend/src/placement-test/placement-test.bank.ts` (зөв хариулт сервер талд л байна; өөрчилбөл `PLACEMENT_BANK_VERSION` нэмэгдүүлнэ).
 
 ## Багшаар CV илгээх (footer)

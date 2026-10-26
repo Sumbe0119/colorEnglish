@@ -146,7 +146,7 @@ export default function PlacementTestPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const price = questionSet ? formatMnt(questionSet.priceMnt) : attempt ? formatMnt(attempt.priceMnt) : '5,000₮';
+  const price = questionSet ? formatMnt(questionSet.priceMnt) : attempt ? formatMnt(attempt.priceMnt) : '3,000₮';
   const count = questionSet?.questionCount ?? 40;
   const minutes = questionSet?.estimatedMinutes ?? 15;
   const draftAnswered = draft ? Object.keys(draft.answers).length : 0;

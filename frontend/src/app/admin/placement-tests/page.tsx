@@ -1,11 +1,10 @@
 // frontend/src/app/admin/placement-tests/page.tsx
-// Админ: түвшин тогтоох тестийн оролдлогууд + төлбөр (QPay дахин шалгах / гараар баталгаажуулах)
+// Админ: түвшин тогтоох тестийн оролдлогууд + QPay төлбөр (QPay-аас дахин шалгах)
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BadgeCheck, ChevronLeft, ChevronRight, ClipboardCheck, RefreshCw, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardCheck, RefreshCw, Search, X } from 'lucide-react';
 import {
-  confirmAdminPlacement,
   formatDuration,
   getAdminPlacementAttempts,
   recheckAdminPlacement,
@@ -18,7 +17,6 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/store/toast-store';
 
 const PAGE_SIZES = [20, 50, 100] as const;
@@ -78,8 +76,6 @@ function sourceLabel(source: string | null) {
       return 'Автомат шалгалт';
     case 'ADMIN_RECHECK':
       return 'Админ QPay шалгалт';
-    case 'ADMIN_MANUAL':
-      return 'Админ гараар';
     default:
       return null;
   }
@@ -108,7 +104,6 @@ export default function AdminPlacementTestsPage() {
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(20);
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<AdminPlacementRow | null>(null);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -160,21 +155,6 @@ export default function AdminPlacementTestsPage() {
     }
   };
 
-  const handleConfirm = async () => {
-    if (!confirmTarget) return;
-    setBusyId(confirmTarget.id);
-    try {
-      await confirmAdminPlacement(confirmTarget.id, 'Банкны хуулгаар админ баталгаажуулав');
-      toast.success(`${confirmTarget.payerPhone ?? confirmTarget.id}: төлбөр баталгаажиж үр дүн нээгдлээ`);
-      setConfirmTarget(null);
-      load(true);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Баталгаажуулахад алдаа гарлаа'));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const hasFilters = query !== '' || status !== 'all';
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -191,8 +171,7 @@ export default function AdminPlacementTestsPage() {
             Түвшин тогтоох тест
           </h2>
           <p className="mt-1 text-sm text-mist-400">
-            Зочны оролдлого бүр, түвшин, QPay төлбөр. Гүйлгээний утга:{' '}
-            <span className="font-mono text-mist-300">COLORENGLISH TEST &lt;утас&gt;</span>
+            Зочны оролдлого бүр, түвшин, QPay төлбөр (зөвхөн QPay-ээр төлнө)
             {data && <> · үр дүн нээх үнэ: <span className="text-mist-200">{formatMnt(data.stats.priceMnt)}</span></>}
           </p>
         </div>
@@ -285,7 +264,7 @@ export default function AdminPlacementTestsPage() {
             ) : (
               items.map((r) => {
                 const src = sourceLabel(r.activationSource);
-                const canAct = r.status !== 'PAID';
+                const canRecheck = r.status !== 'PAID' && !!r.qpayInvoiceId;
                 return (
                   <tr key={r.id} className="bg-ink-900/40 hover:bg-ink-800/50">
                     <td className="px-4 py-3 text-xs text-mist-300">
@@ -330,32 +309,18 @@ export default function AdminPlacementTestsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {canAct ? (
-                        <div className="flex items-center gap-1.5">
-                          {r.qpayInvoiceId && (
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className="h-8 gap-1 px-2.5 py-1 text-xs"
-                              title="QPay-аас дахин шалгах"
-                              isLoading={busyId === r.id}
-                              disabled={busyId !== null}
-                              onClick={() => void handleRecheck(r)}
-                            >
-                              <RefreshCw className="h-3.5 w-3.5" /> QPay
-                            </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="h-8 gap-1 px-2 py-1 text-xs"
-                            title="Банкны хуулгаар баталгаажуулж үр дүн нээх"
-                            disabled={busyId !== null}
-                            onClick={() => setConfirmTarget(r)}
-                          >
-                            <BadgeCheck className="h-3.5 w-3.5 text-emerald-400" /> Гараар
-                          </Button>
-                        </div>
+                      {canRecheck ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="h-8 gap-1 px-2.5 py-1 text-xs"
+                          title="QPay-аас дахин шалгах"
+                          isLoading={busyId === r.id}
+                          disabled={busyId !== null}
+                          onClick={() => void handleRecheck(r)}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" /> QPay
+                        </Button>
                       ) : (
                         <span className="text-xs text-mist-600">—</span>
                       )}
@@ -404,25 +369,6 @@ export default function AdminPlacementTestsPage() {
           </PageButton>
         </div>
       </div>
-
-      <ConfirmDialog
-        open={!!confirmTarget}
-        title="Төлбөрийг гараар баталгаажуулах уу?"
-        description={
-          confirmTarget
-            ? `Утас: ${confirmTarget.payerPhone ?? '—'} — ${formatMnt(confirmTarget.amountMnt)}, түвшин ${confirmTarget.levelShort}. Invoice: ${
-                confirmTarget.senderInvoiceNo ?? 'үүсээгүй'
-              }. Банкны хуулга дээр энэ гүйлгээ орсон эсэхийг шалгасан бол PAID болгож зочинд үр дүнг нээнэ.`
-            : undefined
-        }
-        confirmLabel="Тийм, баталгаажуулах"
-        cancelLabel="Болих"
-        isLoading={busyId === confirmTarget?.id}
-        onConfirm={() => void handleConfirm()}
-        onCancel={() => {
-          if (busyId === null) setConfirmTarget(null);
-        }}
-      />
     </div>
   );
 }

@@ -90,10 +90,3 @@ export class ListAdminPlacementQueryDto {
   @IsIn(ADMIN_PLACEMENT_STATUSES)
   status?: AdminPlacementStatusFilter;
 }
-
-export class AdminConfirmPlacementDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  note?: string;
-}

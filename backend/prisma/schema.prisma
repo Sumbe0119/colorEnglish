@@ -945,10 +945,10 @@ model PlacementTest {
   qrText          String?       @db.Text
   shortUrl        String?
   urlsJson        Json?
-  /// Төлөгчийн утас — гүйлгээний утга "COLORENGLISH TEST <утас>"
+  /// Төлөгчийн утас — QPay invoice-ийн тайлбар "COLORENGLISH TEST <утас>"
   payerPhone      String?
   paidAt          DateTime?
-  /// QPAY_CALLBACK | USER_CHECK | SWEEP | ADMIN_RECHECK | ADMIN_MANUAL
+  /// QPAY_CALLBACK | USER_CHECK | SWEEP | ADMIN_RECHECK (зөвхөн QPay-ээр төлнө)
   activationSource String?
   qpayCheckedAt   DateTime?
   adminNote       String?

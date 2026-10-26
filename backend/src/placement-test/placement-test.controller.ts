@@ -17,7 +17,6 @@ import { Role } from '@prisma/client';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import {
-  AdminConfirmPlacementDto,
   ListAdminPlacementQueryDto,
   PayPlacementDto,
   SubmitPlacementDto,
@@ -122,12 +121,5 @@ export class PlacementTestController {
   @HttpCode(HttpStatus.OK)
   adminRecheck(@Param('id') id: string) {
     return this.service.adminRecheck(id);
-  }
-
-  @Roles(Role.ADMIN)
-  @Post('admin/attempts/:id/confirm')
-  @HttpCode(HttpStatus.OK)
-  adminConfirm(@Param('id') id: string, @Body() dto: AdminConfirmPlacementDto) {
-    return this.service.adminConfirm(id, dto);
   }
 }

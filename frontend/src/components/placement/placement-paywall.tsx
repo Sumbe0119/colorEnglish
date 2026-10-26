@@ -248,10 +248,7 @@ export function PlacementPaywall({ attempt, session, onAttemptChange, onUnlocked
           <h3 className="flex items-center gap-2 text-sm font-semibold text-mist-50">
             <Phone className="h-4 w-4 text-brand" /> Утасны дугаар
           </h3>
-          <p className="mt-1 text-xs text-mist-400">
-            Гүйлгээ таны утсаар бүртгэгдэнэ — гүйлгээний утга:{' '}
-            <span className="font-mono text-mist-300">COLORENGLISH TEST {PHONE_RE.test(phone) ? phone : '<утас>'}</span>
-          </p>
+          <p className="mt-1 text-xs text-mist-400">Төлбөрийг зөвхөн QPay-ээр (QR эсвэл банкны апп) төлнө — invoice таны утсаар бүртгэгдэнэ.</p>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
             <div className="w-full sm:max-w-[220px]">
               <Input

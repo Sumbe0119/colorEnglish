@@ -1,6 +1,6 @@
 // backend/src/placement-test/placement-test.service.ts
 // Түвшин тогтоох тест: нэвтрэхгүй өгнө → хариулт серверт дүгнэгдэж хадгалагдана →
-// үр дүнг QPay төлбөр (анхдагч 5000₮) төлсний дараа л нээж харуулна.
+// үр дүнг QPay төлбөр (анхдагч 3000₮) төлсний дараа л нээж харуулна. Төлбөр зөвхөн QPay-ээр.
 import {
   BadRequestException,
   Injectable,
@@ -27,14 +27,13 @@ import {
   scorePlacement,
 } from './placement-test.bank';
 import {
-  AdminConfirmPlacementDto,
   ListAdminPlacementQueryDto,
   PayPlacementDto,
   SubmitPlacementDto,
 } from './placement-test.dto';
 
 /** Үр дүн нээх үнэ — env PLACEMENT_TEST_PRICE_MNT-ээр өөрчилж болно */
-const DEFAULT_PRICE_MNT = 5000;
+const DEFAULT_PRICE_MNT = 3000;
 const ESTIMATED_MINUTES = 15;
 
 /** Pending төлбөрүүдийг QPay-аас дахин шалгах давтамж */
@@ -43,12 +42,7 @@ const SWEEP_INTERVAL_MS = 2 * 60 * 1000;
 const PENDING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SWEEP_BATCH = 20;
 
-export type PlacementActivationSource =
-  | 'QPAY_CALLBACK'
-  | 'USER_CHECK'
-  | 'SWEEP'
-  | 'ADMIN_RECHECK'
-  | 'ADMIN_MANUAL';
+export type PlacementActivationSource = 'QPAY_CALLBACK' | 'USER_CHECK' | 'SWEEP' | 'ADMIN_RECHECK';
 
 type StoredBreakdown = {
   bands?: PlacementBandResult[];
@@ -225,10 +219,11 @@ export class PlacementTestService implements OnModuleInit, OnModuleDestroy {
     }
 
     const senderInvoiceNo = `CET-${Date.now()}-${row.id.slice(-6)}`;
-    // Гүйлгээний утга — админ банкны хуулгаас утсаар таньж тулгана
+    // Шинэ invoice бүр одоогийн үнээр (үнэ өөрчлөгдөхөөс өмнө өгсөн тест ч шинэ үнээр төлнө)
+    const amountMnt = this.priceMnt;
     const invoice = await this.qpay.createInvoice({
       senderInvoiceNo,
-      amount: row.amountMnt,
+      amount: amountMnt,
       description: `COLORENGLISH TEST ${phone}`,
       callbackUrl: this.qpayCallbackUrl(row.id),
     });
@@ -236,6 +231,7 @@ export class PlacementTestService implements OnModuleInit, OnModuleDestroy {
     const updated = await this.prisma.placementTest.update({
       where: { id: row.id },
       data: {
+        amountMnt,
         paymentStatus: PaymentStatus.PENDING,
         senderInvoiceNo,
         payerPhone: phone,
@@ -248,7 +244,7 @@ export class PlacementTestService implements OnModuleInit, OnModuleDestroy {
         qpayCheckedAt: null,
       },
     });
-    this.logger.log(`Placement attempt ${row.id}: QPay invoice ${invoice.invoice_id} created (${row.amountMnt}₮)`);
+    this.logger.log(`Placement attempt ${row.id}: QPay invoice ${invoice.invoice_id} created (${amountMnt}₮)`);
     return this.toView(updated);
   }
 
@@ -494,26 +490,9 @@ export class PlacementTestService implements OnModuleInit, OnModuleDestroy {
     return { id: res.row.id, status: res.row.paymentStatus, activated: res.activated, alreadyPaid: res.alreadyPaid };
   }
 
-  /** Админ: банкны хуулгаар баталгаажсан төлбөрийг гараар PAID болгож үр дүн нээх */
-  async adminConfirm(id: string, dto: AdminConfirmPlacementDto = {}) {
-    const row = await this.prisma.placementTest.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException('Тест олдсонгүй');
-    if (row.paymentStatus === PaymentStatus.PAID) {
-      return { id: row.id, status: row.paymentStatus, activated: false, alreadyPaid: true };
-    }
-    const unlocked = await this.markPaid(row.id, row.qpayPaymentId, 'ADMIN_MANUAL', dto.note?.trim() || null);
-    this.logger.log(`Placement attempt ${row.id} manually confirmed by admin`);
-    return { id: unlocked.id, status: unlocked.paymentStatus, activated: true, alreadyPaid: false };
-  }
-
   // ───────────── Туслах ─────────────
 
-  private async markPaid(
-    id: string,
-    qpayPaymentId: string | null,
-    source: PlacementActivationSource,
-    adminNote: string | null = null,
-  ) {
+  private async markPaid(id: string, qpayPaymentId: string | null, source: PlacementActivationSource) {
     const now = new Date();
     return this.prisma.placementTest.update({
       where: { id },
@@ -523,7 +502,6 @@ export class PlacementTestService implements OnModuleInit, OnModuleDestroy {
         qpayPaymentId,
         activationSource: source,
         qpayCheckedAt: now,
-        ...(adminNote ? { adminNote } : {}),
       },
     });
   }
