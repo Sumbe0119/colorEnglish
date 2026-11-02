@@ -856,6 +856,7 @@ enum GameKind {
   SENTENCE_BUILDER
   TYPE_RUSH
   DRAW_GUESS
+  TUG_OF_WAR
 }
 
 /// Нэг тоглолтын үр дүн (бүртгэлийн лог)

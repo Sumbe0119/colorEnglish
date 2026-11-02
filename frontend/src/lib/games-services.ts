@@ -2,13 +2,14 @@
 // Тоглоомын оноо бүртгэх, leaderboard авах, "Өгүүлбэр бүтээх"-ийн эзэмшсэн өгүүлбэрүүдийг хадгалах API.
 import { api } from './api';
 
-export type GameKind = 'SENTENCE_BUILDER' | 'TYPE_RUSH' | 'DRAW_GUESS';
+export type GameKind = 'SENTENCE_BUILDER' | 'TYPE_RUSH' | 'DRAW_GUESS' | 'TUG_OF_WAR';
 export type LeaderboardScope = 'ALL' | GameKind;
 
 export const GAME_LABELS: Record<GameKind, { title: string; short: string; unit: string; href: string }> = {
   SENTENCE_BUILDER: { title: 'Өгүүлбэр бүтээх', short: 'Өгүүлбэр', unit: 'оноо', href: '/sentence-builder' },
   TYPE_RUSH: { title: 'Бичих уралдаан', short: 'Уралдаан', unit: 'WPM', href: '/type-rush' },
   DRAW_GUESS: { title: 'Зураг таах', short: 'Зураг', unit: 'оноо', href: '/draw-guess' },
+  TUG_OF_WAR: { title: 'Олс татах', short: 'Олс', unit: 'оноо', href: '/tug-of-war' },
 };
 
 export type LeaderboardEntry = {

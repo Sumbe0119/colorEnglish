@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Car, Palette, Puzzle, Trophy } from 'lucide-react';
+import { BookOpen, ArrowRight, Car, Palette, Puzzle, Swords, Trophy } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { AppShell } from '@/components/layout/app-shell';
 
@@ -100,6 +100,23 @@ export default function DashboardPage() {
         </Link>
 
         <Link
+          href="/tug-of-war"
+          className="mt-4 group flex items-center gap-5 rounded-2xl border border-brand/30 bg-brand/5 p-6 transition-colors hover:border-brand/50 hover:bg-brand/10"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand/15 text-brand">
+            <Swords className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display text-lg font-semibold text-mist-50">Тоглоом — олс татах</p>
+            <p className="mt-1 text-sm text-mist-400">
+              Улаан эсвэл цэнхэр баг сонгоод 1 vs 1 (найзтайгаа онлайн эсвэл боттой). Өгүүлбэрийн хоосон зайг 4 сонголтоос зөв нөхөх бүрт олс
+              таны тал руу татагдана; тууз шугам давбал хожно.
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-mist-500 group-hover:text-brand" />
+        </Link>
+
+        <Link
           href="/leaderboard"
           className="mt-4 group flex items-center gap-5 rounded-2xl border border-modifier/30 bg-modifier/5 p-6 transition-colors hover:border-modifier/50 hover:bg-modifier/10"
         >
@@ -108,7 +125,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex-1">
             <p className="font-display text-lg font-semibold text-mist-50">Leaderboard</p>
-            <p className="mt-1 text-sm text-mist-400">Гурван тоглоомын шилдэг оноогоор хэрэглэгчдийн эрэмбэ. Та хэддүгээрт байна?</p>
+            <p className="mt-1 text-sm text-mist-400">Дөрвөн тоглоомын шилдэг оноогоор хэрэглэгчдийн эрэмбэ. Та хэддүгээрт байна?</p>
           </div>
           <ArrowRight className="h-5 w-5 text-mist-500 group-hover:text-modifier" />
         </Link>

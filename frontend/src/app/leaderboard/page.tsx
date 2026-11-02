@@ -24,7 +24,7 @@ export default function LeaderboardPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold text-mist-50">Leaderboard</h1>
           <p className="mt-1 text-sm text-mist-400">
-            Тоглоом бүрийн шилдэг оноогоор эрэмбэлнэ. «Нийт» — гурван тоглоомын шилдэг онооны нийлбэр. Өгүүлбэр бүтээх, зураг таах —
+            Тоглоом бүрийн шилдэг оноогоор эрэмбэлнэ. «Нийт» — дөрвөн тоглоомын шилдэг онооны нийлбэр. Өгүүлбэр бүтээх, зураг таах, олс татах —
             оноо; бичих уралдаан — WPM.
           </p>
         </div>

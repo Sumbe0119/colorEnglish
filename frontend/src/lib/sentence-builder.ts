@@ -1,7 +1,8 @@
 // frontend/src/lib/sentence-builder.ts
 // "Өгүүлбэр бүтээх" тоглоомын өгөгдөл ба туслах функцууд.
 // Өгүүлбэрийн БҮХ үг (a / the / to / in зэрэг жижиг үг орсон) холигдож өгөгдөнө,
-// тоглогч тэдгээрийг зөв дарааллаар бичнэ. Раунд ахих тусам өгүүлбэр 5 → 8 үг болж хүндэрнэ.
+// тоглогч тэдгээрийг зөв дарааллаар бичнэ. Нэг тоглолт = нэг level: 10 тавцан бүгд тухайн level-ийн
+// өгүүлбэрүүд (level 1 — дандаа 5 үгтэй хялбар өгүүлбэр). Level давбал дараагийн level нээгдэж үг нэмэгдэнэ.
 // Цаг дуусвал робот тавцангаас унаж тоглоом дуусна (game over).
 
 export type SentencePuzzle = {
@@ -15,7 +16,7 @@ export type SentencePuzzle = {
   level?: number;
 };
 
-/** Тоглолт бүр 10 раунд = 10 level (раунд i → level i+1). */
+/** Тоглолт бүр 10 тавцан (бүгд нэг level-ийн өгүүлбэр). */
 export const ROUNDS_PER_GAME = 10;
 export const LEVEL_COUNT = 10;
 /**
@@ -264,7 +265,7 @@ function withLevel(level: number, list: SentencePuzzle[]): SentencePuzzle[] {
   return list.map((p) => ({ ...p, level }));
 }
 
-/** 1–10 level: тавцан бүр нэг level. Level ахих тусам үг нэмэгдэж, дүрэм хүндэрнэ. */
+/** 1–10 level: тоглолт бүр нэг level. Level ахих тусам үг нэмэгдэж, дүрэм хүндэрнэ. */
 export const SENTENCE_LEVELS: SentenceLevel[] = [
   { level: 1, title: 'Одоо цаг · энгийн', grammar: 'Энгийн одоо цаг, be үйл үг', sentences: withLevel(1, BY_LENGTH[5]) },
   { level: 2, title: 'Одоо цаг · цагийн үг', grammar: 'Одоо цаг, цагийн нэмэлт (every day, at seven)', sentences: withLevel(2, BY_LENGTH[6]) },
@@ -305,13 +306,6 @@ function tokenize(s: string): string[] {
 
 export function wordCount(puzzle: SentencePuzzle): number {
   return tokenize(puzzle.answer).length;
-}
-
-/** Раунд (0-based) → level 1..10. Раундын тоо 10-аас өөр бол тэнцүү тараана. */
-export function levelForRound(round: number, total = ROUNDS_PER_GAME): number {
-  if (total <= 1) return 1;
-  const k = round / (total - 1); // 0 → 1
-  return Math.max(1, Math.min(LEVEL_COUNT, 1 + Math.floor(k * LEVEL_COUNT * 0.999)));
 }
 
 /** Тухайн өгүүлбэрт өгөх секунд: суурь + үг бүрт 3с + 5-аас илүү үг бүрт 10с (суурь 30с: 5 үг = 45с, 8 үг = 84с). */
@@ -374,25 +368,41 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * Нэг тоглолтын өгүүлбэрүүд: раунд бүр өөрийн level-ээс санамсаргүй нэг өгүүлбэр.
- * Асуудалгүй зөв хариулж эзэмшсэн (mastered) өгүүлбэрийг алгасна; тухайн level-ийн бүх өгүүлбэр
- * эзэмшигдсэн бол тэднээс дахин авна (тоглоом зогсохгүй).
+ * Нэг тоглолтын өгүүлбэрүүд: бүх раунд ЗӨВХӨН сонгосон level-ээс (level 1 → дандаа 5 үгтэй хялбар).
+ * Асуудалгүй зөв хариулж эзэмшсэн (mastered) өгүүлбэрийг эхлээд алгасна; тухайн level-ийн шинэ
+ * өгүүлбэр дуусвал эзэмшсэнээс нь дахин авна (тоглоом зогсохгүй).
  */
-export function pickRoundPuzzles(count = ROUNDS_PER_GAME, mastered: ReadonlySet<string> = new Set()): SentencePuzzle[] {
-  const fresh = new Map<number, SentencePuzzle[]>();
-  const all = new Map<number, SentencePuzzle[]>();
-  for (const lv of SENTENCE_LEVELS) {
-    all.set(lv.level, shuffle(lv.sentences));
-    fresh.set(lv.level, shuffle(lv.sentences.filter((p) => !mastered.has(puzzleKey(p)))));
-  }
+export function pickRoundPuzzles(level: number, count = ROUNDS_PER_GAME, mastered: ReadonlySet<string> = new Set()): SentencePuzzle[] {
+  const lv = levelInfo(level);
+  const fresh = shuffle(lv.sentences.filter((p) => !mastered.has(puzzleKey(p))));
+  const rest = shuffle(lv.sentences.filter((p) => mastered.has(puzzleKey(p))));
   const out: SentencePuzzle[] = [];
-  for (let i = 0; i < count; i++) {
-    const level = levelForRound(i, count);
-    const picked = fresh.get(level)?.pop() ?? all.get(level)?.pop();
-    if (!picked) break;
-    out.push(picked);
+  while (out.length < count && (fresh.length || rest.length)) {
+    out.push(fresh.length ? fresh.pop()! : rest.pop()!);
   }
   return out;
+}
+
+const UNLOCKED_KEY = 'ce.sentence-builder.unlocked';
+
+/** Нээгдсэн хамгийн дээд level (1..10). Level давбал дараагийнх нь нээгдэнэ. */
+export function loadUnlockedLevel(): number {
+  if (typeof window === 'undefined') return 1;
+  try {
+    const n = Number(window.localStorage.getItem(UNLOCKED_KEY) ?? 1);
+    return Number.isFinite(n) ? Math.max(1, Math.min(LEVEL_COUNT, Math.floor(n))) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+export function saveUnlockedLevel(level: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(UNLOCKED_KEY, String(Math.max(1, Math.min(LEVEL_COUNT, level))));
+  } catch {
+    // хадгалах боломжгүй — үл тоомсорлоно
+  }
 }
 
 /** Хэрэглэгч тухайн level-д хэдэн өгүүлбэр эзэмшсэнийг тоолно (эхлэх дэлгэцийн явц). */

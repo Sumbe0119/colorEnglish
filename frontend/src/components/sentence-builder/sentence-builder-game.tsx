@@ -4,7 +4,8 @@
 // Өгүүлбэрийн бүх үг холигдож тэнгэрт хөвнө (a / the / to орсон); монгол утга нь блокуудын дээр бичигдэнэ.
 // Тоглогч блок дээр дарж доод хэсгийн хоосон нүднүүдэд зөв дарааллаар оруулна (гар шаардлагагүй);
 // хүсвэл «Гараар бичих» товчоор текст оролт нээж бичиж болно.
-// Раунд бүр 5 → 8 үг болж хүндэрнэ, цаг нь үгийн тоогоор уртасна (үг бүрт +3с).
+// Нэг тоглолт = нэг level: 10 тавцан бүгд тухайн level-ийн өгүүлбэр (level 1 — дандаа богино, хялбар).
+// Level давбал дараагийн level нээгдэж үгийн тоо нэмэгдэнэ; цаг нь үгийн тоогоор уртасна (үг бүрт +3с).
 // Цаг дуусвал тавцан хагарч робот унана → GAME OVER. 10 тавцан давбал туг → ЯЛАЛТ.
 'use client';
 
@@ -15,6 +16,7 @@ import {
   Keyboard,
   LayoutGrid,
   Lightbulb,
+  Lock,
   MousePointerClick,
   Play,
   RotateCcw,
@@ -33,6 +35,7 @@ import {
   levelInfo,
   loadBest,
   loadMasteredLocal,
+  loadUnlockedLevel,
   masteryByLevel,
   normalizeSentence,
   pickRoundPuzzles,
@@ -42,6 +45,7 @@ import {
   roundSeconds,
   saveBestIfBetter,
   saveMasteredLocal,
+  saveUnlockedLevel,
   scoreFor,
   SENTENCE_PUZZLES,
   shuffledWords,
@@ -181,6 +185,10 @@ function GameButton({
 function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; onFinale: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [puzzles, setPuzzles] = useState<SentencePuzzle[]>([]);
+  /** Тоглож буй / сонгосон level (1..10) — тоглолтын бүх тавцан энэ level-ээс */
+  const [level, setLevel] = useState(1);
+  /** Нээгдсэн хамгийн дээд level */
+  const [unlocked, setUnlocked] = useState(1);
   const [idx, setIdx] = useState(0);
   const [words, setWords] = useState<string[]>(PREVIEW_WORDS);
   const [roundState, setRoundState] = useState<RoundState>('typing');
@@ -236,6 +244,9 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
 
   useEffect(() => {
     setBest(loadBest());
+    const un = loadUnlockedLevel();
+    setUnlocked(un);
+    setLevel(un);
     // Эзэмшсэн өгүүлбэрүүд: эхлээд localStorage, дараа нь серверийнхтэй нэгтгэнэ
     const local = loadMasteredLocal();
     masteredRef.current = local;
@@ -331,21 +342,25 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
     [setChosenBoth],
   );
 
-  const startGame = useCallback(() => {
-    unlockAudio();
-    const list = pickRoundPuzzles(ROUNDS_PER_GAME, masteredRef.current);
-    setPuzzles(list);
-    setScore(0);
-    setStreak(0);
-    streakRef.current = 0;
-    setBestStreak(0);
-    setLog([]);
-    setIsNewBest(false);
-    setServerResult(null);
-    setOverlayReady(true);
-    setPhase('playing');
-    beginRound(list, 0);
-  }, [beginRound]);
+  const startGame = useCallback(
+    (lv: number) => {
+      unlockAudio();
+      const list = pickRoundPuzzles(lv, ROUNDS_PER_GAME, masteredRef.current);
+      setLevel(lv);
+      setPuzzles(list);
+      setScore(0);
+      setStreak(0);
+      streakRef.current = 0;
+      setBestStreak(0);
+      setLog([]);
+      setIsNewBest(false);
+      setServerResult(null);
+      setOverlayReady(true);
+      setPhase('playing');
+      beginRound(list, 0);
+    },
+    [beginRound],
+  );
 
   const finishGame = useCallback(
     (finalLog: RoundLog[], finalScore: number, won: boolean) => {
@@ -358,7 +373,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
         correct,
         won,
         clean: finalLog.filter((r) => r.clean).length,
-        maxLevel: finalLog.filter((r) => r.state === 'correct').length,
+        maxLevel: won ? level : level - 1,
       })
         .then((res) => {
           setServerResult(res);
@@ -366,6 +381,12 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
         })
         .catch(() => undefined);
       if (won) {
+        // Level давлаа → дараагийн level нээгдэнэ
+        const nextUnlocked = Math.min(LEVEL_COUNT, Math.max(unlocked, level + 1));
+        if (nextUnlocked !== unlocked) {
+          setUnlocked(nextUnlocked);
+          saveUnlockedLevel(nextUnlocked);
+        }
         setPhase('won');
         setOverlayReady(false);
         sfx.fanfare();
@@ -376,7 +397,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
         sfx.gameOver();
       }
     },
-    [onFinale],
+    [level, onFinale, unlocked],
   );
 
   // Game over / ялалтын давхарга анимацийн дараа гарна
@@ -632,20 +653,20 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Color English · Game</p>
             <h1 className="mt-2 text-center font-display text-3xl font-bold tracking-wide text-mist-50 sm:text-4xl">ӨГҮҮЛБЭР БҮТЭЭХ</h1>
             <p className="mt-3 text-center text-sm text-mist-300">
-              Бэлэн үү, <span className="font-semibold text-mist-50">{playerName}</span>? Роботоо {ROUNDS_PER_GAME} тавцан давуул.
+              Бэлэн үү, <span className="font-semibold text-mist-50">{playerName}</span>? Level {level} — {levelInfo(level).title}. Роботоо {ROUNDS_PER_GAME} тавцан давуул.
             </p>
 
             {/* Дүрэм — богино, нэг мөрт */}
             <div className="mt-4 grid gap-1.5 text-xs text-mist-300 sm:grid-cols-2">
               <Rule icon={<MousePointerClick className="h-3.5 w-3.5 text-subject" />}>Үгсийг зөв дарааллаар дарж өгүүлбэр бүтээ.</Rule>
-              <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>Тавцан бүр нэг level (1–{LEVEL_COUNT}) — улам хүндэрнэ.</Rule>
+              <Rule icon={<Flame className="h-3.5 w-3.5 text-verb" />}>{ROUNDS_PER_GAME} тавцан бүгд нэг level. Давбал дараагийн level нээгдэж үг нэмэгдэнэ.</Rule>
               <Rule icon={<Skull className="h-3.5 w-3.5 text-danger" />}>Цаг дуусвал робот унана. Tip = {POINTS_WITH_TIP} оноо.</Rule>
               <Rule icon={<Check className="h-3.5 w-3.5 text-success" />}>Алдаагүй бүтээсэн өгүүлбэр дахин ирэхгүй.</Rule>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <GameButton onClick={startGame} autoFocus className="px-8 py-3 text-base">
-                <Play className="h-5 w-5" /> ТОГЛОХ
+              <GameButton onClick={() => startGame(level)} autoFocus className="px-8 py-3 text-base">
+                <Play className="h-5 w-5" /> ТОГЛОХ · LEVEL {level}
               </GameButton>
               <MuteButton />
             </div>
@@ -656,24 +677,40 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
               </p>
             )}
 
-            {/* Эзэмшсэн өгүүлбэрийн явц — level бүрээр */}
+            {/* Level сонгох + эзэмшсэн өгүүлбэрийн явц — level бүрээр */}
             <div className="mt-4 rounded-xl border border-ink-600/70 bg-ink-800/50 px-3 py-2.5">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold uppercase tracking-wider text-mist-400">Эзэмшсэн өгүүлбэр</span>
+                <span className="font-semibold uppercase tracking-wider text-mist-400">Level сонгох · эзэмшсэн өгүүлбэр</span>
                 <span className="font-mono text-mist-200">
                   {masteredCount}/{SENTENCE_PUZZLES.length}
                 </span>
               </div>
-              <div className="mt-2 grid grid-cols-10 gap-1" aria-label="Level бүрийн явц">
+              <div className="mt-2 grid grid-cols-10 gap-1" role="radiogroup" aria-label="Level сонгох">
                 {masteryByLevel(masteredRef.current).map((lv) => {
                   const k = lv.total ? lv.done / lv.total : 0;
+                  const locked = lv.level > unlocked;
+                  const active = lv.level === level;
                   return (
-                    <div key={lv.level} className="text-center" title={`Level ${lv.level}: ${lv.done}/${lv.total}`}>
-                      <div className="h-7 w-full overflow-hidden rounded-md bg-ink-900">
+                    <button
+                      key={lv.level}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={locked}
+                      onClick={() => setLevel(lv.level)}
+                      className={`group text-center transition-opacity ${locked ? 'cursor-not-allowed opacity-40' : ''}`}
+                      title={locked ? `Level ${lv.level}: өмнөх level-ийг давбал нээгдэнэ` : `Level ${lv.level} · ${levelInfo(lv.level).title}: ${lv.done}/${lv.total}`}
+                    >
+                      <div
+                        className={`relative h-7 w-full overflow-hidden rounded-md border bg-ink-900 ${
+                          active ? 'border-brand ring-2 ring-brand/50' : 'border-transparent group-hover:border-ink-500'
+                        }`}
+                      >
                         <div className="w-full bg-success/70" style={{ height: `${Math.round(k * 100)}%`, marginTop: `${Math.round((1 - k) * 100)}%` }} />
+                        {locked && <Lock className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 text-mist-400" />}
                       </div>
-                      <span className="text-[9px] text-mist-500">{lv.level}</span>
-                    </div>
+                      <span className={`text-[9px] ${active ? 'font-semibold text-brand' : 'text-mist-500'}`}>{lv.level}</span>
+                    </button>
                   );
                 })}
               </div>
@@ -697,12 +734,12 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
               <Skull className="h-7 w-7 text-danger" />
             </div>
             <p className="mt-2 text-center text-sm text-mist-300">
-              Робот level {idx + 1}-ийн тавцангаас унав. Цаг дуусахаас өмнө өгүүлбэрээ бүтээгээрэй!
+              Робот level {level}-ийн {idx + 1}-р тавцангаас унав. Цаг дуусахаас өмнө өгүүлбэрээ бүтээгээрэй!
             </p>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <Stat label="Оноо" value={String(score)} tone="text-mist-50" />
-              <Stat label="Level" value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
+              <Stat label={`Level ${level}`} value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
               <Stat label="Combo" value={`${bestStreak}x`} tone="text-verb" />
             </div>
             {isNewBest && (
@@ -731,7 +768,7 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
             )}
 
             <div className="mt-5 flex flex-wrap justify-center gap-2">
-              <GameButton onClick={startGame} autoFocus>
+              <GameButton onClick={() => startGame(level)} autoFocus>
                 <RotateCcw className="h-4 w-4" /> Дахин тоглох
               </GameButton>
               <GameButton onClick={quit} tone="ghost">
@@ -749,11 +786,14 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
               <Trophy className="h-7 w-7 text-modifier" />
               <h2 className="font-display text-3xl font-bold tracking-[0.12em] text-success sm:text-4xl">ТУГАНД ХҮРЛЭЭ!</h2>
             </div>
-            <p className="mt-2 text-center text-sm text-mist-300">Баяр хүргэе, {playerName}! {ROUNDS_PER_GAME} тавцанг бүгдийг давлаа.</p>
+            <p className="mt-2 text-center text-sm text-mist-300">
+              Баяр хүргэе, {playerName}! Level {level}-ийн {ROUNDS_PER_GAME} тавцанг бүгдийг давлаа.
+              {level < LEVEL_COUNT ? ` Level ${level + 1} нээгдлээ — ${levelInfo(level + 1).title}.` : ' Бүх level давлаа!'}
+            </p>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <Stat label="Оноо" value={String(score)} tone="text-mist-50" />
-              <Stat label="Level" value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
+              <Stat label={`Level ${level}`} value={`${correctCount}/${ROUNDS_PER_GAME}`} tone="text-success" />
               <Stat label="Combo" value={`${bestStreak}x`} tone="text-verb" />
             </div>
             {isNewBest && (
@@ -794,9 +834,20 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
             </div>
 
             <div className="mt-5 flex flex-wrap justify-center gap-2">
-              <GameButton onClick={startGame} autoFocus>
-                <RotateCcw className="h-4 w-4" /> Дахин тоглох
-              </GameButton>
+              {level < LEVEL_COUNT ? (
+                <>
+                  <GameButton onClick={() => startGame(level + 1)} autoFocus>
+                    <Play className="h-4 w-4" /> Level {level + 1} рүү
+                  </GameButton>
+                  <GameButton onClick={() => startGame(level)} tone="ghost">
+                    <RotateCcw className="h-4 w-4" /> Дахин тоглох
+                  </GameButton>
+                </>
+              ) : (
+                <GameButton onClick={() => startGame(level)} autoFocus>
+                  <RotateCcw className="h-4 w-4" /> Дахин тоглох
+                </GameButton>
+              )}
               <GameButton onClick={quit} tone="ghost">
                 Эхлэл рүү
               </GameButton>
@@ -815,10 +866,10 @@ function SentenceBuilderInner({ playerName, onFinale }: { playerName: string; on
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <p className="flex items-center gap-2 text-xs text-mist-400">
               <span className="shrink-0 rounded-md bg-brand/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
-                Level {idx + 1}
+                Level {level} · {idx + 1}/{ROUNDS_PER_GAME}
               </span>
-              <span className="hidden text-[11px] text-mist-300 sm:inline" title={levelInfo(idx + 1).grammar}>
-                {levelInfo(idx + 1).title}
+              <span className="hidden text-[11px] text-mist-300 sm:inline" title={levelInfo(level).grammar}>
+                {levelInfo(level).title}
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] text-mist-500">
                 <Timer className="h-3 w-3" /> {wordCount(puzzle)} үг · {roundSeconds(puzzle)}с{manual ? ' · гараар' : ''}
