@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardCheck, CreditCard, GraduationCap, Percent, Plus, Receipt, Users } from 'lucide-react';
+import { BookOpen, ClipboardCheck, CreditCard, GraduationCap, Headphones, Percent, Plus, Receipt, Users } from 'lucide-react';
 
 export const ADMIN_BROWSE_NAV = {
   href: '/admin',
@@ -56,6 +56,13 @@ export const ADMIN_MANAGE_NAV = [
     shortLabel: 'Хэрэглэгч',
     icon: Users,
     isActive: (pathname: string) => pathname.startsWith('/admin/users'),
+  },
+  {
+    href: '/admin/listening',
+    label: 'Сонсох тоглоом',
+    shortLabel: 'Сонсох',
+    icon: Headphones,
+    isActive: (pathname: string) => pathname.startsWith('/admin/listening'),
   },
 ] as const;
 

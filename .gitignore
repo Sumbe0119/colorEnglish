@@ -48,3 +48,5 @@ coverage/
 # Uploaded media (keep folder via .gitkeep)
 backend/uploads/**
 !backend/uploads/.gitkeep
+backend/.env.prod
+.env.prod

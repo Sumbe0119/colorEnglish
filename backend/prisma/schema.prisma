@@ -146,6 +146,7 @@ model User {
   gameBests          GameBest[]
   sentenceMastery    SentenceMastery[]
   placementTests     PlacementTest[]
+  listeningAttempts  ListeningAttempt[]
 
   @@map("users")
 }
@@ -857,6 +858,7 @@ enum GameKind {
   TYPE_RUSH
   DRAW_GUESS
   TUG_OF_WAR
+  LISTENING
 }
 
 /// Нэг тоглолтын үр дүн (бүртгэлийн лог)
@@ -1021,4 +1023,61 @@ model TeacherApplication {
   @@index([status, createdAt])
   @@index([phone])
   @@map("teacher_applications")
+}
+
+// ─── Сонсох тоглоом (Listening): YouTube клип + transcript, үгийн тайлбар, оролдлого ───
+
+/// Богино видео клип (YouTube) — transcript-ийг сервер татаж хадгална
+model ListeningClip {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  youtubeId   String
+  /// Клипийн эхлэх / дуусах секунд (видеоны абсолют цаг)
+  startSec    Int       @default(0)
+  endSec      Int
+  levelCode   LevelCode @default(A2)
+  isPublished Boolean   @default(true)
+  order       Int       @default(1)
+  /// [{ start, end, text }] — секундээр, клипийн хүрээн дэх мөрүүд
+  segments    Json
+  /// { word: count } — stopword-гүй, 2+ давтагдсан үгс
+  wordCounts  Json
+  attempts    ListeningAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, order])
+  @@map("listening_clips")
+}
+
+/// Үгийн дэлгэрэнгүй тайлбар (AI-аар үүсгээд кэшилнэ)
+model ListeningWordInfo {
+  id        String   @id @default(cuid())
+  word      String   @unique
+  info      Json
+  /// claude | basic
+  source    String   @default("basic")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("listening_word_infos")
+}
+
+/// Нэг үгийн нэг оролдлого
+model ListeningAttempt {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clipId    String
+  clip      ListeningClip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  word      String
+  expected  Int
+  clicked   Int
+  correct   Boolean
+  createdAt DateTime      @default(now())
+
+  @@index([userId, clipId])
+  @@map("listening_attempts")
 }
