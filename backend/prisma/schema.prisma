@@ -812,7 +812,7 @@ model UserStoryProgress {
 }
 
 // ─── Дүрмийн (grammar) хичээлийн явц ───────────────────────
-// Дүрмийн агуулга frontend-д статикаар (frontend/src/lib/grammar/{a1,a2,b1}) байдаг;
+// Дүрмийн агуулга frontend-д статикаар (frontend/src/lib/grammar/{a1,a2,b1,b2,c1}) байдаг;
 // ruleId нь түвшин доторх 1..N дараалал. Эхний хичээлүүд үнэгүй, бусад нь VIP бөгөөд
 // өмнөх хичээлийн шалгалтад тэнцсэний дараа нээгдэнэ (backend/src/grammar).
 

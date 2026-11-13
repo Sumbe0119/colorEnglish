@@ -4,7 +4,7 @@ import { GrammarService } from './grammar.service';
 import { SubmitGrammarQuizDto } from './grammar.dto';
 import { parseGrammarLevel } from './grammar-curriculum';
 
-/** Дүрмийн (A1, A2, B1) хичээлийн явц — нэвтэрсэн хэрэглэгч (global JwtAuthGuard) */
+/** Дүрмийн (A1, A2, B1, B2, C1) хичээлийн явц — нэвтэрсэн хэрэглэгч (global JwtAuthGuard) */
 @Controller('grammar')
 export class GrammarController {
   constructor(private grammarService: GrammarService) {}

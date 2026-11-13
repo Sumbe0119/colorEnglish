@@ -3,7 +3,7 @@
 // бөгөөд өмнөх хичээлийн шалгалтад тэнцсэний дараа нээгдэнэ — түгжээг backend тооцоолно.
 import { api } from '@/lib/api';
 
-export type GrammarLevel = 'a1' | 'a2' | 'b1';
+export type GrammarLevel = 'a1' | 'a2' | 'b1' | 'b2' | 'c1';
 
 export type RuleProgress = {
   /** Дүрмийн дэлгэрэнгүйг нээж үзсэн эсэх */

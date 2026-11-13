@@ -1,5 +1,5 @@
 // frontend/src/components/rule/grammar-level-page.tsx
-// Түвшин бүрийн (A1, A2, B1) дүрмийн хуудасны нийтлэг бүтэц — дүрмийн жагсаалт + шалгалт.
+// Түвшин бүрийн (A1, A2, B1, B2, C1) дүрмийн хуудасны нийтлэг бүтэц — дүрмийн жагсаалт + шалгалт.
 // Эхний хичээлүүд үнэгүй; бусад нь VIP бөгөөд өмнөх хичээлийн шалгалтад тэнцсэний дараа нээгдэнэ.
 'use client';
 
@@ -44,6 +44,8 @@ export const GRAMMAR_LEVELS: { level: GrammarLevel; label: string; href: string 
   { level: 'a1', label: 'A1', href: '/rule' },
   { level: 'a2', label: 'A2', href: '/rule/a2' },
   { level: 'b1', label: 'B1', href: '/rule/b1' },
+  { level: 'b2', label: 'B2', href: '/rule/b2' },
+  { level: 'c1', label: 'C1', href: '/rule/c1' },
 ];
 
 const DEFAULT_PASS_PERCENT = 75;

@@ -5,19 +5,23 @@ export const GRAMMAR_LEVELS = {
   a1: LevelCode.A1,
   a2: LevelCode.A2,
   b1: LevelCode.B1,
+  b2: LevelCode.B2,
+  c1: LevelCode.C1,
 } as const;
 
 export type GrammarLevelSlug = keyof typeof GRAMMAR_LEVELS;
 
 /**
  * Түвшин бүрийн дүрмийн тоо. Дүрмийн id нь заах дарааллаар 1..N байна.
- * frontend/src/lib/grammar/{a1,a2,b1}/index.ts-ийн дүрмийн жагсаалттай таарах ёстой —
+ * frontend/src/lib/grammar/{a1,a2,b1,b2,c1}/index.ts-ийн дүрмийн жагсаалттай таарах ёстой —
  * шинэ дүрэм нэмбэл энд ч шинэчилнэ.
  */
 export const GRAMMAR_RULE_COUNTS: Record<GrammarLevelSlug, number> = {
   a1: 15,
   a2: 16,
   b1: 15,
+  b2: 15,
+  c1: 15,
 };
 
 /** VIP биш хэрэглэгчид нээлттэй, дарааллын түгжээгүй эхний хичээлүүд */

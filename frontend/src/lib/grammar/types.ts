@@ -1,5 +1,5 @@
 // frontend/src/lib/grammar/types.ts
-// Дүрмийн агуулгын төрлүүд (A1, A2, B1). Агуулга нь ./a1/rule-NN.ts, ./a2/rule-NN.ts, ./b1/rule-NN.ts файлуудад.
+// Дүрмийн агуулгын төрлүүд (A1, A2, B1, B2, C1). Агуулга нь ./{a1,a2,b1,b2,c1}/rule-NN.ts файлуудад.
 
 /** Өгүүлбэрийн гишүүн — ColorEnglish-ийн өнгөт систем (tailwind: subject/verb/object/modifier). */
 export type SentencePart = 'subject' | 'verb' | 'object' | 'modifier';

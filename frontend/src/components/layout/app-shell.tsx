@@ -52,7 +52,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isProfile = pathname.startsWith("/profile");
   const isRuleA2 = pathname.startsWith("/rule/a2");
   const isRuleB1 = pathname.startsWith("/rule/b1");
-  const isRule = pathname.startsWith("/rule") && !isRuleA2 && !isRuleB1;
+  const isRuleB2 = pathname.startsWith("/rule/b2");
+  const isRuleC1 = pathname.startsWith("/rule/c1");
+  const isRule = pathname.startsWith("/rule") && !isRuleA2 && !isRuleB1 && !isRuleB2 && !isRuleC1;
   const isAdmin = pathname.startsWith("/admin");
   const isImmersiveReader = /\/reading\/[^/]+\/read\//.test(pathname);
   const isStoryOverview = /^\/reading\/[^/]+$/.test(pathname);
@@ -182,6 +184,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <BookOpen className="h-4 w-4" />
             B1 түвшний дүрэм
+          </Link>
+          <Link
+            href="/rule/b2"
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              isRuleB2 ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            B2 түвшний дүрэм
+          </Link>
+          <Link
+            href="/rule/c1"
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              isRuleC1 ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            C1 түвшний дүрэм
           </Link>
           <Link
             href="/profile"
@@ -420,6 +440,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <BookOpen className="h-4 w-4" />
                 B1 түвшний дүрэм
+              </Link>
+
+              <Link
+                href="/rule/b2"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isRuleB2 ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                B2 түвшний дүрэм
+              </Link>
+
+              <Link
+                href="/rule/c1"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  isRuleC1 ? "bg-brand/20 text-brand shadow-glow" : "text-mist-300 hover:bg-ink-800 hover:text-mist-50"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                C1 түвшний дүрэм
               </Link>
 
               <Link
